@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>[[${websiteBaseConfig.websiteName}]] 快捷登录</title>
+    <link rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+    <style data-hs-appearance-onload-styles>
+        * { transition: unset !important; }
+        body { opacity: 0; }
+    </style>
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl footer-offset">
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+<div th:replace="common/common-dashboard::header(curPage='quick-login-setting', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+<div th:replace="common/common-dashboard::aside(curPage='quick-login-setting', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<main id="content" role="main" class="main">
+    <div class="content container-fluid">
+        <div class="page-header" style="padding-bottom: 5px;margin-bottom: 10px">
+            <div class="row align-items-end">
+                <div class="col-sm mb-2 mb-sm-0">
+                    <h1 class="page-header-title">快捷登录 <i class="bi-box-arrow-in-right nav-icon"></i></h1>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-3">
+                <div class="navbar-expand-lg navbar-vertical mb-3 mb-lg-5">
+                    <div class="d-grid">
+                        <button type="button" class="navbar-toggler btn btn-white mb-3" data-bs-toggle="collapse"
+                                data-bs-target="#navbarVerticalNavMenu" aria-label="Toggle navigation"
+                                aria-expanded="false" aria-controls="navbarVerticalNavMenu">
+                            <span class="d-flex justify-content-between align-items-center">
+                                <span class="text-dark">菜单</span>
+                                <span class="navbar-toggler-default"><i class="bi-list"></i></span>
+                                <span class="navbar-toggler-toggled"><i class="bi-x"></i></span>
+                            </span>
+                        </button>
+                    </div>
+
+                    <div id="navbarVerticalNavMenu" class="collapse navbar-collapse">
+                        <ul id="navbarSettings"
+                            class="js-sticky-block js-scrollspy card card-navbar-nav nav nav-tabs nav-lg nav-vertical"
+                            data-hs-sticky-block-options='{
+                                "parentSelector": "#navbarVerticalNavMenu",
+                                "targetSelector": "#header",
+                                "breakpoint": "lg",
+                                "startPoint": "#navbarVerticalNavMenu",
+                                "endPoint": "#stickyBlockEndPoint",
+                                "stickyOffsetTop": 20
+                            }'>
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#wechatLoginPart">
+                                    <i class="bi-wechat nav-icon"></i> 微信登录
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-9">
+                <div class="d-grid gap-3 gap-lg-5">
+                    <div id="wechatLoginPart" class="card">
+                        <div class="card-header">
+                            <h2 class="card-title h4">微信登录</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-4">
+                                <label class="col-sm-3 col-form-label form-label" for="wechatCodeStatus">启用状态</label>
+                                <div class="col-sm-9">
+                                    <div class="form-check form-switch mt-2">
+                                        <input class="form-check-input" type="checkbox" id="wechatCodeStatus"
+                                               th:checked="${weChatCodeConfig != null and weChatCodeConfig.wechatStatus == 1}">
+                                        <label class="form-check-label" for="wechatCodeStatus">启用微信快捷登录</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-4">
+                                <label for="appId" class="col-sm-3 col-form-label form-label">AppID
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="微信公众号后台获取的开发者ID"></i>
+                                </label>
+                                <div class="col-sm-9">
+                                    <input th:value="${weChatCodeConfig} eq null ? '' : ${weChatCodeConfig.appId}"
+                                           type="text" class="form-control" id="appId" maxlength="100"
+                                           placeholder="请输入微信公众号 AppID">
+                                </div>
+                            </div>
+
+                            <div class="row mb-4">
+                                <label for="appSecret" class="col-sm-3 col-form-label form-label">AppSecret
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="微信公众号后台获取的开发者密码"></i>
+                                </label>
+                                <div class="col-sm-9">
+                                    <input th:value="${weChatCodeConfig} eq null ? '' : ${weChatCodeConfig.appSecret}"
+                                           type="text" class="form-control" id="appSecret" maxlength="200"
+                                           placeholder="请输入微信公众号 AppSecret">
+                                </div>
+                            </div>
+
+                            <div class="row mb-4">
+                                <label for="wechatToken" class="col-sm-3 col-form-label form-label">Token
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="微信公众号服务器配置中的 Token，需要和微信后台填写一致"></i>
+                                </label>
+                                <div class="col-sm-9">
+                                    <input th:value="${weChatCodeConfig} eq null ? '' : ${weChatCodeConfig.token}"
+                                           type="text" class="form-control" id="wechatToken" maxlength="100"
+                                           placeholder="请输入微信服务器配置 Token">
+                                </div>
+                            </div>
+
+                            <div class="row mb-4">
+                                <label for="notifyUrl" class="col-sm-3 col-form-label form-label">回调地址
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="微信公众号后台服务器地址填写这个地址"></i>
+                                </label>
+                                <div class="col-sm-9">
+                                    <input th:value="${weChatCodeConfig != null and !#strings.isEmpty(weChatCodeConfig.notifyUrl)} ? ${weChatCodeConfig.notifyUrl} : 'http://www.52luobo.com/sign'"
+                                           type="text" class="form-control" id="notifyUrl" maxlength="200"
+                                           placeholder="例如：http://www.52luobo.com/sign">
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end">
+                                <button onclick="saveWechatCodeConfig()" class="btn btn-primary">保存更改</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="stickyBlockEndPoint"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="common/common-dashboard::#footer(curPage='quick-login-setting')"></div>
+</main>
+
+<div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='quick-login-setting')"></div>
+
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-sticky-block/dist/hs-sticky-block.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-scrollspy/dist/hs-scrollspy.min.js}"></script>
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/util/reg.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom_cmo.js(v='20260623-quick-login')}"></script>
+
+<script>
+    (function () {
+        window.onload = function () {
+            new HSSideNav('.js-navbar-vertical-aside').init()
+            new HSFormSearch('.js-form-search')
+            HSBsDropdown.init()
+            new HSStickyBlock('.js-sticky-block', {
+                targetSelector: document.getElementById('header').classList.contains('navbar-fixed') ? '#header' : null
+            })
+            new bootstrap.ScrollSpy(document.body, {
+                target: '#navbarSettings',
+                offset: 100
+            })
+            new HSScrollspy('#navbarVerticalNavMenu', {
+                breakpoint: 'lg',
+                scrollOffset: -20
+            })
+        }
+    })()
+</script>
+</body>
+</html>

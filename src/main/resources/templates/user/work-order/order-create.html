@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title th:if="${!openAgent}">[[${websiteBaseConfig.websiteName}]] 创建工单</title>
+    <title th:if="${openAgent}">[[${agentConfig.websiteName}]] 创建工单</title>
+
+    <!-- Favicon -->
+    <link th:if="${!openAgent}" rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:if="${openAgent}" rel="shortcut icon" th:href="${agentConfig.icon}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/daterangepicker/daterangepicker.css}">
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {"switcherSupport": true},
+                "header": {"layoutMode": "default", "containerMode": "container-fluid"},
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {"100": "#f9fafc", "900": "#1e2022"}
+                    }, "font": "Inter"
+                }
+            },
+            "languageDirection": {"lang": "en"},
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {"*assets/js/theme-custom.js": ""},
+                "build": {"*assets/js/theme-custom.js": "", "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"}
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {"src": "./src", "dist": "./dist", "build": "./build"},
+            "fileNames": {
+                "dist": {"js": "theme.min.js", "css": "theme.min.css"},
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl footer-offset">
+
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+<!-- ========== HEADER ========== -->
+
+<div th:replace="common/common-dashboard::header(curPage='order-create', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<!-- Navbar Vertical -->
+
+<div th:replace="common/common-dashboard::aside(curPage='order-create', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- End Navbar Vertical -->
+
+<main id="content" role="main" class="main">
+    <!-- Content -->
+    <div class="content container-fluid">
+        <!-- Page Header -->
+        <div class="page-header" style="padding-bottom: 5px;margin-bottom: 10px">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="page-header-title">创建工单 <i class="bi-list-ul nav-icon"></i>
+                    </h1>
+                </div>
+
+                <!-- End Col -->
+            </div>
+            <!-- End Row -->
+        </div>
+        <!-- End Page Header -->
+        <div class="row justify-content-lg-center">
+            <div class="col-lg-12">
+                <div class="d-grid gap-3 gap-lg-5">
+                    <!-- Card -->
+                    <div class="card">
+                        <!-- Header -->
+                        <div class="card-header card-header-content-between border-bottom">
+                            <h4 class="card-header-title">工单信息
+                            </h4>
+                        </div>
+                        <!-- End Header -->
+                        <!-- Body -->
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- Form -->
+                                <div class="col-lg-6 mb-4">
+                                    <label class="col-sm-3 col-form-label form-label">工单类型</label>
+
+                                    <!-- Select -->
+                                    <div class="tom-select-custom">
+                                        <select id="typeId" class="js-select form-select" autocomplete="off"
+                                                data-hs-tom-select-options='{
+                                                      "hideSearch": true
+                                                    }'>
+                                            <option th:each="t: ${workOrderTypes}" th:text="${t.typeName}"
+                                                    th:value="${t.id}"></option>
+                                        </select>
+                                    </div>
+                                    <!-- End Select -->
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="col-lg-6 mb-4">
+                                    <label class="col-sm-3 col-form-label form-label">紧急程度</label>
+
+                                    <div class="tom-select-custom">
+                                        <select id="urgentLevel" class="js-select form-select" autocomplete="off"
+                                                data-hs-tom-select-options='{
+                                                      "hideSearch": true
+                                                    }'>
+                                            <option value="common">一般咨询</option>
+                                            <option value="experience">操作体验</option>
+                                            <option value="exception">系统异常</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+                            </div>
+                            <!-- End Row -->
+
+                            <div class="row">
+                                <!-- Form -->
+                                <div class="col-lg-12 mb-4">
+                                    <label for="title" class="col-sm-3 col-form-label form-label">工单标题</label>
+
+                                    <div class="col-sm-12">
+                                        <input id="title" type="text" class="form-control"
+                                               maxlength="30"
+                                               placeholder="请填写工单标题">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+                            </div>
+                            <!-- End Row -->
+
+                            <div class="row">
+                                <!-- Form -->
+                                <div class="col-lg-12 mb-4">
+                                    <label for="title" class="col-sm-3 col-form-label form-label">问题域名</label>
+
+                                    <div class="col-sm-12">
+                                        <input id="domain" type="text" class="form-control"
+                                               maxlength="300"
+                                               placeholder="请填写出现问题的域名、IP 等相关信息">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+                            </div>
+                            <!-- End Row -->
+
+                            <div class="row">
+                                <!-- Form -->
+                                <div class="col-lg-12 mb-4">
+                                    <label for="title" class="col-sm-3 col-form-label form-label">详情</label>
+
+                                    <div class="col-sm-12">
+                                        <div class="mb-3">
+                                            <textarea id="exampleFormControlTextarea1" class="form-control"
+                                                      placeholder="输入工单详情" rows="4"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+                            </div>
+                            <!-- End Row -->
+                        </div>
+                        <!-- End Body -->
+
+                        <hr class="my-3">
+
+                        <!-- Body -->
+                        <div class="card-body">
+                            <div class="d-flex justify-content-end">
+                                <div class="row gx-3">
+                                    <!-- End Col -->
+                                    <div class="col-sm">
+                                        <div class="d-grid">
+                                            <button class="btn btn-primary" onclick="submitWorkOrder()">提交工单
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <!-- End Col -->
+                                </div>
+                            </div>
+
+                        </div>
+                        <!-- End Body -->
+                    </div>
+                    <!-- End Card -->
+                </div>
+            </div>
+            <!-- End Col -->
+        </div>
+    </div>
+    <!-- End Content -->
+
+    <!-- Footer -->
+
+    <div th:replace="common/common-dashboard::#footer(curPage='order-create')"></div>
+
+    <!-- End Footer -->
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- ========== SECONDARY CONTENTS ========== -->
+
+<div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='order-create')"></div>
+
+<!-- ========== END SECONDARY CONTENTS ========== -->
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+<!-- JS Implementing Plugins -->
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/chart.js/dist/Chart.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/chartjs-chart-matrix/dist/chartjs-chart-matrix.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/daterangepicker/moment.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/daterangepicker/daterangepicker.js}"></script>
+<script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/clipboard/dist/clipboard.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/datatables/media/js/jquery.dataTables.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/datatables.net.extensions/select/select.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-file-attach/dist/hs-file-attach.min.js}"></script>
+
+<!-- JS Front -->
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+<script th:src="@{dashboard/assets/js/hs.theme-appearance-charts.js}"></script>
+
+
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/util/reg.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom_ceo.js}"></script>
+<script th:src="@{common/custom_cmo.js}"></script>
+<script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+
+<!-- JS Plugins Init. -->
+<script>
+    (function () {
+        localStorage.removeItem('hs_theme')
+
+        window.onload = function () {
+
+            // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+            // =======================================================
+            new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+            // INITIALIZATION OF BOOTSTRAP DROPDOWN
+            // =======================================================
+            HSBsDropdown.init()
+
+            // INITIALIZATION OF CHARTJS
+            // =======================================================
+            HSCore.components.HSChartJS.init('.js-chart')
+
+            // INITIALIZATION OF SELECT
+            // =======================================================
+            HSCore.components.HSTomSelect.init('.js-select')
+
+            // INITIALIZATION OF FILE ATTACH
+            // =======================================================
+            new HSFileAttach('.js-file-attach')
+
+
+            // INITIALIZATION OF CLIPBOARD
+            // =======================================================
+            HSCore.components.HSClipboard.init('.js-clipboard')
+        }
+    })()
+</script>
+
+<!-- Style Switcher JS -->
+
+<script>
+    (function () {
+        // STYLE SWITCHER
+        // =======================================================
+        const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+        const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+        // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+        const setActiveStyle = function () {
+            $variants.forEach($item => {
+                if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                    $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                    return $item.classList.add('active')
+                }
+
+                $item.classList.remove('active')
+            })
+        }
+
+        // Add a click event to all items of the dropdown to set the style
+        $variants.forEach(function ($item) {
+            $item.addEventListener('click', function () {
+                HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+            })
+        })
+
+        // Call the setActiveStyle on load page
+        setActiveStyle()
+
+        // Add event listener on change style to call the setActiveStyle function
+        window.addEventListener('on-hs-appearance-change', function () {
+            setActiveStyle()
+        })
+
+    })()
+</script>
+
+<!-- End Style Switcher JS -->
+</body>
+
+</html>
+<div th:replace="common/common-dashboard::#agent"></div>

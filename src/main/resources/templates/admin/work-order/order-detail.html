@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title th:if="${!openAgent}">[[${websiteBaseConfig.websiteName}]] 工单详情</title>
+    <title th:if="${openAgent}">[[${agentConfig.websiteName}]] 工单详情</title>
+
+    <!-- Favicon -->
+    <link th:if="${!openAgent}" rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:if="${openAgent}" rel="shortcut icon" th:href="${agentConfig.icon}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <!--    <link rel="stylesheet" th:href="@{dashboard/assets/imgjs/simple-lightbox.min.css}">-->
+    <!--    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/simplelightbox/2.7.0/simple-lightbox.css">-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.5.7/jquery.fancybox.min.css"/>
+
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <style>
+        .sendBtn:hover {
+            background-color: black;
+        }
+
+        .sendImgBtn:hover {
+            cursor: pointer;
+        }
+
+    </style>
+
+    <script>
+
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {"switcherSupport": true},
+                "header": {"layoutMode": "default", "containerMode": "container-fluid"},
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {"100": "#f9fafc", "900": "#1e2022"}
+                    }, "font": "Inter"
+                }
+            },
+            "languageDirection": {"lang": "en"},
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {"*assets/js/theme-custom.js": ""},
+                "build": {"*assets/js/theme-custom.js": "", "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"}
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {"src": "./src", "dist": "./dist", "build": "./build"},
+            "fileNames": {
+                "dist": {"js": "theme.min.js", "css": "theme.min.css"},
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl   footer-offset">
+
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+<!-- ========== HEADER ========== -->
+
+<div th:replace="common/common-dashboard::header(curPage='order-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<!-- Navbar Vertical -->
+
+<div th:replace="common/common-dashboard::aside(curPage='order-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+<main id="content" role="main" class="main">
+    <!-- Content -->
+    <div class="content container-fluid">
+        <!-- Page Header -->
+        <div class="page-header d-print-none" style="padding-bottom: 5px;margin-bottom: 10px">
+            <div class="row align-items-center">
+                <div class="col-sm mb-2 mb-sm-0">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb breadcrumb-no-gutter">
+                            <li class="breadcrumb-item"><a class="breadcrumb-link" href="order-list">工单列表</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">工单详情</li>
+                        </ol>
+                    </nav>
+                </div>
+                <!-- End Col -->
+
+            </div>
+            <!-- End Row -->
+        </div>
+        <!-- End Page Header -->
+
+        <div class="row">
+            <div class="col-lg-4 mb-3 mb-lg-0">
+                <!-- Card -->
+                <div class="card">
+                    <!-- Header -->
+                    <div class="card-header">
+                        <h4 class="card-header-title">[[${workOrder.title}]]</h4>
+                    </div>
+                    <!-- End Header -->
+
+                    <!-- Body -->
+                    <div class="card-body">
+                        <!-- List Group -->
+                        <ul class="list-group list-group-flush list-group-no-gutters">
+                            <li class="list-group-item">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <span class="text-body text-inherit">用户</span>
+                                    </div>
+                                    <div class="flex-grow-1 text-end"><span
+                                            class="text-body text-inherit">[[${orderUser.userName}]]</span>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <li class="list-group-item">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <span class="text-body text-inherit">工单编号</span>
+                                    </div>
+                                    <div class="flex-grow-1 text-end"><span
+                                            class="text-body text-inherit">[[${workOrder.cd}]]</span>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <li class="list-group-item">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <span class="text-body text-inherit">工单类型</span>
+                                    </div>
+                                    <div class="flex-grow-1 text-end"><span
+                                            class="text-body text-inherit">[[${orderType.typeName}]]</span>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <li class="list-group-item">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <span class="text-body text-inherit">问题域名</span>
+                                    </div>
+                                    <div class="flex-grow-1 text-end"><span
+                                            class="text-body text-inherit">[[${workOrder.domain}]]</span>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <li class="list-group-item">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <span class="text-body text-inherit">紧急程度</span>
+                                    </div>
+                                    <div class="flex-grow-1 text-end">
+                                        <span class="text-body text-inherit"
+                                              th:if="${workOrder.urgentLevel == 'common'}">一般咨询</span>
+                                        <span class="text-body text-inherit"
+                                              th:if="${workOrder.urgentLevel == 'experience'}">操作体验</span>
+                                        <span class="text-body text-inherit"
+                                              th:if="${workOrder.urgentLevel == 'exception'}">系统异常</span>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <li class="list-group-item">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <span class="text-body text-inherit">工单状态</span>
+                                    </div>
+                                    <div class="flex-grow-1 text-end">
+                                        <span class="text-body text-inherit"
+                                              th:if="${workOrder.status == 'waiting'}"><span
+                                                class="legend-indicator bg-warning"></span>等待处理</span>
+                                        <span class="text-body text-inherit"
+                                              th:if="${workOrder.status == 'in_process'}"><span
+                                                class="legend-indicator bg-primary"></span>处理中</span>
+                                        <span class="text-body text-inherit"
+                                              th:if="${workOrder.status == 'close'}"><span
+                                                class="legend-indicator bg-secondary"></span>已关闭</span>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <li class="list-group-item">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <span class="text-body text-inherit">创建时间</span>
+                                    </div>
+                                    <div class="flex-grow-1 text-end"><span
+                                            class="text-body text-inherit">[[${#dates.format(workOrder.createTime,'yyyy-MM-dd hh:mm:ss')}]]</span>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <li class="list-group-item">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <span class="text-body text-inherit">更新时间</span>
+                                    </div>
+                                    <div class="flex-grow-1 text-end"><span
+                                            class="text-body text-inherit">[[${#dates.format(workOrder.updateTime,'yyyy-MM-dd hh:mm:ss')}]]</span>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <li class="list-group-item" th:if="${workOrder.result != null and workOrder.result != ''}">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <span class="text-body text-inherit">处理结果</span>
+                                    </div>
+                                    <div class="flex-grow-1 text-end">
+                                        <span th:if="${workOrder.result == 'finished'}"
+                                              class="badge bg-soft-success text-success">已解决</span>
+                                        <span th:if="${workOrder.result == 'unfinished'}"
+                                              class="badge bg-soft-danger text-danger">未解决</span>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <li class="list-group-item">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <span class="text-body text-inherit">工单详情</span>
+                                    </div>
+                                    <div class="flex-grow-1 text-end input-group-borderless">
+                                        <textarea readonly
+                                                  class="form-control text-secondary" rows="1"
+                                                  style="text-align: right;">[[${workOrder.remark}]]</textarea>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <li class="list-group-item" th:if="${workOrder.result != null and workOrder.result != ''}">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <span class="text-body text-inherit">反馈意见</span>
+                                    </div>
+                                    <div class="flex-grow-1 text-end input-group-borderless">
+                                        <textarea readonly id="exampleFormControlTextarea1"
+                                                  class="form-control text-secondary" rows="1"
+                                                  style="text-align: right;">[[${workOrder.feedback}]]</textarea>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <li class="list-group-item"
+                                th:if="${(workOrder.result == null or workOrder.result == '' ) and loginUserRoleCode != 'admin'}">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <button type="button" class=" btn btn-primary" data-bs-toggle="modal"
+                                                data-bs-target="#exampleModalCenter">结单
+                                        </button>
+                                    </div>
+                                </div>
+                            </li>
+
+                        </ul>
+                        <!-- End List Group -->
+                    </div>
+                    <!-- End Body -->
+                </div>
+                <!-- End Card -->
+            </div>
+
+            <div class="col-lg-8 mb-3 mb-lg-0">
+                <!-- Card -->
+                <div class="card mb-3 mb-lg-5">
+                    <!-- Header -->
+                    <div class="card-header card-header-content-between">
+                        <div class="row no-gutters">
+                            <div class="col-md-3 mb-3 mb-md-0">
+                                    <span class="avatar avatar-circle">
+                                    <img class="avatar-img"
+                                         th:src="${acceptUserImg}"
+                                         alt="avatar">
+                                    </span>
+                            </div>
+                            <div class="col-md-9 mb-3 mb-md-0">
+                                <h4 class="card-header-title">[[${acceptUserName}]] </h4>
+                                <p class="card-text"><i class="bi bi-check-circle-fill" style="color: green;"></i><small
+                                        class="text-muted ms-1">与 [[${acceptUserName}]] 的对话</small>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- End Header -->
+
+                    <!-- Card -->
+                    <div class=" card-body card-body-height" style="height: 35rem;overflow-y: scroll;" id="my-list">
+                        <ul class="list-comment" th:each="msg : ${workOrderMsgs}">
+                            <th:block th:if="${msg.type} == 'text'">
+                                <th:block th:if="${loginUserRoleCode} == ${msg.from}">
+                                    <li class="list-comment-item ">
+                                        <div class="" style="display: flex;justify-content:flex-end">
+                                            <!-- Toast -->
+                                            <div class="toast toast-show fade show" role="alert" aria-live="assertive"
+                                                 aria-atomic="true">
+                                                <div class="toast-header">
+                                                    <div class="d-flex align-items-center flex-grow-1"
+                                                         style="display: flex;justify-content:flex-end">
+                                                        <div class="">
+                                                            <small class="ms-auto">[[${msg.time}]]</small>
+                                                        </div>
+                                                        <div class="ms-3">
+                                                            <img class="avatar avatar-xs avatar-circle"
+                                                                 th:src="${sendUserImg}"
+                                                                 alt="Image description">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="toast-body" style="white-space: pre-line;">[[${msg.msg}]]</div>
+                                            </div>
+                                            <!-- End Toast -->
+                                        </div>
+
+                                    </li>
+                                </th:block>
+                                <th:block th:if="${loginUserRoleCode} != ${msg.from}">
+                                    <li class="list-comment-item">
+                                        <!-- Toast -->
+                                        <div class="toast toast-show fade show" role="alert" aria-live="assertive"
+                                             aria-atomic="true">
+                                            <div class="toast-header">
+                                                <div class="d-flex align-items-center flex-grow-1">
+                                                    <div class="flex-shrink-0">
+                                                        <img class="avatar avatar-xs avatar-circle"
+                                                             th:src="${acceptUserImg}"
+                                                             alt="Image description">
+                                                    </div>
+                                                    <div class="flex-grow-1 ms-3">
+                                                        <small class="ms-auto">[[${msg.time}]]</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="toast-body" style="white-space: pre-line;">[[${msg.msg}]]</div>
+                                        </div>
+                                        <!-- End Toast -->
+                                    </li>
+                                </th:block>
+                            </th:block>
+                            <th:block th:if="${msg.type} == 'img'">
+                                <th:block th:if="${loginUserRoleCode} == ${msg.from}">
+                                    <li class="list-comment-item ">
+                                        <div class="" style="display: flex;justify-content:flex-end">
+                                            <!-- Toast -->
+                                            <div class="toast toast-show fade show" role="alert" aria-live="assertive"
+                                                 aria-atomic="true">
+                                                <div class="toast-header">
+                                                    <div class="d-flex align-items-center flex-grow-1"
+                                                         style="display: flex;justify-content:flex-end">
+                                                        <div class="">
+                                                            <small class="ms-auto">[[${msg.time}]]</small>
+                                                        </div>
+                                                        <div class="ms-3">
+                                                            <img class="avatar avatar-xs avatar-circle"
+                                                                 th:src="${sendUserImg}"
+                                                                 alt="Image description">
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="toast-body">
+                                                    <a th:href="${msg.msg}" data-fancybox='gallery' class="lightbox">
+                                                        <img class="card-img"
+                                                             width="100%"
+                                                             th:src="${msg.msg}"
+                                                             alt="Image description">
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            <!-- End Toast -->
+                                        </div>
+
+                                    </li>
+                                </th:block>
+                                <th:block th:if="${loginUserRoleCode} != ${msg.from}">
+                                    <li class="list-comment-item">
+                                        <!-- Toast -->
+                                        <div class="toast toast-show fade show" role="alert" aria-live="assertive"
+                                             aria-atomic="true">
+                                            <div class="toast-header">
+                                                <div class="d-flex align-items-center flex-grow-1">
+                                                    <div class="flex-shrink-0">
+                                                        <img class="avatar avatar-xs avatar-circle"
+                                                             th:src="${acceptUserImg}"
+                                                             alt="Image description">
+
+                                                    </div>
+                                                    <div class="flex-grow-1 ms-3">
+                                                        <small class="ms-auto">[[${msg.time}]]</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="toast-body">
+                                                <a th:href="${msg.msg}" data-fancybox='gallery' class="lightbox">
+                                                <img class="card-img"
+                                                     width="100%"
+                                                     th:src="${msg.msg}"
+                                                     alt="Image description">
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <!-- End Toast -->
+                                    </li>
+                                </th:block>
+                            </th:block>
+                        </ul>
+                    </div>
+                    <!-- End Card -->
+                    <div class="card-footer" style="padding-top:10px; padding-bottom:10px;position: relative;">
+                        <div class="input-group-borderless" style="transition: background-color 200ms ease-out;"
+                             th:ondragover="dragoverCopyEvent(event)" th:ondrop="dropFilesEvent(event)" th:ondragleave="dragleaveCopyEvent(event)">
+                            <textarea contenteditable="true" placeholder="输入聊天内容.."
+                                      id="textareaId" rows="4"
+                                      class="form-control bg-transparent"
+                                      style="resize: none;"
+                                      th:onkeydown="ctrlEnterEvent('[[${workOrder.id}]]', '[(${loginUserRoleCode})]', 'text')"></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-white btn-icon m-1"
+                                    th:onchange="sendWorkOrderMsg('[[${workOrder.id}]]', '[(${loginUserRoleCode})]', 'img')">
+                                <i class=" form-attachment-btn bi bi-image">
+                                    <input type="file" class="form-attachment-btn-label" id="pop_file" style="cursor: pointer;" accept="image/*">
+                                </i>
+                            </button>
+
+                            <button th:onclick="sendWorkOrderMsg('[[${workOrder.id}]]', '[(${loginUserRoleCode})]', 'text')"
+                                    type="button" class="btn btn-white m-1" title="Ctrl + Enter">
+                                <i class=" bi bi-send"></i> 发送
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Card -->
+        </div>
+    </div>
+    <!-- End Row -->
+    </div>
+    <!-- End Content -->
+
+    <!-- Footer -->
+
+    <div th:replace="common/common-dashboard::#footer(curPage='order-list')"></div>
+
+    <!-- End Footer -->
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- ========== SECONDARY CONTENTS ========== -->
+<!-- Keyboard Shortcuts -->
+<!-- End Keyboard Shortcuts -->
+
+<!-- Activity -->
+<div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='order-list')"></div>
+<!-- End Activity -->
+
+<!-- Modal -->
+<div id="exampleModalCenter" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle"
+     aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalCenterTitle">结单</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">处理结果</label>
+                    <!-- Select -->
+                    <div class="tom-select-custom">
+                        <select id="resultSelect" class="js-select form-select" autocomplete="off"
+                                data-hs-tom-select-options='{
+                              "hideSearch": true
+                            }'>
+                            <option value="finished">已解决</option>
+                            <option value="unfinished">未解决</option>
+                        </select>
+                    </div>
+                    <!-- End Select -->
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="feedback">反馈信息</label>
+                    <textarea id="feedback" class="form-control" placeholder="请输入反馈信息" rows="4"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" th:onclick="stopWorkOrder('[[${workOrder.id}]]')">确认
+                </button>
+                <button type="button" class="btn btn-white" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End Modal -->
+
+<!-- ========== END SECONDARY CONTENTS ========== -->
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<!--<script th:src="@{dashboard/assets/imgjs/simple-lightbox.min.js}"></script>-->
+<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/simplelightbox/2.7.0/simple-lightbox.min.js"></script>-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.5.7/jquery.fancybox.min.js"></script>
+
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+<!-- JS Implementing Plugins -->
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-nav-scroller/dist/hs-nav-scroller.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/clipboard/dist/clipboard.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/datatables/media/js/jquery.dataTables.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/datatables.net.extensions/select/select.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/dropzone/dist/min/dropzone.min.js}"></script>
+
+<!-- JS Front -->
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/util/reg.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom_ceo.js}"></script>
+<script th:src="@{common/custom_cmo.js}"></script>
+<script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+<!-- JS Plugins Init. -->
+<script>
+    (function () {
+        window.onload = function () {
+
+            // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+            // =======================================================
+            new HSSideNav('.js-navbar-vertical-aside').init()
+
+            // INITIALIZATION OF FORM SEARCH
+            // =======================================================
+            new HSFormSearch('.js-form-search')
+
+            // INITIALIZATION OF SELECT
+            // =======================================================
+            HSCore.components.HSTomSelect.init('.js-select')
+
+            // INITIALIZATION OF BOOTSTRAP DROPDOWN
+            // =======================================================
+            HSBsDropdown.init()
+
+            $('#textareaId').select();
+            $('#my-list').scrollTop($('#my-list')[0].scrollHeight);
+
+            // setTimeout(reload, 60000);
+        }
+    })()
+</script>
+
+<!-- Style Switcher JS -->
+
+<script>
+    $(document).ready(function () {
+        $("[data-fancybox='gallery']").fancybox({
+            // 启用放大缩小功能
+            buttons: ["zoom", "slideShow", "fullScreen", "download", "close"]
+        });
+    });
+
+    (function () {
+        // STYLE SWITCHER
+        // =======================================================
+        const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+        const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+        // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+        const setActiveStyle = function () {
+            $variants.forEach($item => {
+                if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                    $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                    return $item.classList.add('active')
+                }
+
+                $item.classList.remove('active')
+            })
+        }
+
+        // Add a click event to all items of the dropdown to set the style
+        $variants.forEach(function ($item) {
+            $item.addEventListener('click', function () {
+                HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+            })
+        })
+
+        // Call the setActiveStyle on load page
+        setActiveStyle()
+
+        // Add event listener on change style to call the setActiveStyle function
+        window.addEventListener('on-hs-appearance-change', function () {
+            setActiveStyle()
+        })
+
+    })()
+
+    function dragoverCopyEvent(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = 'copy';
+        const $textarea = document.getElementById('textareaId');
+        $textarea.parentNode.classList.add('bg-light');
+    }
+
+    function dropFilesEvent(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        sendWorkOrderImg('[[${workOrder.id}]]', '[(${loginUserRoleCode})]', e.dataTransfer.files);
+    }
+
+    function dragleaveCopyEvent(e) {
+        const $textarea = document.getElementById('textareaId');
+        $textarea.parentNode.classList.remove('bg-light');
+    }
+
+    $(document).ready(function () {
+        const $textarea = document.getElementById('textareaId');
+        function pasteFilesEvent(e) {
+            const clipboardData = e.clipboardData || e.originalEvent.clipboardData;
+            const items = clipboardData.items;
+            const files = [];
+            for (var i = 0; i < items.length; i++) {
+                const item = items[i];
+                if ('file' === item.kind) {
+                    files.push(item.getAsFile());
+                }
+            }
+            sendWorkOrderImg('[[${workOrder.id}]]', '[(${loginUserRoleCode})]', files);
+        }
+        $textarea.addEventListener('paste', pasteFilesEvent, false);
+    });
+</script>
+
+<!-- End Style Switcher JS -->
+</body>
+</html>

@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title th:if="${!openAgent}">[[${websiteBaseConfig.websiteName}]] 账号设置</title>
+    <title th:if="${openAgent}">[[${agentConfig.websiteName}]] 账号设置</title>
+
+    <!-- Favicon -->
+    <link th:if="${!openAgent}" rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:if="${openAgent}" rel="shortcut icon" th:href="${agentConfig.icon}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {"switcherSupport": true},
+                "header": {"layoutMode": "default", "containerMode": "container-fluid"},
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {"100": "#f9fafc", "900": "#1e2022"}
+                    }, "font": "Inter"
+                }
+            },
+            "languageDirection": {"lang": "en"},
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {"*assets/js/theme-custom.js": ""},
+                "build": {"*assets/js/theme-custom.js": "", "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"}
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {"src": "./src", "dist": "./dist", "build": "./build"},
+            "fileNames": {
+                "dist": {"js": "theme.min.js", "css": "theme.min.css"},
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl   footer-offset">
+
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+<!-- ========== HEADER ========== -->
+
+<div th:replace="common/common-dashboard::header(curPage='user-info', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<!-- Navbar Vertical -->
+
+<div th:replace="common/common-dashboard::aside(curPage='user-info', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<main id="content" role="main" class="main">
+    <!-- Modal -->
+    <button style="display: none" type="button" class="btn btn-primary" data-bs-toggle="modal"
+            data-bs-target="#exampleModalCenteredScrollable" id="testButton">
+        Vertically centered scrollable modal
+    </button>
+    <div id="exampleModalCenteredScrollable" class="modal fade" tabindex="-1" role="dialog"
+         aria-labelledby="exampleModalCenteredScrollableTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered" role="document">
+            <div class="modal-content" style="height: 300px;width: 250px;margin-left: 100px">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalCenteredScrollableTitle" style="text-align: center">
+                        请使用微信扫码绑定</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
+                            onclick="closeWechatQrcode()"></button>
+                </div>
+                <!--                <div class="modal-body" style="text-align: center" id="qrCode"></div>-->
+                <img class="modal-body" style="text-align: center" id="qrcodes" src=""/>
+                <!--<div class="modal-footer" style="padding: calc(var(&#45;&#45;bs-modal-padding) - var(&#45;&#45;bs-modal-footer-gap) * 3)">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+&lt;!&ndash;                    <button type="button" class="btn btn-primary">Save changes</button>&ndash;&gt;
+                </div>-->
+            </div>
+        </div>
+    </div>
+    <!-- Content -->
+    <div class="content container-fluid">
+        <!-- Page Header -->
+        <div class="page-header" style="padding-bottom: 5px;margin-bottom: 10px">
+            <div class="row align-items-end">
+                <div class="col-sm mb-2 mb-sm-0">
+
+
+                    <h1 class="page-header-title">账号设置 <i class="bi-person nav-icon"></i></h1>
+                </div>
+                <!-- End Col -->
+            </div>
+            <!-- End Row -->
+        </div>
+        <!-- End Page Header -->
+
+        <div class="row">
+            <div class="col-lg-3">
+                <!-- Navbar -->
+                <div class="navbar-expand-lg navbar-vertical mb-3 mb-lg-5">
+                    <!-- Navbar Toggle -->
+                    <!-- Navbar Toggle -->
+                    <div class="d-grid">
+                        <button type="button" class="navbar-toggler btn btn-white mb-3" data-bs-toggle="collapse"
+                                data-bs-target="#navbarVerticalNavMenu" aria-label="Toggle navigation"
+                                aria-expanded="false" aria-controls="navbarVerticalNavMenu">
+                <span class="d-flex justify-content-between align-items-center">
+                  <span class="text-dark">菜单</span>
+
+                  <span class="navbar-toggler-default">
+                    <i class="bi-list"></i>
+                  </span>
+
+                  <span class="navbar-toggler-toggled">
+                    <i class="bi-x"></i>
+                  </span>
+                </span>
+                        </button>
+                    </div>
+                    <!-- End Navbar Toggle -->
+                    <!-- End Navbar Toggle -->
+
+                    <!-- Navbar 折叠 -->
+                    <div id="navbarVerticalNavMenu" class="collapse navbar-collapse">
+                        <ul id="navbarSettings"
+                            class="js-sticky-block js-scrollspy card card-navbar-nav nav nav-tabs nav-lg nav-vertical"
+                            data-hs-sticky-block-options='{
+                     "parentSelector": "#navbarVerticalNavMenu",
+                     "targetSelector": "#header",
+                     "breakpoint": "lg",
+                     "startPoint": "#navbarVerticalNavMenu",
+                     "endPoint": "#stickyBlockEndPoint",
+                     "stickyOffsetTop": 20
+                   }'>
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#content">
+                                    <i class="bi-person nav-icon"></i> 基本信息
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#emailSection">
+                                    <i class="bi-at nav-icon"></i> 绑定账号
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#passwordSection">
+                                    <i class="bi-key nav-icon"></i> 更新密码
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#recentDevicesSection">
+                                    <i class="bi-phone nav-icon"></i> 登录设备
+                                </a>
+                            </li>
+                            <!--                            <li class="nav-item">-->
+                            <!--                                <a class="nav-link" href="#notificationsSection">-->
+                            <!--                                    <i class="bi-bell nav-icon"></i> 通知管理-->
+                            <!--                                </a>-->
+                            <!--                            </li>-->
+                            <!--                            <li class="nav-item">-->
+                            <!--                                <a class="nav-link" href="#deleteAccountSection">-->
+                            <!--                                    <i class="bi-trash nav-icon"></i> 注销账号-->
+                            <!--                                </a>-->
+                            <!--                            </li>-->
+                        </ul>
+                    </div>
+                    <!-- End Navbar 折叠 -->
+                </div>
+                <!-- End Navbar -->
+            </div>
+
+            <div class="col-lg-9">
+                <div class="d-grid gap-3 gap-lg-5">
+                    <!-- Card -->
+                    <div class="card">
+                        <!-- Profile Cover -->
+                        <div class="profile-cover">
+                            <div class="profile-cover-img-wrapper">
+                                <img id="profileCoverImg" class="profile-cover-img"
+                                     th:src="@{dashboard/assets/img/1920x400/img1.jpg}"
+                                     alt="Image Description">
+
+                                <!-- Custom File Cover -->
+                                <div class="profile-cover-content profile-cover-uploader p-3">
+                                    <a href="authentication-real-name"
+                                       class="profile-cover-uploader-label btn btn-sm btn-white">
+                                        <i class="bi-patch-check-fill text-secondary"
+                                           th:if="${session.loginUser.status == 'register_not_certified'}"></i>
+                                        <i class="bi-patch-check-fill text-success"
+                                           th:if="${session.loginUser.status == 'certified'}"></i>
+                                        <span class="d-none d-sm-inline-block ms-1"
+                                              th:if="${session.loginUser.status == 'certified'}">已完成实名认证</span>
+                                        <span class="d-none d-sm-inline-block ms-1"
+                                              th:if="${session.loginUser.status == 'register_not_certified'}">未完成实名认证</span>
+                                    </a>
+                                </div>
+                                <!-- End Custom File Cover -->
+                                <!-- End Custom File Cover -->
+                            </div>
+                        </div>
+                        <!-- End Profile Cover -->
+
+                        <!-- Avatar -->
+                        <label class="avatar avatar-xxl avatar-circle avatar-uploader profile-cover-avatar"
+                               for="editAvatarUploaderModal">
+                            <img id="editAvatarImgModal" class="avatar-img" th:src="${session.loginUser.img}"
+                                 alt="Image Description">
+
+                            <input type="file" class="js-file-attach avatar-uploader-input" id="editAvatarUploaderModal"
+                                   data-hs-file-attach-options='{
+                            "textTarget": "#editAvatarImgModal",
+                            "mode": "image",
+                            "targetAttr": "src"}' onchange="updateImg()">
+
+                            <span class="avatar-uploader-trigger">
+                              <i class="bi-pencil-fill avatar-uploader-icon shadow-sm"></i>
+                            </span>
+                        </label>
+                        <!-- End Avatar -->
+
+                    </div>
+                    <!-- End Card -->
+
+                    <!-- Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title h4">基本信息</h2>
+                        </div>
+
+                        <!-- Body -->
+                        <div class="card-body">
+                            <!-- Form -->
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="userName" class="col-sm-3 col-form-label form-label">用户名</label>
+
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" name="email" id="userName"
+                                           placeholder="" aria-label="Email" maxlength="30"
+                                           th:value="${session.loginUser.userName}">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="userName" class="col-sm-3 col-form-label form-label">我的网站</label>
+
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" name="email" id="myWebsite"
+                                           placeholder="" aria-label="Email" maxlength="30"
+                                           th:value="${session.loginUser.myWebsite}">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="emailLabel" class="col-sm-3 col-form-label form-label">邮箱</label>
+
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" name="email" id="emailLabel"
+                                           placeholder="" aria-label="Email" disabled
+                                           th:value="${session.loginUser.email}">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="phoneLabel" class="col-sm-3 col-form-label form-label">手机号</label>
+
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" name="email" id="phoneLabel"
+                                           placeholder="" aria-label="Email" disabled
+                                           th:value="${session.loginUser.phone}">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="registerLabel"
+                                       class="col-sm-3 col-form-label form-label">注册时间</label>
+
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" name="email" id="registerLabel"
+                                           placeholder="" aria-label="Email" disabled
+                                           th:value="${#dates.format(session.loginUser.createTime, 'yyyy-MM-dd HH:mm:ss')}">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="lastLoginTimeLabel"
+                                       class="col-sm-3 col-form-label form-label">最近登录时间</label>
+
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" name="email" id="lastLoginTimeLabel"
+                                           placeholder="" aria-label="Email" disabled
+                                           th:value="${#dates.format(session.loginUser.lastLoginTime, 'yyyy-MM-dd HH:mm:ss')}">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="lastLoginIpLabel"
+                                       class="col-sm-3 col-form-label form-label">最近登录IP</label>
+
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" name="email" id="lastLoginIpLabel"
+                                           placeholder="" aria-label="Email" disabled
+                                           th:value="${session.loginUser.lastLoginIp}">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label class="col-sm-3 col-form-label form-label">流量单价（元/GB）</label>
+
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" disabled
+                                           th:value="${session.loginUser.flowPrice}">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label class="col-sm-3 col-form-label form-label">域名额度（最大创建数）</label>
+
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" disabled
+                                           th:value="${session.loginUser.maxDomainCount}">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4" th:if="${agentLevel != null}">
+                                <label class="col-sm-3 col-form-label form-label">代理级别</label>
+
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" disabled
+                                           th:value="${agentLevel.name}">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4" th:if="${agentLevel != null}">
+                                <label class="col-sm-3 col-form-label form-label">流量包分润比例</label>
+
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" disabled
+                                           th:value="${agentLevel.packageRate}">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4" th:if="${agentLevel != null}">
+                                <label class="col-sm-3 col-form-label form-label">流量订单分润比例</label>
+
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" disabled
+                                           th:value="${agentLevel.flowOrderRate}">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="lastLoginIpLabel"
+                                       class="col-sm-3 col-form-label form-label">账单自动结算
+                                    <i class="bi-question-circle text-body ms-1" data-bs-toggle="tooltip"
+                                       data-bs-placement="top"
+                                       data-bs-original-title="开启后当产生流量账单时，如果账户有余额则自动进行扣款操作，避免由于账单未支付导致域名停用的情况。"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <div class="form-check form-switch form-control border-0"
+                                         th:if="${!session.loginUser.openAutoBalance()}">
+                                        <input type="checkbox" class="form-check-input" id="autoBalanceCheck">
+                                        <label class="form-check-label" for="autoBalanceCheck">未开启</label>
+                                    </div>
+                                    <div class="form-check form-switch form-control border-0"
+                                         th:if="${session.loginUser.openAutoBalance()}">
+                                        <input type="checkbox" class="form-check-input" id="autoBalanceCheck" checked>
+                                        <label class="form-check-label" for="autoBalanceCheck">已开启</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <div class="d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary" onclick="updateBaseInfo()">保存更改
+                                </button>
+                            </div>
+                            <!-- End Form -->
+                        </div>
+                        <!-- End Body -->
+                    </div>
+                    <!-- End Card -->
+
+                    <!-- Card -->
+                    <div id="emailSection" class="card">
+                        <div class="card-header">
+                            <h4 class="card-title">绑定账号</h4>
+                        </div>
+
+                        <!-- Body -->
+                        <div class="card-body">
+                            <!-- Form -->
+                            <form>
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="userEmail"
+                                           class="col-sm-3 col-form-label form-label">绑定邮箱</label>
+
+                                    <div class="col-sm-5">
+                                        <input type="email" class="form-control" name="newEmail" id="userEmail"
+                                               maxlength="30"
+                                               placeholder="输入邮箱地址" th:value="${session.loginUser.email}"
+                                               aria-label="">
+                                    </div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col">
+                                        <div id="man-machine-verification1"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col">
+                                        <button id="sendEmailCodeBtn" type="button" class="btn btn-success btn-large">获取验证码</button>
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="userPhone"
+                                           class="col-sm-3 col-form-label form-label">绑定手机号</label>
+
+                                    <div class="col-sm-5">
+                                        <input type="text" class="form-control" name="newEmail" id="userPhone"
+                                               maxlength="11"
+                                               placeholder="输入手机号" th:value="${session.loginUser.phone}"
+                                               aria-label="">
+                                    </div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col">
+                                        <div id="man-machine-verification2"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col">
+                                        <button id="sendSmsCodeBtn" type="button" class="btn btn-success btn-large" data-bs-toggle="modal">获取验证码</button>
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4" th:if="${!openAgent and weChatLoginEnabled}">
+                                    <label
+                                            class="col-sm-3 col-form-label form-label">绑定微信</label>
+                                    <div class="col-sm-2">
+                                        <button th:if="${session.loginUser.bindWechat()}" type="button"
+                                                class="btn btn-success" onclick="getWechatQrCode(false)">
+                                            去绑定
+                                        </button>
+                                        <button th:if="${!session.loginUser.bindWechat()}" type="button"
+                                                class="btn btn-success" onclick="confirmUnbind('wechatUnBinding()')">
+                                            解除绑定
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!--                                &lt;!&ndash; Form &ndash;&gt;-->
+                                <!--                                <div class="row mb-4">-->
+                                <!--                                    <label for="newQQLabel" class="col-sm-3 col-form-label form-label" >绑定QQ</label>-->
+
+                                <!--                                    <div class="col-sm-7">-->
+                                <!--                                        <input type="text" class="form-control" name="newEmail" id="newQQLabel"-->
+                                <!--                                               placeholder="" th:value="${session.loginUser.qqOpenId}"-->
+                                <!--                                               aria-label="">-->
+                                <!--                                    </div>-->
+                                <!--                                    <div class="col-sm-2">-->
+                                <!--                                        <button type="button" class="btn btn-success" onclick="unDevelop()">去绑定</button>-->
+                                <!--                                    </div>-->
+                                <!--                                </div>-->
+                                <!--                                &lt;!&ndash; End Form &ndash;&gt;-->
+
+                                <!--                                &lt;!&ndash; Form &ndash;&gt;-->
+                                <!--                                <div class="row mb-4">-->
+                                <!--                                    <label for="newWeiboLabel"-->
+                                <!--                                           class="col-sm-3 col-form-label form-label">绑定微博</label>-->
+
+                                <!--                                    <div class="col-sm-7">-->
+                                <!--                                        <input type="text" class="form-control" name="newEmail" id="newWeiboLabel"-->
+                                <!--                                               placeholder="" th:value="${session.loginUser.qqOpenId}"-->
+                                <!--                                               aria-label="">-->
+                                <!--                                    </div>-->
+                                <!--                                    <div class="col-sm-2">-->
+                                <!--                                        <button type="button" class="btn btn-success" onclick="unDevelop()">去绑定</button>-->
+                                <!--                                    </div>-->
+                                <!--                                </div>-->
+                                <!--                                &lt;!&ndash; End Form &ndash;&gt;-->
+
+                            </form>
+                            <!-- End Form -->
+                        </div>
+                        <!-- End Body -->
+                    </div>
+                    <!-- End Card -->
+
+                    <!-- Card -->
+                    <div id="passwordSection" class="card">
+                        <div class="card-header">
+                            <h4 class="card-title">更新密码</h4>
+                        </div>
+
+                        <!-- Body -->
+                        <div class="card-body">
+                            <!-- Form -->
+                            <form id="changePasswordForm">
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="currentPasswordLabel"
+                                           class="col-sm-3 col-form-label form-label">当前密码</label>
+
+                                    <div class="col-sm-9">
+                                        <input type="password" class="form-control" name="currentPassword"
+                                               id="currentPasswordLabel" placeholder="输入当前密码" maxlength="16"
+                                               aria-label="Enter current password">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="newPassword" class="col-sm-3 col-form-label form-label">新密码</label>
+
+                                    <div class="col-sm-9">
+                                        <input type="password" class="form-control" name="newPassword" id="newPassword"
+                                               maxlength="16"
+                                               placeholder="输入新密码" aria-label="Enter new password">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="confirmNewPasswordLabel"
+                                           class="col-sm-3 col-form-label form-label">确认密码</label>
+
+                                    <div class="col-sm-9">
+                                        <div class="mb-3">
+                                            <input type="password" class="form-control" name="confirmNewPassword"
+                                                   maxlength="16"
+                                                   id="confirmNewPasswordLabel" placeholder="确定新密码">
+                                        </div>
+
+                                        <h5>注意事项:</h5>
+
+                                        <p class="fs-6 mb-2">确保您的密码满足以下条件：</p>
+
+                                        <ul class="fs-6">
+                                            <li>8-16 位字符，</li>
+                                            <li>支持字母、数字以及特殊符号</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <div class="d-flex justify-content-end">
+                                    <button type="button" class="btn btn-primary" onclick="updatePassword()">保存更改
+                                    </button>
+                                </div>
+                            </form>
+                            <!-- End Form -->
+                        </div>
+                        <!-- End Body -->
+                    </div>
+                    <!-- End Card -->
+
+                    <!-- Card -->
+                    <div id="recentDevicesSection" class="card">
+                        <div class="card-header">
+                            <h4 class="card-title">登录设备</h4>
+                        </div>
+
+                        <!-- Body -->
+                        <div class="card-body">
+                            <p class="card-text">查看您最近登录和使用的设备</p>
+                        </div>
+                        <!-- End Body -->
+
+                        <!-- Table -->
+                        <div class="table-responsive">
+                            <table class="table table-thead-bordered table-nowrap table-align-middle card-table">
+                                <thead class="thead-light">
+                                <tr>
+                                    <th>浏览器</th>
+                                    <th>设备类型</th>
+                                    <th>位置</th>
+                                    <th>IP地址</th>
+                                    <th>登录时间</th>
+                                </tr>
+                                </thead>
+
+                                <tbody>
+                                <tr th:each="device : ${loginDevices}">
+                                    <td class="align-items-center">
+                                        <img th:if="${device.browser == 'Chrome'}" class="avatar avatar-xss me-2"
+                                             th:src="@{dashboard/assets/svg/brands/chrome-icon.svg}"
+                                             alt="Image Description">
+                                        <img th:if="${device.browser == 'MSEdge'}" class="avatar avatar-xss me-2"
+                                             th:src="@{dashboard/assets/svg/brands/edge-icon.svg}"
+                                             alt="Image Description">
+                                        <img th:if="${device.browser == 'Safari'}" class="avatar avatar-xss me-2"
+                                             th:src="@{dashboard/assets/svg/brands/safari-icon.svg}"
+                                             alt="Image Description">
+                                        <img th:if="${device.browser == 'Firefox'}" class="avatar avatar-xss me-2"
+                                             th:src="@{dashboard/assets/svg/brands/firefox-icon.svg}"
+                                             alt="Image Description">
+                                        [[${device.browser}]]
+                                    </td>
+                                    <td><i class="bi-laptop fs-3 me-2"></i> [[${device.device}]] <span
+                                            class="badge bg-soft-success text-success ms-1"
+                                            th:if="${deviceStat.index == 0}">现在</span></td>
+                                    <td>[[${device.location}]]</td>
+                                    <td>[[${device.loginIp}]]</td>
+                                    <td>[[${#dates.format(device.loginTime, 'yyyy-MM-dd HH:mm:ss')}]]</td>
+                                </tr>
+
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- End Table -->
+                    </div>
+                    <!-- End Card -->
+
+                    <!--                    &lt;!&ndash; Card &ndash;&gt;-->
+                    <!--                    <div id="notificationsSection" class="card">-->
+                    <!--                        <div class="card-header">-->
+                    <!--                            <h4 class="card-title">通知管理</h4>-->
+                    <!--                        </div>-->
+
+                    <!--                        &lt;!&ndash; Alert &ndash;&gt;-->
+                    <!--                        <div class="alert alert-soft-dark card-alert text-center" role="alert">-->
+                    <!--                            自定义配置你的消息通知内容-->
+                    <!--                        </div>-->
+                    <!--                        &lt;!&ndash; End Alert &ndash;&gt;-->
+
+                    <!--                        <form>-->
+                    <!--                            &lt;!&ndash; Table &ndash;&gt;-->
+                    <!--                            <div class="table-responsive datatable-custom">-->
+                    <!--                                <table class="table table-thead-bordered table-nowrap table-align-middle table-first-col-px-0">-->
+                    <!--                                    <thead class="thead-light">-->
+                    <!--                                    <tr>-->
+                    <!--                                        <th>通知类型</th>-->
+                    <!--                                        <th class="text-center">-->
+
+                    <!--                                            邮件通知-->
+                    <!--                                        </th>-->
+                    <!--                                        <th class="text-center">-->
+
+                    <!--                                            短信通知-->
+                    <!--                                        </th>-->
+                    <!--                                        <th class="text-center">-->
+
+                    <!--                                            微信公众号-->
+                    <!--                                        </th>-->
+                    <!--                                    </tr>-->
+                    <!--                                    </thead>-->
+
+                    <!--                                    <tbody>-->
+
+                    <!--                                    <tr>-->
+                    <!--                                        <td>新设备登录 <i class="bi-question-circle text-body ms-1"-->
+                    <!--                                                          data-bs-toggle="tooltip" data-bs-placement="top"-->
+                    <!--                                                          title="新的设备登录"></i></td>-->
+                    <!--                                        <td class="text-center">-->
+                    <!--                                            <div class="form-check form-check-inline">-->
+                    <!--                                                <input class="form-check-input" type="checkbox" value="">-->
+                    <!--                                            </div>-->
+                    <!--                                        </td>-->
+                    <!--                                        <td class="text-center">-->
+                    <!--                                            <div class="form-check form-check-inline">-->
+                    <!--                                                <input class="form-check-input" type="checkbox" value="" checked>-->
+                    <!--                                            </div>-->
+                    <!--                                        </td>-->
+                    <!--                                        <td class="text-center">-->
+                    <!--                                            <div class="form-check form-check-inline">-->
+                    <!--                                                <input class="form-check-input" type="checkbox" value="" checked>-->
+                    <!--                                            </div>-->
+                    <!--                                        </td>-->
+                    <!--                                    </tr>-->
+                    <!--                                    <tr>-->
+                    <!--                                        <td>新活动、新套餐 <i class="bi-question-circle text-body ms-1"-->
+                    <!--                                                             data-bs-toggle="tooltip" data-bs-placement="top"-->
+                    <!--                                                             title="新的设备登录"></i></td>-->
+                    <!--                                        <td class="text-center">-->
+                    <!--                                            <div class="form-check form-check-inline">-->
+                    <!--                                                <input class="form-check-input" type="checkbox" value="">-->
+                    <!--                                            </div>-->
+                    <!--                                        </td>-->
+                    <!--                                        <td class="text-center">-->
+                    <!--                                            <div class="form-check form-check-inline">-->
+                    <!--                                                <input class="form-check-input" type="checkbox" value="" checked>-->
+                    <!--                                            </div>-->
+                    <!--                                        </td>-->
+                    <!--                                        <td class="text-center">-->
+                    <!--                                            <div class="form-check form-check-inline">-->
+                    <!--                                                <input class="form-check-input" type="checkbox" value="" checked>-->
+                    <!--                                            </div>-->
+                    <!--                                        </td>-->
+                    <!--                                    </tr>-->
+                    <!--                                    <tr>-->
+                    <!--                                        <td>网站公告 <i class="bi-question-circle text-body ms-1"-->
+                    <!--                                                        data-bs-toggle="tooltip" data-bs-placement="top"-->
+                    <!--                                                        title="新的设备登录"></i></td>-->
+                    <!--                                        <td class="text-center">-->
+                    <!--                                            <div class="form-check form-check-inline">-->
+                    <!--                                                <input class="form-check-input" type="checkbox" value="">-->
+                    <!--                                            </div>-->
+                    <!--                                        </td>-->
+                    <!--                                        <td class="text-center">-->
+                    <!--                                            <div class="form-check form-check-inline">-->
+                    <!--                                                <input class="form-check-input" type="checkbox" value="" checked>-->
+                    <!--                                            </div>-->
+                    <!--                                        </td>-->
+                    <!--                                        <td class="text-center">-->
+                    <!--                                            <div class="form-check form-check-inline">-->
+                    <!--                                                <input class="form-check-input" type="checkbox" value="" checked>-->
+                    <!--                                            </div>-->
+                    <!--                                        </td>-->
+                    <!--                                    </tr>-->
+                    <!--                                    <tr>-->
+                    <!--                                        <td>工单回复 <i class="bi-question-circle text-body ms-1"-->
+                    <!--                                                        data-bs-toggle="tooltip" data-bs-placement="top"-->
+                    <!--                                                        title="新的设备登录"></i></td>-->
+                    <!--                                        <td class="text-center">-->
+                    <!--                                            <div class="form-check form-check-inline">-->
+                    <!--                                                <input class="form-check-input" type="checkbox" value="">-->
+                    <!--                                            </div>-->
+                    <!--                                        </td>-->
+                    <!--                                        <td class="text-center">-->
+                    <!--                                            <div class="form-check form-check-inline">-->
+                    <!--                                                <input class="form-check-input" type="checkbox" value="" checked>-->
+                    <!--                                            </div>-->
+                    <!--                                        </td>-->
+                    <!--                                        <td class="text-center">-->
+                    <!--                                            <div class="form-check form-check-inline">-->
+                    <!--                                                <input class="form-check-input" type="checkbox" value="" checked>-->
+                    <!--                                            </div>-->
+                    <!--                                        </td>-->
+                    <!--                                    </tr>-->
+                    <!--                                    <tr>-->
+                    <!--                                        <td>流量预警 <i class="bi-question-circle text-body ms-1"-->
+                    <!--                                                        data-bs-toggle="tooltip" data-bs-placement="top"-->
+                    <!--                                                        title="新的设备登录"></i></td>-->
+                    <!--                                        <td class="text-center">-->
+                    <!--                                            <div class="form-check form-check-inline">-->
+                    <!--                                                <input class="form-check-input" type="checkbox" value="">-->
+                    <!--                                            </div>-->
+                    <!--                                        </td>-->
+                    <!--                                        <td class="text-center">-->
+                    <!--                                            <div class="form-check form-check-inline">-->
+                    <!--                                                <input class="form-check-input" type="checkbox" value="" checked>-->
+                    <!--                                            </div>-->
+                    <!--                                        </td>-->
+                    <!--                                        <td class="text-center">-->
+                    <!--                                            <div class="form-check form-check-inline">-->
+                    <!--                                                <input class="form-check-input" type="checkbox" value="" checked>-->
+                    <!--                                            </div>-->
+                    <!--                                        </td>-->
+                    <!--                                    </tr>-->
+                    <!--                                    </tbody>-->
+                    <!--                                </table>-->
+                    <!--                            </div>-->
+                    <!--                            &lt;!&ndash; End Table &ndash;&gt;-->
+                    <!--                        </form>-->
+                    <!--                        &lt;!&ndash; Body &ndash;&gt;-->
+                    <!--                        <div class="card-body">-->
+                    <!--                            <div class="d-flex justify-content-end">-->
+                    <!--                                <button type="submit" class="btn btn-primary" onclick="unDevelop()">保存更改</button>-->
+                    <!--                            </div>-->
+                    <!--                        </div>-->
+                    <!--                        &lt;!&ndash; End Body &ndash;&gt;-->
+                    <!--                    </div>-->
+                    <!--                    &lt;!&ndash; End Card &ndash;&gt;-->
+
+                    <!--                    &lt;!&ndash; Card &ndash;&gt;-->
+                    <!--                    <div id="deleteAccountSection" class="card">-->
+                    <!--                        <div class="card-header">-->
+                    <!--                            <h4 class="card-title">注销账号</h4>-->
+                    <!--                        </div>-->
+
+                    <!--                        &lt;!&ndash; Body &ndash;&gt;-->
+                    <!--                        <div class="card-body">-->
+                    <!--                            <p class="card-text">-->
+                    <!--                                当你删除你的帐户，你将彻底失去当前帐户服务，我们将永久删除您的个人数据。</p>-->
+
+                    <!--                            <div class="mb-4">-->
+                    <!--                                &lt;!&ndash; Form Check &ndash;&gt;-->
+                    <!--                                <div class="form-check">-->
+                    <!--                                    <input class="form-check-input" type="checkbox" value="" id="deleteAccountCheckbox">-->
+                    <!--                                    <label class="form-check-label" for="deleteAccountCheckbox">-->
+                    <!--                                        确定您真的要这样做-->
+                    <!--                                    </label>-->
+                    <!--                                </div>-->
+                    <!--                                &lt;!&ndash; End Form Check &ndash;&gt;-->
+                    <!--                            </div>-->
+
+                    <!--                            <div class="d-flex justify-content-end gap-3">-->
+
+                    <!--                                <button type="submit" class="btn btn-danger" onclick="unDevelop()">删除</button>-->
+                    <!--                            </div>-->
+                    <!--                        </div>-->
+                    <!--                        &lt;!&ndash; End Body &ndash;&gt;-->
+                    <!--                    </div>-->
+                    <!--                    &lt;!&ndash; End Card &ndash;&gt;-->
+                </div>
+
+                <!-- Sticky Block End Point -->
+                <div id="stickyBlockEndPoint"></div>
+            </div>
+        </div>
+        <!-- End Row -->
+    </div>
+    <!-- End Content -->
+
+    <!-- Footer -->
+
+    <div th:replace="common/common-dashboard::#footer(curPage='user-info')"></div>
+
+    <!-- End Footer -->
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- Modal -->
+<div id="emailModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="emailModalTitle"
+     aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="emailModalTitle">邮箱验证</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <img class="avatar avatar-xxl avatar-4x3"
+                             th:src="@{dashboard/assets/svg/illustrations/oc-unlock.svg}" alt="Image Description"
+                             data-hs-theme-appearance="default">
+                        <img class="avatar avatar-xxl avatar-4x3"
+                             th:src="@{dashboard/assets/svg/illustrations-light/oc-unlock.svg}" alt="Image Description"
+                             data-hs-theme-appearance="dark">
+                    </div>
+
+                    <div class="mb-5">
+                        <h1 class="display-5">邮箱验证</h1>
+                        <p class="mb-0">我们已经给你的邮箱发送了验证信息</p>
+                        <p>请在下面输入接受到的邮件中的验证码</p>
+                    </div>
+
+                    <div class="row gx-2 gx-sm-3">
+                        <div class="col">
+                            <!-- Form -->
+                            <div class="mb-4">
+                                <input type="text" class="form-control form-control-single-number" name="code1"
+                                       id="emailSrCodeInput1" placeholder="" aria-label="" maxlength="1"
+                                       autocomplete="off" autocapitalize="off" spellcheck="false" autofocus>
+                            </div>
+                            <!-- End Form -->
+                        </div>
+
+                        <div class="col">
+                            <!-- Form -->
+                            <div class="mb-4">
+                                <input type="text" class="form-control form-control-single-number" name="code2"
+                                       id="emailSrCodeInput2" placeholder="" aria-label="" maxlength="1"
+                                       autocomplete="off" autocapitalize="off" spellcheck="false">
+                            </div>
+                            <!-- End Form -->
+                        </div>
+
+                        <div class="col">
+                            <!-- Form -->
+                            <div class="mb-4">
+                                <input type="text" class="form-control form-control-single-number" name="code3"
+                                       id="emailSrCodeInput3" placeholder="" aria-label="" maxlength="1"
+                                       autocomplete="off" autocapitalize="off" spellcheck="false">
+                            </div>
+                            <!-- End Form -->
+                        </div>
+
+                        <div class="col">
+                            <!-- Form -->
+                            <div class="mb-4">
+                                <input type="text" class="form-control form-control-single-number" name="code4"
+                                       id="emailSrCodeInput4" placeholder="" aria-label="" maxlength="1"
+                                       autocomplete="off" autocapitalize="off" spellcheck="false">
+                            </div>
+                            <!-- End Form -->
+                        </div>
+                    </div>
+                    <div class="d-grid mb-3">
+                        <button type="submit" onclick="bindingEmail()" class="btn btn-primary btn-lg">验证我的账户
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+<!-- End Modal -->
+
+<!-- Modal -->
+<div id="phoneModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="phoneModalTitle"
+     aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="phoneModalTitle">短信验证</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <img class="avatar avatar-xxl avatar-4x3"
+                             th:src="@{dashboard/assets/svg/illustrations/oc-unlock.svg}" alt="Image Description"
+                             data-hs-theme-appearance="default">
+                        <img class="avatar avatar-xxl avatar-4x3"
+                             th:src="@{dashboard/assets/svg/illustrations-light/oc-unlock.svg}" alt="Image Description"
+                             data-hs-theme-appearance="dark">
+                    </div>
+
+                    <div class="mb-5">
+                        <h1 class="display-5">短信验证</h1>
+                        <p class="mb-0">我们已经给你的手机发送了验证信息</p>
+                        <p>请在下面输入接受到的短信中的验证码</p>
+                    </div>
+
+                    <div class="row gx-2 gx-sm-3">
+                        <div class="col">
+                            <!-- Form -->
+                            <div class="mb-4">
+                                <input type="text" class="form-control form-control-single-number" name="code1"
+                                       id="phoneSrCodeInput1" placeholder="" aria-label="" maxlength="1"
+                                       autocomplete="off" autocapitalize="off" spellcheck="false" autofocus>
+                            </div>
+                            <!-- End Form -->
+                        </div>
+
+                        <div class="col">
+                            <!-- Form -->
+                            <div class="mb-4">
+                                <input type="text" class="form-control form-control-single-number" name="code2"
+                                       id="phoneSrCodeInput2" placeholder="" aria-label="" maxlength="1"
+                                       autocomplete="off" autocapitalize="off" spellcheck="false">
+                            </div>
+                            <!-- End Form -->
+                        </div>
+
+                        <div class="col">
+                            <!-- Form -->
+                            <div class="mb-4">
+                                <input type="text" class="form-control form-control-single-number" name="code3"
+                                       id="phoneSrCodeInput3" placeholder="" aria-label="" maxlength="1"
+                                       autocomplete="off" autocapitalize="off" spellcheck="false">
+                            </div>
+                            <!-- End Form -->
+                        </div>
+
+                        <div class="col">
+                            <!-- Form -->
+                            <div class="mb-4">
+                                <input type="text" class="form-control form-control-single-number" name="code4"
+                                       id="phoneSrCodeInput4" placeholder="" aria-label="" maxlength="1"
+                                       autocomplete="off" autocapitalize="off" spellcheck="false">
+                            </div>
+                            <!-- End Form -->
+                        </div>
+                    </div>
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-primary btn-lg" onclick="setPhone()">验证我的账户
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+<!-- End Modal -->
+
+<!-- Modal -->
+<div id="forceBindPhoneModal" class="modal fade" tabindex="-1" role="dialog"
+     aria-labelledby="forceBindPhoneModalTitle" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="forceBindPhoneModalTitle">绑定手机号</h5>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-4">邮箱注册用户需要先绑定手机号，绑定完成后即可继续使用控制台。</p>
+                <div class="mb-3">
+                    <label class="form-label" for="forceUserPhone">手机号</label>
+                    <input type="text" class="form-control" id="forceUserPhone" maxlength="11" placeholder="请输入手机号">
+                </div>
+                <div class="mb-3">
+                    <div id="force-man-machine-verification"></div>
+                </div>
+                <div class="d-grid mb-4">
+                    <button id="forceSendSmsCodeBtn" type="button" class="btn btn-success">获取验证码</button>
+                </div>
+                <div id="forcePhoneCodeSection" style="display: none;">
+                    <label class="form-label">短信验证码</label>
+                    <div class="row gx-2 gx-sm-3">
+                        <div class="col">
+                            <input type="text" class="form-control form-control-single-number" id="forcePhoneCodeInput1"
+                                   maxlength="1" autocomplete="off">
+                        </div>
+                        <div class="col">
+                            <input type="text" class="form-control form-control-single-number" id="forcePhoneCodeInput2"
+                                   maxlength="1" autocomplete="off">
+                        </div>
+                        <div class="col">
+                            <input type="text" class="form-control form-control-single-number" id="forcePhoneCodeInput3"
+                                   maxlength="1" autocomplete="off">
+                        </div>
+                        <div class="col">
+                            <input type="text" class="form-control form-control-single-number" id="forcePhoneCodeInput4"
+                                   maxlength="1" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="d-grid mt-4">
+                        <button type="button" class="btn btn-primary btn-lg" onclick="forceSetPhone()">完成绑定</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End Modal -->
+
+
+<!-- Activity -->
+<div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='user-info')"></div>
+<!-- End Activity -->
+
+<!-- ========== END SECONDARY CONTENTS ========== -->
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+<!-- JS Implementing Plugins -->
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-file-attach/dist/hs-file-attach.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-sticky-block/dist/hs-sticky-block.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-scrollspy/dist/hs-scrollspy.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/imask/dist/imask.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+
+<!-- JS Front -->
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/util/reg.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom_ceo.js}"></script>
+<script th:src="@{common/custom_cmo.js}"></script>
+<script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+<script th:src="@{common/gt4.js}"></script>
+
+<script>
+    async function forceSendSmsCode(id, v) {
+        let userPhone = $('#' + id).val();
+        if (!phoneReg(userPhone)) {
+            layerWarn("请输入正确的手机号码");
+            return;
+        }
+        let data = await sendRequest("POST", "login/sendSmsCode", Object.assign({
+            userPhone: userPhone
+        }, v));
+        autoLayer(data);
+        if (data['code'] === 'SUCCESS') {
+            time('#forceSendSmsCodeBtn', 60);
+            $('#forcePhoneCodeSection').show();
+        }
+    }
+
+    async function forceSetPhone() {
+        let code = $('#forcePhoneCodeInput1').val()
+            + $('#forcePhoneCodeInput2').val()
+            + $('#forcePhoneCodeInput3').val()
+            + $('#forcePhoneCodeInput4').val();
+        if (code.length !== 4) {
+            layerWarn("请输入短信验证码");
+            return;
+        }
+        let userPhone = $('#forceUserPhone').val();
+        if (!phoneReg(userPhone)) {
+            layerWarn("请输入正确的手机号码");
+            return;
+        }
+        let data = await sendRequest("POST", "SysUser/updatePhone", {
+            phone: userPhone,
+            code: code
+        });
+        autoLayer(data);
+        if (data['code'] === 'SUCCESS') {
+            setTimeout(function () {
+                window.location.href = "/dashboard";
+            }, 1000);
+        }
+    }
+</script>
+
+<script th:if="${#strings.isEmpty(session.loginUser.phone)}">
+    document.addEventListener('DOMContentLoaded', function () {
+        const modalEl = document.getElementById('forceBindPhoneModal');
+        if (modalEl) {
+            new bootstrap.Modal(modalEl, {
+                backdrop: 'static',
+                keyboard: false
+            }).show();
+        }
+    });
+</script>
+
+<!-- JS Plugins Init. -->
+<script>
+    (function (window, gt, doc) {
+        const gta = '949c66977e30cb2d8dd5643cf0bc6451', btn1 = doc.getElementById('sendEmailCodeBtn'), btn2 = doc.getElementById('sendSmsCodeBtn'), forceBtn = doc.getElementById('forceSendSmsCodeBtn');
+        window.onload = function () {
+
+
+            // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+            // =======================================================
+            new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+            // INITIALIZATION OF FORM SEARCH
+            // =======================================================
+            new HSFormSearch('.js-form-search')
+
+
+            // INITIALIZATION OF BOOTSTRAP DROPDOWN
+            // =======================================================
+            HSBsDropdown.init()
+
+
+            // INITIALIZATION OF SELECT
+            // =======================================================
+            HSCore.components.HSTomSelect.init('.js-select')
+
+
+            // INITIALIZATION OF INPUT MASK
+            // =======================================================
+            HSCore.components.HSMask.init('.js-input-mask')
+
+
+            // INITIALIZATION OF FILE ATTACHMENT
+            // =======================================================
+            new HSFileAttach('.js-file-attach')
+
+
+            // INITIALIZATION OF STICKY BLOCKS
+            // =======================================================
+            new HSStickyBlock('.js-sticky-block', {
+                targetSelector: document.getElementById('header').classList.contains('navbar-fixed') ? '#header' : null
+            })
+
+
+            // SCROLLSPY
+            // =======================================================
+            new bootstrap.ScrollSpy(document.body, {
+                target: '#navbarSettings',
+                offset: 100
+            })
+
+            new HSScrollspy('#navbarVerticalNavMenu', {
+                breakpoint: 'lg',
+                scrollOffset: -20
+            })
+        }
+
+        function D(gtn, a) {
+            if (a.isTrusted) {
+                const r = gtn.getValidate()
+                this.verify = JSON.stringify({ captcha_id: gta, lot_number: r.lot_number, gen_time: r.gen_time, pass_token: r.pass_token, captcha_output: r.captcha_output })
+            }
+        }
+        gt({ captchaId: gta }, function (captcha) {
+            // captcha为验证码实例
+            captcha.appendTo("#man-machine-verification1");// 调用appendTo将验证码插入到页的某一个元素中，这个元素用户可以自定义
+
+            function go(e) {
+                const result = captcha.getValidate();
+                if (!result) {
+                    return layerWarn('请完成人机验证！');
+                }
+                sendEmailCode(new D(captcha, e));
+                captcha.reset();
+            }
+            btn1.addEventListener('click', go, false);
+        });
+
+        gt({ captchaId: gta }, function (captcha) {
+            // captcha为验证码实例
+            captcha.appendTo("#man-machine-verification2");// 调用appendTo将验证码插入到页的某一个元素中，这个元素用户可以自定义
+            function go(e) {
+                const result = captcha.getValidate();
+                if (!result) {
+                    return layerWarn('请完成人机验证！');
+                }
+                sendSmsCode('userPhone', new D(captcha, e));
+                captcha.reset();
+            }
+            btn2.addEventListener('click', go, false);
+        });
+        if (forceBtn) {
+            gt({ captchaId: gta }, function (captcha) {
+                captcha.appendTo("#force-man-machine-verification");
+                function go(e) {
+                    const result = captcha.getValidate();
+                    if (!result) {
+                        return layerWarn('请完成人机验证！');
+                    }
+                    forceSendSmsCode('forceUserPhone', new D(captcha, e));
+                    captcha.reset();
+                }
+                forceBtn.addEventListener('click', go, false);
+            });
+        }
+    })(window, initGeetest4, document)
+</script>
+
+<!-- Style Switcher JS -->
+
+<script>
+    (function () {
+        // STYLE SWITCHER
+        // =======================================================
+        const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+        const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+        // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+        const setActiveStyle = function () {
+            $variants.forEach($item => {
+                if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                    $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                    return $item.classList.add('active')
+                }
+
+                $item.classList.remove('active')
+            })
+        }
+
+        // Add a click event to all items of the dropdown to set the style
+        $variants.forEach(function ($item) {
+            $item.addEventListener('click', function () {
+                HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+            })
+        })
+
+        // Call the setActiveStyle on load page
+        setActiveStyle()
+
+        // Add event listener on change style to call the setActiveStyle function
+        window.addEventListener('on-hs-appearance-change', function () {
+            setActiveStyle()
+        })
+
+    })()
+</script>
+
+<!-- End Style Switcher JS -->
+</body>
+</html>
+<div th:replace="common/common-dashboard::#agent"></div>
+

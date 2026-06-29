@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title th:if="${!openAgent}">[[${websiteBaseConfig.websiteName}]] 忘记密码</title>
+    <title th:if="${openAgent}">[[${agentConfig.websiteName}]] 忘记密码</title>
+
+    <!-- Favicon -->
+    <link th:if="${!openAgent}" rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:if="${openAgent}" rel="shortcut icon" th:href="${agentConfig.icon}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "index",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {"switcherSupport": true},
+                "header": {"layoutMode": "default", "containerMode": "container-fluid"},
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {"100": "#f9fafc", "900": "#1e2022"}
+                    }, "font": "Inter"
+                }
+            },
+            "languageDirection": {"lang": "en"},
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {"*assets/js/theme-custom.js": ""},
+                "build": {"*assets/js/theme-custom.js": "", "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"}
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {"src": "./src", "dist": "./dist", "build": "./build"},
+            "fileNames": {
+                "dist": {"js": "theme.min.js", "css": "theme.min.css"},
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="d-flex align-items-center min-h-100">
+
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+<!-- ========== HEADER ========== -->
+<header class="position-absolute top-0 start-0 end-0 mt-3 mx-3">
+    <div class="d-flex d-lg-none justify-content-between">
+        <a href="index">
+            <img th:if="${!openAgent}" class="w-100" th:src="${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : @{dashboard/assets/svg/logos/logo.svg}"
+                 data-hs-theme-appearance="default" style="min-width: 7rem; max-width: 7rem;">
+            <img th:if="${!openAgent}" class="w-100" th:src="${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : @{dashboard/assets/svg/logos-light/logo.svg}"
+                 data-hs-theme-appearance="dark" style="min-width: 7rem; max-width: 7rem;">
+            <img th:if="${openAgent}" class="w-100" th:src="${agentConfig.logoDashboard}"
+                 data-hs-theme-appearance="default" style="min-width: 7rem; max-width: 7rem;">
+            <img th:if="${openAgent}" class="w-100" th:src="${agentConfig.logoDashboard}"
+                 data-hs-theme-appearance="dark" style="min-width: 7rem; max-width: 7rem;">
+        </a>
+
+    </div>
+</header>
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<main id="content" role="main" class="main pt-0">
+    <!-- Content -->
+    <div class="container-fluid px-3">
+        <div class="row">
+            <div class="col-lg-6 d-none d-lg-flex justify-content-center align-items-center min-vh-lg-100 position-relative bg-light px-0">
+                <!-- Logo & Language -->
+                <div class="position-absolute top-0 start-0 end-0 mt-3 mx-3">
+                    <div class="d-none d-lg-flex justify-content-between">
+                        <a href="index">
+                            <img th:if="${!openAgent}" class="w-100" th:src="${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : @{dashboard/assets/svg/logos/logo.svg}"
+                                 data-hs-theme-appearance="default" style="min-width: 7rem; max-width: 7rem;">
+                            <img th:if="${!openAgent}" class="w-100"
+                                 th:src="${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : @{dashboard/assets/svg/logos-light/logo.svg}" data-hs-theme-appearance="dark"
+                                 style="min-width: 7rem; max-width: 7rem;">
+                            <img th:if="${openAgent}" class="w-100" th:src="${agentConfig.logoDashboard}"
+                                 data-hs-theme-appearance="default" style="min-width: 7rem; max-width: 7rem;">
+                            <img th:if="${openAgent}" class="w-100" th:src="${agentConfig.logoDashboard}"
+                                 data-hs-theme-appearance="dark" style="min-width: 7rem; max-width: 7rem;">
+                        </a>
+
+                    </div>
+                </div>
+                <!-- End Logo & Language -->
+
+                <div style="max-width: 23rem;">
+                    <div class="text-center mb-5">
+                        <img class="img-fluid" th:src="@{dashboard/assets/svg/illustrations/oc-chatting.svg}"
+                             alt="Image Description" style="width: 12rem;" data-hs-theme-appearance="default">
+                        <img class="img-fluid" th:src="@{dashboard/assets/svg/illustrations-light/oc-chatting.svg}"
+                             alt="Image Description" style="width: 12rem;" data-hs-theme-appearance="dark">
+                    </div>
+
+                    <div class="mb-5">
+                        <h2 class="display-5">福利活动</h2>
+                    </div>
+
+                    <!-- List Checked -->
+                    <ul class="list-checked list-checked-lg list-checked-primary list-py-2">
+                        <li class="list-checked-item">
+                            <span class="d-block fw-semibold mb-1">邀请人获得[[${websiteBaseConfig.inviteRewardGb}]]G流量奖励，被邀请人获得[[${websiteBaseConfig.invitedRewardGb}]]G流量奖励</span>
+
+                        </li>
+
+                        <li class="list-checked-item">
+                            <span class="d-block fw-semibold mb-1">实名认证后每月可获得免费[[${websiteBaseConfig.monthGiftGb}]]G流量</span>
+
+                        </li>
+                    </ul>
+                    <!-- End List Checked -->
+
+                </div>
+            </div>
+            <!-- End Col -->
+
+            <div class="col-lg-6 d-flex justify-content-center align-items-center min-vh-lg-100">
+                <div class="w-100 content-space-t-4 content-space-t-lg-2 content-space-b-1" style="max-width: 25rem;">
+                    <!-- Form -->
+                    <div class="js-validate needs-validation">
+                        <div class="text-center">
+                            <div class="mb-5">
+                                <h1 th:if="${!openAgent}" class="display-5"
+                                    th:text="${websiteBaseConfig.websiteName + ' 忘记密码'}"></h1>
+                                <h1 th:if="${openAgent}" class="display-5"
+                                    th:text="${agentConfig.websiteName + ' 忘记密码'}"></h1>
+                            </div>
+
+                            <span class="divider-center text-muted mb-4">已有账号？ <a class="link" href="user-login">立即登录</a></span>
+                        </div>
+
+                        <!-- Form -->
+                        <div class="mb-4">
+                            <label class="form-label" for="userAccount">账户</label>
+                            <input type="text" class="form-control form-control-lg" id="userAccount" tabindex="1"
+                                   maxlength="30"
+                                   placeholder="请输入手机号/邮箱" required>
+                        </div>
+                        <!-- End Form -->
+
+                        <!-- Form -->
+                        <div class="mb-4">
+                            <label class="form-label">人机验证</label>
+                            <div class="row">
+                                <div class="col-sm-8" id="man-machine-verification">
+                                </div>
+                                <div class="col-sm-4">
+                                    <button class="btn btn-primary btn-lg w-100" id="sendCodeBtn" disabled>发送验证码</button>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- End Form -->
+
+                        <div class="mb-4">
+                            <label class="form-label" for="resetCode">验证码</label>
+                            <input type="text" class="form-control form-control-lg" id="resetCode"
+                                   maxlength="4" inputmode="numeric" placeholder="请输入4位验证码" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label" for="newPassword">新密码</label>
+                            <input type="password" class="form-control form-control-lg" id="newPassword"
+                                   minlength="8" maxlength="16" autocomplete="new-password"
+                                   placeholder="请输入8至16位新密码" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label" for="confirmPassword">确认新密码</label>
+                            <input type="password" class="form-control form-control-lg" id="confirmPassword"
+                                   minlength="8" maxlength="16" autocomplete="new-password"
+                                   placeholder="请再次输入新密码" required>
+                        </div>
+
+                        <div class="d-grid">
+                            <button id="resetPasswordBtn" type="button" class="btn btn-primary btn-lg">
+                                重置密码
+                            </button>
+                        </div>
+                    </div>
+                    <!-- End Form -->
+                </div>
+            </div>
+            <!-- End Col -->
+        </div>
+        <!-- End Row -->
+    </div>
+    <!-- End Content -->
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+<!-- JS Implementing Plugins -->
+<script th:src="@{dashboard/assets/vendor/hs-toggle-password/dist/js/hs-toggle-password.js}"></script>
+<script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+
+<!-- JS Front -->
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/util/reg.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom_ceo.js(v='20260625-password-reset2')}"></script>
+<script th:src="@{common/custom_cmo.js}"></script>
+<script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+<script th:src="@{common/gt4.js}"></script>
+
+
+<!-- JS Plugins Init. -->
+<script>
+    (function (window, gt, doc) {
+        const gta = '949c66977e30cb2d8dd5643cf0bc6451'
+        const vn = '#man-machine-verification'
+        const sendBtn = doc.getElementById('sendCodeBtn')
+        const resetBtn = doc.getElementById('resetPasswordBtn')
+        const accountInput = doc.getElementById('userAccount')
+        let gtn = null
+        let countdownTimer = null
+
+        function load() {
+            new HSTogglePassword('.js-toggle-password')
+            HSCore.components.HSTomSelect.init('.js-select')
+        }
+
+        function gtb(a) {
+            a.appendTo(vn).onSuccess(gts)
+            gtn = a
+        }
+
+        function gts() {
+            sendBtn.disabled = false
+        }
+
+        function startCountdown() {
+            let seconds = 60
+            sendBtn.disabled = true
+            sendBtn.textContent = seconds + '秒后重发'
+            countdownTimer = window.setInterval(function () {
+                seconds -= 1
+                if (seconds <= 0) {
+                    window.clearInterval(countdownTimer)
+                    countdownTimer = null
+                    sendBtn.textContent = '重新发送'
+                    sendBtn.disabled = false
+                    return
+                }
+                sendBtn.textContent = seconds + '秒后重发'
+            }, 1000)
+        }
+
+        async function sendCode() {
+            const account = accountInput.value.trim()
+            const result = gtn && gtn.getValidate()
+            if (!account) {
+                layerWarn('账户不可为空')
+                return
+            }
+            if (!result) {
+                layerWarn('请完成人机验证！')
+                return
+            }
+            if (typeof sendPasswordResetCode !== 'function') {
+                layerFail('页面资源未更新，请刷新页面后重试')
+                return
+            }
+            sendBtn.disabled = true
+            try {
+                const data = await sendPasswordResetCode({
+                    userAccount: account,
+                    verify: JSON.stringify({
+                        captcha_id: gta,
+                        lot_number: result.lot_number,
+                        gen_time: result.gen_time,
+                        pass_token: result.pass_token,
+                        captcha_output: result.captcha_output
+                    })
+                })
+                autoLayer(data)
+                gtn.reset()
+                if (data.code === 'SUCCESS') {
+                    startCountdown()
+                    doc.getElementById('resetCode').focus()
+                } else {
+                    sendBtn.disabled = true
+                }
+            } catch (error) {
+                gtn.reset()
+                sendBtn.disabled = true
+            }
+        }
+
+        async function submitReset() {
+            const userAccount = accountInput.value.trim()
+            const code = doc.getElementById('resetCode').value.trim()
+            const newPassword = doc.getElementById('newPassword').value
+            const confirmPassword = doc.getElementById('confirmPassword').value
+            if (!userAccount || !code || !newPassword || !confirmPassword) {
+                layerWarn('请完整填写重置信息')
+                return
+            }
+            if (newPassword.length < 8 || newPassword.length > 16) {
+                layerWarn('密码长度必须为8至16位')
+                return
+            }
+            if (newPassword !== confirmPassword) {
+                layerWarn('两次输入的密码不一致')
+                return
+            }
+            if (typeof resetPassword !== 'function') {
+                layerFail('页面资源未更新，请刷新页面后重试')
+                return
+            }
+            resetBtn.disabled = true
+            try {
+                const data = await resetPassword({ userAccount, code, newPassword, confirmPassword })
+                autoLayer(data)
+                if (data.code === 'SUCCESS') {
+                    window.setTimeout(function () {
+                        window.location.href = 'user-login'
+                    }, 1200)
+                    return
+                }
+            } catch (error) {
+                // sendRequest already displays the request error.
+            }
+            resetBtn.disabled = false
+        }
+
+        window.addEventListener('load', load, false)
+        sendBtn.addEventListener('click', sendCode, false)
+        resetBtn.addEventListener('click', submitReset, false)
+        gt({ captchaId: gta }, gtb)
+    })(window, initGeetest4, document)
+</script>
+</body>
+</html>
+
+<div th:replace="common/common-dashboard::#agent"></div>
+

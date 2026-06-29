@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title th:if="${!openAgent}">[[${websiteBaseConfig.websiteName}]] 用户注册</title>
+    <title th:if="${openAgent}">[[${agentConfig.websiteName}]] 用户注册</title>
+
+    <!-- Favicon -->
+    <link th:if="${!openAgent}" rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:if="${openAgent}" rel="shortcut icon" th:href="${agentConfig.icon}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+    <link rel="preload" th:href="@{common/verify/verify.css}" data-hs-appearance="dark" as="style">
+
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "index",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {"switcherSupport": true},
+                "header": {"layoutMode": "default", "containerMode": "container-fluid"},
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {"100": "#f9fafc", "900": "#1e2022"}
+                    }, "font": "Inter"
+                }
+            },
+            "languageDirection": {"lang": "en"},
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {"*assets/js/theme-custom.js": ""},
+                "build": {"*assets/js/theme-custom.js": "", "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"}
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {"src": "./src", "dist": "./dist", "build": "./build"},
+            "fileNames": {
+                "dist": {"js": "theme.min.js", "css": "theme.min.css"},
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="d-flex align-items-center min-h-100">
+
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+<!-- ========== HEADER ========== -->
+<header class="position-absolute top-0 start-0 end-0 mt-3 mx-3">
+    <div class="d-flex d-lg-none justify-content-between">
+        <a href=".">
+            <img th:if="${!openAgent}" class="w-100" th:src="${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : @{dashboard/assets/svg/logos/logo.svg}" data-hs-theme-appearance="default" style="min-width: 7rem; max-width: 7rem;">
+            <img th:if="${!openAgent}" class="w-100" th:src="${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : @{dashboard/assets/svg/logos-light/logo.svg}" data-hs-theme-appearance="dark" style="min-width: 7rem; max-width: 7rem;">
+            <img th:if="${openAgent}" class="w-100" th:src="${agentConfig.logoDashboard}" data-hs-theme-appearance="default" style="min-width: 7rem; max-width: 7rem;">
+            <img th:if="${openAgent}" class="w-100" th:src="${agentConfig.logoDashboard}" data-hs-theme-appearance="dark" style="min-width: 7rem; max-width: 7rem;">
+        </a>
+
+    </div>
+</header>
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<main id="content" role="main" class="main pt-0">
+    <!-- Content -->
+    <div class="container-fluid px-3">
+        <div class="row">
+            <div class="col-lg-6 d-none d-lg-flex justify-content-center align-items-center min-vh-lg-100 position-relative bg-light px-0">
+                <!-- Logo & Language -->
+                <div class="position-absolute top-0 start-0 end-0 mt-3 mx-3">
+                    <div class="d-none d-lg-flex justify-content-between">
+                        <a href=".">
+                            <img th:if="${!openAgent}" class="w-100" th:src="${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : @{dashboard/assets/svg/logos/logo.svg}" data-hs-theme-appearance="default" style="min-width: 7rem; max-width: 7rem;">
+                            <img th:if="${!openAgent}" class="w-100" th:src="${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : @{dashboard/assets/svg/logos-light/logo.svg}" data-hs-theme-appearance="dark" style="min-width: 7rem; max-width: 7rem;">
+                            <img th:if="${openAgent}" class="w-100" th:src="${agentConfig.logoDashboard}" data-hs-theme-appearance="default" style="min-width: 7rem; max-width: 7rem;">
+                            <img th:if="${openAgent}" class="w-100" th:src="${agentConfig.logoDashboard}" data-hs-theme-appearance="dark" style="min-width: 7rem; max-width: 7rem;">
+                        </a>
+
+                    </div>
+                </div>
+                <!-- End Logo & Language -->
+
+                <div style="max-width: 23rem;">
+                    <div class="text-center mb-5">
+                        <img class="img-fluid" th:src="@{dashboard/assets/svg/illustrations/oc-chatting.svg}"
+                             alt="Image Description" style="width: 12rem;" data-hs-theme-appearance="default">
+                        <img class="img-fluid" th:src="@{dashboard/assets/svg/illustrations-light/oc-chatting.svg}"
+                             alt="Image Description" style="width: 12rem;" data-hs-theme-appearance="dark">
+                    </div>
+
+                    <div class="mb-5">
+                        <h2 class="display-5">福利活动</h2>
+                    </div>
+
+                    <!-- List Checked -->
+                    <ul class="list-checked list-checked-lg list-checked-primary list-py-2">
+                        <li class="list-checked-item">
+                            <span class="d-block fw-semibold mb-1">邀请人获得[[${websiteBaseConfig.inviteRewardGb}]]G流量奖励，被邀请人获得[[${websiteBaseConfig.invitedRewardGb}]]G流量奖励</span>
+
+                        </li>
+
+                        <li class="list-checked-item">
+                            <span class="d-block fw-semibold mb-1">实名认证后每月可获得免费[[${websiteBaseConfig.monthGiftGb}]]G流量</span>
+
+                        </li>
+                    </ul>
+                    <!-- End List Checked -->
+
+                </div>
+            </div>
+            <!-- End Col -->
+
+            <div class="col-lg-6 d-flex justify-content-center align-items-center min-vh-lg-100">
+                <div class="w-100 content-space-t-4 content-space-t-lg-2 content-space-b-1" style="max-width: 25rem;">
+                    <!-- Form -->
+                    <div class="js-validate needs-validation">
+                        <div class="text-center">
+                            <div class="mb-5">
+                                <h1 th:if="${!openAgent}" class="display-5" th:text="${websiteBaseConfig.websiteName + ' 手机号注册'}"></h1>
+                                <h1 th:if="${openAgent}" class="display-5" th:text="${agentConfig.websiteName + ' 手机号注册'}"></h1>
+                            </div>
+
+                            <span th:if="${code == null}" class="divider-center text-muted mb-4">手机不方便？ 使用 <a class="link" href="register-email"> 邮箱注册</a></span>
+                            <span th:if="${code != null}" class="divider-center text-muted mb-4">手机不方便？ 使用 <a class="link" th:href="@{register-email(code=${code})}"> 邮箱注册</a></span>
+                        </div>
+
+                        <!-- Form -->
+                        <div class="mb-4">
+                            <label class="form-label" for="userAccount">手机号码
+                            </label>
+                            <input type="text" class="form-control form-control-lg" id="phoneNum" tabindex="1" maxlength="11"
+                                   placeholder="请输入手机号码" required>
+                        </div>
+                        <!-- End Form -->
+
+                        <!-- Form -->
+                        <div class="mb-4">
+                            <label class="form-label" for="phoneCode">验证码</label>
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <input type="text" class="form-control form-control-lg" id="phoneCode" tabindex="1" maxlength="4"
+                                           placeholder="请输入验证码" required>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- End Form -->
+
+                        <!-- Form -->
+                        <div class="mb-4">
+                            <label class="form-label">人机验证</label>
+                            <div class="row">
+                                <div class="col-sm-8" id="man-machine-verification">
+                                </div>
+                                <div class="col-sm-4">
+                                    <button class="btn btn-primary btn-lg" id="sendSmsButton" disabled>获取验证码</button>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- End Form -->
+
+                        <!-- Form -->
+                        <div class="mb-4">
+                            <label class="form-label" for="userAccount">用户名</label>
+                            <input type="text" class="form-control form-control-lg" id="userAccount" tabindex="1" maxlength="20"
+                                   placeholder="请输入姓名/企业名称" required>
+                        </div>
+                        <!-- End Form -->
+
+                        <!-- Form -->
+                        <div class="mb-4">
+                            <label class="form-label w-100" for="userPassword1" tabindex="0">
+                              <span class="d-flex justify-content-between align-items-center">
+                                <span>登录密码</span>
+                              </span>
+                            </label>
+
+                            <div class="input-group input-group-merge" data-hs-validation-validate-class>
+                                <input type="password" class="form-control form-control-lg"
+                                       name="password" id="userPassword1" placeholder="输入密码" maxlength="16"
+                                       minlength="8">
+                            </div>
+                        </div>
+                        <!-- End Form -->
+
+                        <!-- Form Check -->
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" value="" id="readme">
+                            <label class="form-check-label" for="readme">
+                                我已阅读并同意 <a href="#" data-bs-toggle="modal" data-bs-target="#exampleModalScrollable">《用户协议》</a>
+                            </label>
+                        </div>
+                        <!-- End Form Check -->
+
+                        <div class="d-grid">
+                            <button id="loginBtn" type="button" onclick="registerUser()"
+                                    class="btn btn-primary btn-lg">
+                                立即注册
+                            </button>
+                        </div>
+                    </div>
+                    <!-- End Form -->
+                </div>
+            </div>
+            <!-- End Col -->
+        </div>
+        <!-- End Row -->
+    </div>
+    <!-- End Content -->
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<div class="modal fade" id="exampleModalScrollable" tabindex="-1" role="dialog" aria-labelledby="exampleModalScrollableTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalScrollableTitle">《服务用户协议》</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" th:utext="${websiteAgreementConfig.getAgreementInfo()}">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-white" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End Modal -->
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+<!-- JS Implementing Plugins -->
+<script th:src="@{dashboard/assets/vendor/hs-toggle-password/dist/js/hs-toggle-password.js}"></script>
+<script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+
+<!-- JS Front -->
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/util/reg.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom_ceo.js}"></script>
+<script th:src="@{common/custom_cmo.js}"></script>
+<script th:src="@{common/custom_cto.js(v='20260625-register-no-extra-verify')}"></script>
+<script th:src="@{common/gt4.js}"></script>
+
+
+<!-- JS Plugins Init. -->
+<script>
+    (function (window, gt, doc) {
+        const gta = '949c66977e30cb2d8dd5643cf0bc6451', vn = '#man-machine-verification', btn = doc.getElementById('sendSmsButton'), va = doc.getElementById('phoneNum')
+        let gtn = null
+        function load() {
+
+            // INITIALIZATION OF TOGGLE PASSWORD
+            // =======================================================
+            new HSTogglePassword('.js-toggle-password')
+
+
+            // INITIALIZATION OF SELECT
+            // =======================================================
+            HSCore.components.HSTomSelect.init('.js-select');
+        }
+        function gtb(a) {
+            a.appendTo(vn).onSuccess(gts)
+            gtn = a
+        }
+        function gts() {
+            btn.disabled = false
+        }
+        function D(a) {
+            this.userPhone = va.value
+            if (a.isTrusted) {
+                const r = gtn.getValidate()
+                this.verify = JSON.stringify({ captcha_id: gta, lot_number: r.lot_number, gen_time: r.gen_time, pass_token: r.pass_token, captcha_output: r.captcha_output })
+            }
+        }
+        function go(e) {
+            const result = gtn.getValidate();
+            if (!phoneReg(va.value)) {
+                layerWarn("请输入正确的手机号码！")
+            } else if (!result) {
+                layerWarn('请完成人机验证！')
+            } else {
+                sendSmsCodeTemplate(new D(e), 'sendSmsButton')
+            }
+            gtn.reset()
+            btn.disabled = true
+        }
+        window.addEventListener('load', load, false)
+        btn.addEventListener('click', go, false)
+        gt({ captchaId: gta }, gtb)
+    })(window, initGeetest4, document)
+</script>
+</body>
+</html>
+
+<div th:replace="common/common-dashboard::#agent"></div>
+

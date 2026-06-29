@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="10 seconds">
+    <contextName>logback</contextName>
+
+    <logger name="com.aliyun.tea.TeaModel" level="WARN"/>
+
+    <!--配置日志文件输出路径，下面用${path}占位使用}-->
+    <property name="path" value="./logs/"/>
+
+    <!--0. 日志格式和颜色渲染 -->
+    <!-- 彩色日志依赖的渲染类 -->
+    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter"/>
+    <conversionRule conversionWord="wex"
+                    converterClass="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter"/>
+    <conversionRule conversionWord="wEx"
+                    converterClass="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter"/>
+    <!-- 彩色日志格式 -->
+    <property name="local_pattern"
+              value="${CONSOLE_LOG_PATTERN:-%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%X{requestId:- }) %clr(-){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}"/>
+
+    <!--文件日志格式-->
+    <property name="file_pattern" value="%d{HH:mm:ss.SSS} [%thread] %-5level %logger %X{requestId} - %msg%n"/>
+
+    <!--输出日志格式-->
+    <appender name="consoleLog" class="ch.qos.logback.core.ConsoleAppender">
+        <!--此日志appender是为开发使用，只配置最底级别，控制台输出的日志级别是大于或等于此级别的日志信息-->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>info</level>
+        </filter>
+        <encoder>
+            <pattern>
+                ${local_pattern}
+            </pattern>
+            <!-- 设置字符集 -->
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!--只保存info日志-->
+    <appender name="fileInfoLog" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>INFO</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <encoder>
+            <pattern>
+                ${file_pattern}
+            </pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <!--滚动输出策略-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!--路径-->
+            <fileNamePattern>${path}/info/info-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+            <!-- 文件大小分割，超过配置大小就建当天新的日志文件 -->
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>10MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <!-- 保存7天 -->
+            <MaxHistory>7</MaxHistory>
+            <!-- 总日志大小 -->
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!--只保存warn日志-->
+    <appender name="fileWarnLog" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>WARN</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <encoder>
+            <pattern>
+                ${file_pattern}
+            </pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <!--滚动输出策略-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!--路径-->
+            <fileNamePattern>${path}/warn/warn-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+            <!-- 文件大小分割，超过配置大小就建当天新的日志文件 -->
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>10MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <!-- 保存30天 -->
+            <MaxHistory>30</MaxHistory>
+            <!-- 总日志大小 -->
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!--只保存error日志-->
+    <appender name="fileErrorLog" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <encoder>
+            <pattern>
+                ${file_pattern}
+            </pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <!--滚动输出策略-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!--路径-->
+            <fileNamePattern>${path}/error/error-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+            <!-- 文件大小分割，超过配置大小就建当天新的日志文件 -->
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>10MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <!-- 保存30天 -->
+            <MaxHistory>30</MaxHistory>
+            <!-- 总日志大小 -->
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- 日志输出到 RabbitMQ -->
+    <springProfile name="dev,local">
+        <appender name="rabbitDevLog" class="com.kuocai.cdn.common.lagback.RabbitAppender">
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>INFO</level>
+            </filter>
+            <profile>dev</profile>
+        </appender>
+        <appender name="rabbitDevLogAsync" class="ch.qos.logback.classic.AsyncAppender">
+            <appender-ref ref="rabbitDevLog" />
+        </appender>
+    </springProfile>
+    <springProfile name="prod">
+        <appender name="rabbitLog" class="com.kuocai.cdn.common.lagback.RabbitAppender">
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>INFO</level>
+            </filter>
+            <profile>prod</profile>
+        </appender>
+        <appender name="rabbitLogAsync" class="ch.qos.logback.classic.AsyncAppender">
+            <appender-ref ref="rabbitLog" />
+        </appender>
+    </springProfile>
+
+    <!--local环境下，仅控制台打印，配置为彩色-->
+    <springProfile name="dev">
+        <root level="debug">
+            <appender-ref ref="consoleLog"/>
+        </root>
+    </springProfile>
+
+    <!--dev环境输出到文件-->
+    <springProfile name="local">
+        <root level="info">
+            <appender-ref ref="fileInfoLog"/>
+            <appender-ref ref="fileWarnLog"/>
+            <appender-ref ref="fileErrorLog"/>
+        </root>
+    </springProfile>
+
+    <!--pro环境输出到文件-->
+    <springProfile name="prod">
+        <root level="info">
+            <appender-ref ref="fileInfoLog"/>
+            <appender-ref ref="fileWarnLog"/>
+            <appender-ref ref="fileErrorLog"/>
+            <appender-ref ref="rabbitLogAsync"/>
+        </root>
+    </springProfile>
+</configuration>

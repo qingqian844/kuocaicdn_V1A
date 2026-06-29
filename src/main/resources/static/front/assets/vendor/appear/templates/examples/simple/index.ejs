@@ -1,0 +1,77 @@
+<% include ../../header %>
+<script>
+<%- js.appear %>
+appear({
+  // function to get all elements to track
+  elements: function elements(){
+    return document.getElementsByClassName('footer');
+  },
+  // function to run when an element is in view
+  appear: function appear(el){
+    console.log('footer is visible');
+    el.innerHTML = '<h3 class="done">now scroll back up</h3>';
+  },
+  // called when all nodes are visible
+  done: function done(){
+    console.log('footer done');
+  }
+});
+
+appear({
+  // function to get all elements to track
+  elements: function elements(){
+    return document.getElementsByClassName('encourage');
+  },
+  // function to run when an element is in view
+  appear: function appear(el){
+    el.innerHTML = 'keep going...';
+  },
+  // function to run when an element is in view
+  disappear: function disappear(el){
+    el.innerHTML = 'keep on going...';
+  },
+  done: function done(){
+    console.log('removed listener on encourage message');
+  }
+});
+
+(function (){
+  var header = appear(
+  (function(){
+      var count = 0;
+      return {
+        // function to get all elements to track
+        elements: function elements(){
+          return [document.getElementById('message')];
+        },
+        // function to run when an element is in view
+        appear: function appear(el){
+          console.log('HEADER IN VIEW');
+          count++;
+          if(count >= 7) {
+            header.destroy();
+            el.innerHTML = 'ok that\'s enough';
+          } else if(count > 1) {
+            el.innerHTML = 'reappeared ' + (count - 1) + ' time' + (count === 2 ? '' : 's');
+          }
+        },
+        // function to run when an element goes out of view
+        disappear: function appear(el){
+          console.log('HEADER __NOT__ IN VIEW');
+        },
+        reappear: true
+      };
+  }())
+  );
+}());
+</script>
+</head>
+<body>
+<% locals.message = 'simple test page - scroll down'; %>
+<% include ../../cover %>
+<div class="content center">
+<div class="content content-middle"><h3 class="encourage"></h3></div>
+<div class="content footer"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title th:if="${!openAgent}">[[${websiteBaseConfig.websiteName}]] 域名访问配置</title>
+    <title th:if="${openAgent}">[[${agentConfig.websiteName}]] 域名访问配置</title>
+
+    <!-- Favicon -->
+    <link th:if="${!openAgent}" rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:if="${openAgent}" rel="shortcut icon" th:href="${agentConfig.icon}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+        
+        body {
+            opacity: 0;
+        }
+    </style>
+
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {
+                    "switcherSupport": true
+                },
+                "header": {
+                    "layoutMode": "default",
+                    "containerMode": "container-fluid"
+                },
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {
+                            "100": "#f9fafc",
+                            "900": "#1e2022"
+                        }
+                    },
+                    "font": "Inter"
+                }
+            },
+            "languageDirection": {
+                "lang": "en"
+            },
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {
+                    "*assets/js/theme-custom.js": ""
+                },
+                "build": {
+                    "*assets/js/theme-custom.js": "",
+                    "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"
+                }
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {
+                "src": "./src",
+                "dist": "./dist",
+                "build": "./build"
+            },
+            "fileNames": {
+                "dist": {
+                    "js": "theme.min.js",
+                    "css": "theme.min.css"
+                },
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl   footer-offset">
+
+    <script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+    <script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+    <!-- ========== HEADER ========== -->
+
+    <div th:replace="common/common-dashboard::header(curPage='domain-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+    <!-- ========== END HEADER ========== -->
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <!-- Navbar Vertical -->
+
+    <div th:replace="common/common-dashboard::aside(curPage='domain-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+    <!-- End Navbar Vertical -->
+    <main id="content" role="main" class="main">
+        <!-- Content -->
+        <div class="content container-fluid">
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="row align-items-center">
+                    <div class="col-sm mb-sm-0">
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb breadcrumb-no-gutter">
+                                <li class="breadcrumb-item"><a class="breadcrumb-link" href="domain-list">域名管理</a>
+                                </li>
+                                <li class="breadcrumb-item active" aria-current="page">域名配置</li>
+                            </ol>
+                        </nav>
+                    </div>
+                    <!-- End Col -->
+                </div>
+
+                <!-- Nav -->
+                <ul class="nav nav-tabs page-header-tabs" id="pageHeaderTab" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-basic(id=${domain.id})}">基本配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-origin(id=${domain.id})}" tabindex="-1" aria-disabled="true">回源配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-https(id=${domain.id})}" tabindex="-1" aria-disabled="true">HTTPS配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-cache(id=${domain.id})}" tabindex="-1" aria-disabled="true">缓存配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" th:href="@{domain-setting-access(id=${domain.id})}" tabindex="-1" aria-disabled="true">访问配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-higher(id=${domain.id})}" tabindex="-1" aria-disabled="true">高级配置</a>
+                    </li>
+                </ul>
+                <!-- End Nav -->
+                <!-- End Row -->
+            </div>
+            <!-- End Page Header -->
+
+            <!-- Card 防盗链配置 -->
+            <div class="card mb-3 mb-lg-5">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">防盗链</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-soft-primary" role="alert">
+                        自定义referer黑白名单，对用户身份进行识别和过滤，从而限制访问来源。
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-3">
+                            <div class="mb-3">
+                                <label class="form-label">状态</label>
+                                <div class="form-check form-switch mb-4">
+                                    <input id="refererStatus" type="checkbox" class="form-check-input" checked name="refererStatusInput" value="on" th:if="${referer.get('referer_type')  != 0}" onchange="switchRemark('refererStatus', 'refererStatusLabel', ['includeEmpty','refererTypeSwitch1','refererTypeSwitch2','refererListType'])">
+                                    <input id="refererStatus" type="checkbox" class="form-check-input" name="refererStatusInput" value="off" th:if="${referer.get('referer_type')  == 0}" onchange="switchRemark('refererStatus', 'refererStatusLabel', ['includeEmpty','refererTypeSwitch1','refererTypeSwitch2','refererListType'])">
+                                    <label class="form-check-label" for="refererStatus" id="refererStatusLabel" th:if="${referer.get('referer_type')  != 0}">已开启</label>
+                                    <label class="form-check-label" for="refererStatus" id="refererStatusLabel" th:if="${referer.get('referer_type')  == 0}">已关闭</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-3">
+                            <div class="mb-3">
+                                <label class="form-label">空referer</label>
+                                <i class="bi-question-circle text-body" data-bs-toggle="tooltip" data-bs-placement="top" title="空referer指referer字段内容为空，或者一个 HTTP请求中根本不包含referer字段。设置黑白名单时，当勾选了此项，那么此类请求将遵循黑白名单的过滤规则。"></i>
+                                <div class="form-check form-switch mb-3" style="">
+                                    <input id="includeEmpty" type="checkbox" class="form-check-input" name="includeEmptyInput" value="on" checked th:if="${referer.get('include_empty')}" onchange="switchRemark('includeEmpty', 'includeEmptyLabel', [])" th:disabled="${referer.get('referer_type')  == 0}">
+                                    <input id="includeEmpty" type="checkbox" class="form-check-input" name="includeEmptyInput" value="off" th:if="${!referer.get('include_empty')}" onchange="switchRemark('includeEmpty', 'includeEmptyLabel', [])" th:disabled="${referer.get('referer_type')  == 0}">
+                                    <label class="form-check-label" for="includeEmpty" id="includeEmptyLabel" th:if="${referer.get('include_empty')}">已开启</label>
+                                    <label class="form-check-label" for="includeEmpty" id="includeEmptyLabel" th:if="${!referer.get('include_empty')}">已关闭</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <label class="form-label">类型</label>
+                                <div class="input-group input-group-sm-vertical">
+                                    <!-- Radio Check -->
+                                    <label class="form-control" for="refererTypeSwitch1">
+                                    <span class="form-check">
+                                      <input type="radio" class="form-check-input"
+                                             name="refererTypeSwitchName"
+                                             id="refererTypeSwitch1"
+                                             th:checked="${referer.get('referer_type') == 1 || referer.get('referer_type') == 0}"
+                                             th:disabled="${referer.get('referer_type')  == 0}" value="1">
+                                      <span class="form-check-label">referer黑名单</span>
+                                    </span>
+                                </label>
+                                    <!-- End Radio Check -->
+                                    <!-- Radio Check -->
+                                    <label class="form-control" for="refererTypeSwitch2">
+                                    <span class="form-check">
+                                      <input type="radio" class="form-check-input"
+                                             name="refererTypeSwitchName"
+                                             id="refererTypeSwitch2" th:checked="${referer.get('referer_type') == 2}"
+                                             th:disabled="${referer.get('referer_type')  == 0}" value="2">
+                                      <span class="form-check-label">referer白名单</span>
+                                    </span>
+                                </label>
+                                    <!-- End Radio Check -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row" id="hasDisabledId3">
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <div class="mb-3">
+                                    <label class="form-label" for="refererListType">规则</label>
+                                    <i class="bi-question-circle text-body" data-bs-toggle="tooltip" data-bs-placement="top" title="请输入域名或IP地址，一行输入一个，域名、IP地址可混合输入，支持添加泛域名-。输入的域名、IP地址总数不能超过400个。如：www.example.com;*.test.com;192.168.0.0"></i>
+                                    <textarea id="refererListType" class="form-control" rows="3" th:text="${referer.get('value')}" th:disabled="${referer.get('referer_type')  == 0}"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer" id="hasDisabledId4">
+                    <div class="d-flex justify-content-end gap-3">
+                        <button class="btn btn-primary" th:onclick="saveReferer('[[${domain.id}]]')" id="refererId">
+                        <i class="bi bi-check-circle-fill"></i> 保存
+                    </button>
+                    </div>
+                </div>
+            </div>
+            <!-- End Card -->
+
+
+            <!-- Card IP黑名单配置 -->
+            <div class="card mb-3 mb-lg-5">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">IP黑白名单</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-soft-primary" role="alert">
+                        配置IP黑白名单，对用户请求IP地址进行过滤，从而限制访问来源。
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <label class="form-label">状态</label>
+                                <div class="form-check form-switch mb-4">
+                                    <input id="ipAclStatus" type="checkbox" class="form-check-input" checked name="httpsConfigurationInput" value="on" th:if="${ipAcl.get('type') != 'off'}" onchange="switchRemark('ipAclStatus', 'ipAclStatusLabel', ['ipAclTypeSwitch1','ipAclTypeSwitch2','ipAclText'])">
+                                    <input id="ipAclStatus" type="checkbox" class="form-check-input" name="httpsConfigurationInput" value="off" th:if="${ipAcl.get('type') == 'off'}" onchange="switchRemark('ipAclStatus', 'ipAclStatusLabel', ['ipAclTypeSwitch1','ipAclTypeSwitch2','ipAclText'])">
+                                    <label class="form-check-label" for="ipAclStatus" id="ipAclStatusLabel" th:if="${ipAcl.get('type') != 'off'}">已开启</label>
+                                    <label class="form-check-label" for="ipAclStatus" id="ipAclStatusLabel" th:if="${ipAcl.get('type') == 'off'}">已关闭</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <label class="form-label">类型</label>
+                                <div class="input-group input-group-sm-vertical">
+                                    <!-- Radio Check -->
+                                    <label class="form-control" for="ipAclTypeSwitch1">
+                                    <span class="form-check">
+                                      <input type="radio" class="form-check-input"
+                                             name="ipAclTypeSwitchName"
+                                             id="ipAclTypeSwitch1"
+                                             th:checked="${ipAcl.get('type') == 'black' || ipAcl.get('type') == 'off'}"
+                                             th:disabled="${ipAcl.get('type') == 'off'}" value="1">
+                                      <span class="form-check-label">IP黑名单</span>
+                                    </span>
+                                </label>
+                                    <!-- End Radio Check -->
+                                    <!-- Radio Check -->
+                                    <label class="form-control" for="ipAclTypeSwitch2">
+                                    <span class="form-check">
+                                      <input type="radio" class="form-check-input"
+                                             name="ipAclTypeSwitchName"
+                                             id="ipAclTypeSwitch2" th:checked="${ipAcl.get('type') == 'white'}"
+                                             th:disabled="${ipAcl.get('type') == 'off'}" value="2">
+                                      <span class="form-check-label">IP白名单</span>
+                                    </span>
+                                </label>
+                                    <!-- End Radio Check -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <div class="mb-3">
+                                    <label class="form-label" for="ipAclText">规则</label>
+                                    <i class="bi-question-circle text-body" data-bs-toggle="tooltip" data-bs-placement="top" title="请输入IP(例如129.0.2.0 或 2001：db8：） 或IP 网段（例如129.0.2.0/24或 2001:db8::/32) ,一行一个IP，输入总数最多150个。支持IPV6。
+                                "></i>
+                                    <textarea id="ipAclText" class="form-control" rows="3" th:text="${ipAcl.get('value')}" th:disabled="${ipAcl.get('type') == 0}"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-end gap-3">
+                        <button class="btn btn-primary" th:onclick="saveIpBlackWhiteList('[[${domain.id}]]')" id="ipAclButton">
+                        <i class="bi bi-check-circle-fill"></i> 保存
+                    </button>
+                    </div>
+                </div>
+            </div>
+            <!-- End Card -->
+            <!-- Card User-Agent黑白名单 -->
+            <div th:if="${domain.route != 'baishan'and domain.route != 'kingsoft'}" class="card mb-3 mb-lg-5">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">User-Agent黑白名单</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-soft-primary" role="alert">
+                        配置User-Agent黑白名单，对用户身份进行识别和过滤，从而限制访问来源。
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <label class="form-label">状态</label>
+                                <div class="form-check form-switch mb-4">
+                                    <input id="userAgentFilterStatus" type="checkbox" class="form-check-input" checked name="userAgentFilterName" value="on" th:if="${domainConfig.get('user_agent_filter').get('type') != 'off'}" onchange="switchRemark('userAgentFilterStatus', 'userAgentFilterStatusLabel', ['userAgentFilterType1','userAgentFilterType2','userAgentFilterValue'])">
+                                    <input id="userAgentFilterStatus" type="checkbox" class="form-check-input" name="userAgentFilterName" value="off" th:if="${domainConfig.get('user_agent_filter').get('type')  == 'off'}" onchange="switchRemark('userAgentFilterStatus', 'userAgentFilterStatusLabel', ['userAgentFilterType1','userAgentFilterType2','userAgentFilterValue'])">
+                                    <label class="form-check-label" for="userAgentFilterStatus" id="userAgentFilterStatusLabel" th:if="${domainConfig.get('user_agent_filter').get('type')  != 'off'}">已开启</label>
+                                    <label class="form-check-label" for="userAgentFilterStatus" th:if="${domainConfig.get('user_agent_filter').get('type')  == 'off'}">已关闭</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <label class="form-label">类型</label>
+                                <div class="input-group input-group-sm-vertical">
+                                    <!-- Radio Check -->
+                                    <label class="form-control" for="userAgentFilterType1">
+                                    <span class="form-check">
+                                      <input type="radio" class="form-check-input"
+                                             name="userAgentFilterTypeName"
+                                             id="userAgentFilterType1"
+                                             th:checked="${domainConfig.get('user_agent_filter').get('type')  == 'black' || domainConfig.get('user_agent_filter').get('type')  == 'off'}"
+                                             th:disabled="${domainConfig.get('user_agent_filter').get('type')  == 'off'}"
+                                             value="1">
+                                      <span class="form-check-label">黑名单</span>
+                                    </span>
+                                    </label>
+                                    <!-- End Radio Check -->
+                                    <!-- Radio Check -->
+                                    <label class="form-control" for="userAgentFilterType2">
+                                    <span class="form-check">
+                                      <input type="radio" class="form-check-input"
+                                             name="userAgentFilterTypeName"
+                                             id="userAgentFilterType2"
+                                             th:checked="${domainConfig.get('user_agent_filter').get('type')  == 'white'}"
+                                             th:disabled="${domainConfig.get('user_agent_filter').get('type')  == 'off'}"
+                                             value="2">
+                                      <span class="form-check-label">白名单</span>
+                                    </span>
+                                    </label>
+                                    <!-- End Radio Check -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <div class="mb-3">
+                                    <label class="form-label" for="userAgentFilterValue">规则</label>
+                                    <i class="bi-question-circle text-body" data-bs-toggle="tooltip" data-bs-placement="top" title="温馨提示：1.仅支持通配符*，暂时不支持其他正则表达式。2.无*情况下，其他字符均为完全匹配。3.仅支持通配符*实现正则匹配，无*时均为完全匹配；4.不支持中文，不允许为纯空格、纯*，且*仅允许在开头或结尾，其他取值限制为可见 ASCII 码范围。最多配置10条规则，每行一条规则。
+                                "></i>
+                                    <textarea id="userAgentFilterValue" class="form-control" rows="3" th:text="${domainConfig.get('user_agent_filter').get('value')}" th:disabled="${domainConfig.get('user_agent_filter').get('type')  == 'off'}"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-end gap-3">
+                        <button class="btn btn-primary" th:onclick="saveUserAgentFilter('[[${domain.id}]]')" id="userAgentFilterButton">
+                            <i class="bi bi-check-circle-fill"></i> 保存
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- Card User-Agent黑白名单 -->
+            <div th:if="${domain.route == 'kingsoft'}" class="card mb-3 mb-lg-5">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">User-Agent黑白名单</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info" role="alert">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="bi-info-circle"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h5>需要提交工单配置</h5>
+                                <p class="mb-0">User-Agent黑白名单配置需提交工单由技术人员协助配置。如需配置，请联系您的客户经理或提交工单。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Card -->
+
+            <!-- Card URL鉴权配置-->
+            <!-- End Card -->
+
+            <!-- Card 远程鉴权配置-->
+            <!-- End Card -->
+
+            <!-- Card -->
+            <div class="card mb-3 mb-lg-5">
+                <div class="card-header">
+                    <h4 class="card-header-title">URL鉴权</h4>
+                </div>
+                <!-- Body -->
+                <div class="card-body">
+                    <div class="alert alert-soft-primary" role="alert">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-shield-lock"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-2">
+                                <h5>保护您的源站资源</h5>
+                                <p class="mb-0">URL鉴权通过设置鉴权密钥和过期时间，对URL进行加密，有效防止资源被非法盗用。适用于视频、音频等付费内容保护。</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Form -->
+                    <div class="mb-4">
+                        <label class="row form-check form-switch" for="urlAuthStatusSwitch">
+                            <span class="col-sm-3 col-form-label text-sm-end">状态</span>
+                            <div class="col-sm-9">
+                                <div class="form-check form-switch mb-2">
+                                    <input id="urlAuthStatusSwitch" type="checkbox" class="form-check-input" th:checked="${domainConfig != null && domainConfig.get('visit') != null && domainConfig.get('visit').get('url_auth') != null && domainConfig.get('visit').get('url_auth').get('status') == 'on'}" onchange="toggleUrlAuthOptions()">
+                                    <label class="form-check-label" for="urlAuthStatusSwitch" th:text="${domainConfig != null && domainConfig.get('visit') != null && domainConfig.get('visit').get('url_auth') != null && domainConfig.get('visit').get('url_auth').get('status') == 'on' ? '已开启' : '已关闭'}"></label>
+                    </div>
+                </div>
+
+                <!-- URL Auth Options -->
+                <div id="urlAuthOptions" th:style="${domainConfig == null || domainConfig.get('visit') == null || domainConfig.get('visit').get('url_auth') == null || domainConfig.get('visit').get('url_auth').get('status') != 'on' ? 'display: none;' : ''}">
+                    <div class="mb-4">
+                        <label class="row col-form-label" for="authTypeSelect">
+                                <span class="col-sm-3 text-sm-end">鉴权类型</span>
+                                <div class="col-sm-9">
+                                    <div class="tom-select-custom">
+                                        <select id="authTypeSelect" class="js-select form-select" autocomplete="off"
+                                            data-hs-tom-select-options='{
+                                                "placeholder": "选择鉴权类型",
+                                                "hideSearch": true
+                                            }'>
+                                            <option value="typeA" th:selected="${domainConfig != null && domainConfig.get('visit') != null && domainConfig.get('visit').get('url_auth') != null && domainConfig.get('visit').get('url_auth').get('type') == 'typeA'}">Type A - 时间戳+共享密钥鉴权</option>
+                                            <option value="typeB" th:selected="${domainConfig != null && domainConfig.get('visit') != null && domainConfig.get('visit').get('url_auth') != null && domainConfig.get('visit').get('url_auth').get('type') == 'typeB'}">Type B - 带参数鉴权</option>
+                                        </select>
+                                    </div>
+                                    <small class="form-text text-muted mt-1">
+                                        <i class="bi bi-info-circle me-1"></i>Type A适用于大多数场景，Type B提供更多参数控制
+                                    </small>
+                                </div>
+                            </label>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="row col-form-label" for="primaryKeyInput">
+                                <span class="col-sm-3 text-sm-end">主密钥</span>
+                                <div class="col-sm-9">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="primaryKeyInput" placeholder="6-128位大小写字母或数字" th:value="${domainConfig != null && domainConfig.get('visit') != null && domainConfig.get('visit').get('url_auth') != null ? domainConfig.get('visit').get('url_auth').get('primary_key') : ''}">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="generateRandomKey('primaryKeyInput')">
+                                            <i class="bi bi-shuffle"></i> 生成
+                                        </button>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        <i class="bi bi-shield-check me-1"></i>主密钥用于URL签名计算，请妥善保管
+                                    </small>
+                                </div>
+                            </label>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="row col-form-label" for="secondaryKeyInput">
+                                <span class="col-sm-3 text-sm-end">备密钥</span>
+                                <div class="col-sm-9">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="secondaryKeyInput" placeholder="可选，6-128位大小写字母或数字" th:value="${domainConfig != null && domainConfig.get('visit') != null && domainConfig.get('visit').get('url_auth') != null ? domainConfig.get('visit').get('url_auth').get('secondary_key') : ''}">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="generateRandomKey('secondaryKeyInput')">
+                                            <i class="bi bi-shuffle"></i> 生成
+                                        </button>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        <i class="bi bi-info-circle me-1"></i>备密钥可选，用于密钥轮换时平滑过渡
+                                    </small>
+                                </div>
+                            </label>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="row col-form-label" for="expireTimeInput">
+                                <span class="col-sm-3 text-sm-end">过期时间</span>
+                                <div class="col-sm-9">
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="expireTimeInput" placeholder="大于等于0的整数" min="0" th:value="${domainConfig != null && domainConfig.get('visit') != null && domainConfig.get('visit').get('url_auth') != null ? domainConfig.get('visit').get('url_auth').get('expire_time') : ''}">
+                                        <span class="input-group-text">秒</span>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        <i class="bi bi-clock-history me-1"></i>链接在生成后多少秒内有效，推荐设置为3600（1小时）或更长
+                                    </small>
+                                </div>
+                            </label>
+                    </div>
+
+                    <div class="alert alert-soft-info mt-4" role="alert">
+                        <h6><i class="bi bi-lightbulb me-2"></i>如何使用URL鉴权？</h6>
+                        <p class="mb-0">配置完成后，您需要在应用程序中集成URL签名算法，生成带有签名的URL。</p>
+                    </div>
+                </div>
+                <!-- End Form -->
+            </div>
+            <!-- End Body -->
+            <!-- Footer -->
+            <div class="card-footer d-flex justify-content-end align-items-center">
+                <button type="button" class="btn btn-primary" th:onclick="saveUrlAuth('[[${domain.id}]]')">
+                        <i class="bi bi-save me-1"></i> 保存
+                    </button>
+            </div>
+            <!-- End Footer -->
+        </div>
+        <!-- End Card -->
+        </div>
+        <!-- End Content -->
+
+        <!-- Footer -->
+        <div th:replace="common/common-dashboard::#footer(curPage='domain-setting-access')"></div>
+        <!-- End Footer -->
+    </main>
+    <!-- ========== END MAIN CONTENT ========== -->
+
+    <!-- ========== SECONDARY CONTENTS ========== -->
+
+    <div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='domain-setting-access')"></div>
+
+    <!-- End Import Products Modal -->
+
+    <!-- ========== END SECONDARY CONTENTS ========== -->
+
+    <!-- JS Global Compulsory  -->
+    <script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+    <!-- JS Implementing Plugins -->
+    <script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+    <script th:src="@{dashboard/assets/vendor/hs-nav-scroller/dist/hs-nav-scroller.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/clipboard/dist/clipboard.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/datatables/media/js/jquery.dataTables.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/datatables.net.extensions/select/select.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/dropzone/dist/min/dropzone.min.js}"></script>
+
+    <!-- JS Front -->
+    <script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+    <script th:src="@{common/layer/layer.js}"></script>
+    <script th:src="@{common/util/reg.js}"></script>
+    <script th:src="@{common/custom.js}"></script>
+    <script th:src="@{common/custom_ceo.js}"></script>
+    <script th:src="@{common/custom_cmo.js}"></script>
+    <script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+
+    <!-- JS Plugins Init. -->
+    <script>
+        $(document).on('ready', function() {
+
+            $('#toggleColumn_product').change(function(e) {
+                datatable.columns(1).visible(e.target.checked)
+            })
+
+            // 为URL鉴权开关添加切换事件
+            $("#urlAuthStatusSwitch").change(function() {
+                if ($(this).is(":checked")) {
+                    $("#urlAuthOptions").show();
+                    $(this).next("label").text("已开启");
+                } else {
+                    $("#urlAuthOptions").hide();
+                    $(this).next("label").text("已关闭");
+                }
+            });
+
+            $('#toggleColumn_type').change(function(e) {
+                datatable.columns(2).visible(e.target.checked)
+            })
+
+
+            $('#toggleColumn_vendor').change(function(e) {
+                datatable.columns(3).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_stocks').change(function(e) {
+                datatable.columns(4).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_sku').change(function(e) {
+                datatable.columns(5).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_price').change(function(e) {
+                datatable.columns(6).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_quantity').change(function(e) {
+                datatable.columns(7).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_variants').change(function(e) {
+                datatable.columns(8).visible(e.target.checked)
+            })
+        });
+    </script>
+
+    <!-- JS Plugins Init. -->
+    <script>
+        (function() {
+            window.onload = function() {
+
+
+                // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+                // =======================================================
+                new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+                // INITIALIZATION OF FORM SEARCH
+                // =======================================================
+                new HSFormSearch('.js-form-search')
+
+
+                // INITIALIZATION OF BOOTSTRAP DROPDOWN
+                // =======================================================
+                HSBsDropdown.init()
+
+
+                // INITIALIZATION OF SELECT
+                // =======================================================
+                HSCore.components.HSTomSelect.init('.js-select')
+
+
+                // INITIALIZATION OF NAV SCROLLER
+                // =======================================================
+                new HsNavScroller('.js-nav-scroller')
+
+
+                // INITIALIZATION OF DROPZONE
+                // =======================================================
+                HSCore.components.HSDropzone.init('.js-dropzone')
+
+                HSCore.components.HSClipboard.init('.js-clipboard')
+            }
+        })()
+    </script>
+
+    <!-- Style Switcher JS -->
+
+    <script>
+        (function() {
+            // STYLE SWITCHER
+            // =======================================================
+            const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+            const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+            // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+            const setActiveStyle = function() {
+                $variants.forEach($item => {
+                    if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                        $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                        return $item.classList.add('active')
+                    }
+
+                    $item.classList.remove('active')
+                })
+            }
+
+            // Add a click event to all items of the dropdown to set the style
+            $variants.forEach(function($item) {
+                $item.addEventListener('click', function() {
+                    HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+                })
+            })
+
+            // Call the setActiveStyle on load page
+            setActiveStyle()
+
+            // Add event listener on change style to call the setActiveStyle function
+            window.addEventListener('on-hs-appearance-change', function() {
+                setActiveStyle()
+            })
+
+
+        })()
+    </script>
+
+    <script>
+        // 修改checkbox时更新文字
+        function switchRemark(switchId, remarkId, hasDisabledIds) {
+            let val = $("#" + switchId).val()
+            let result = val == 'on' ? 'off' : 'on'
+            if (result == "off") {
+                $("#" + remarkId).html("已关闭")
+            } else {
+                $("#" + remarkId).html("已开启")
+            }
+            $("#" + switchId).val(result)
+            console.log(result)
+                // 这里可以开启遮罩
+            if (result == 'off') {
+                hasDisabledIds.forEach(item => {
+                    $('#' + item).attr('disabled', 'disabled');
+                })
+            }
+            if (result == 'on') {
+                hasDisabledIds.forEach(item => {
+                    $('#' + item).removeAttr('disabled');
+                })
+            }
+        }
+    </script>
+
+    <!-- End Style Switcher JS -->
+</body>
+
+</html>
+<div th:replace="common/common-dashboard::#agent"></div>

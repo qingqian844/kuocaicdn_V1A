@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title>[[${websiteBaseConfig.websiteName}]] 编辑用户</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/daterangepicker/daterangepicker.css}">
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {"switcherSupport": true},
+                "header": {"layoutMode": "default", "containerMode": "container-fluid"},
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {"100": "#f9fafc", "900": "#1e2022"}
+                    }, "font": "Inter"
+                }
+            },
+            "languageDirection": {"lang": "en"},
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {"*assets/js/theme-custom.js": ""},
+                "build": {"*assets/js/theme-custom.js": "", "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"}
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {"src": "./src", "dist": "./dist", "build": "./build"},
+            "fileNames": {
+                "dist": {"js": "theme.min.js", "css": "theme.min.css"},
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl footer-offset">
+
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+<!-- ========== HEADER ========== -->
+
+<div th:replace="common/common-dashboard::header(curPage='user-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<!-- Navbar Vertical -->
+
+<div th:replace="common/common-dashboard::aside(curPage='user-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- End Navbar Vertical -->
+
+<main id="content" role="main" class="main">
+    <!-- Content -->
+    <div class="content container-fluid">
+        <!-- Page Header -->
+        <div class="page-header" style="padding-bottom: 5px;margin-bottom: 10px">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="page-header-title">编辑用户 <i class="bi-person-video nav-icon"></i>
+                    </h1>
+                </div>
+
+                <!-- End Col -->
+            </div>
+            <!-- End Row -->
+        </div>
+        <!-- End Page Header -->
+        <div class="row justify-content-lg-center">
+            <!-- Step Form -->
+            <form class="js-step-form py-md-5" data-hs-step-form-options='{
+              "progressSelector": "#addUserStepFormProgress",
+              "stepsSelector": "#addUserStepFormContent",
+              "endSelector": "#addUserFinishBtn",
+              "isValidate": false
+            }'>
+                <div class="row justify-content-lg-center">
+                    <div class="col-lg-8">
+                        <!-- Step -->
+                        <ul id="addUserStepFormProgress"
+                            class="js-step-progress step step-sm step-icon-sm step step-inline step-item-between mb-3 mb-md-5">
+                            <li class="step-item">
+                                <a class="step-content-wrapper" href="javascript:;" data-hs-step-form-next-options='{
+                    "targetSelector": "#addUserStepProfile"
+                  }'>
+                                    <span class="step-icon step-icon-soft-dark">1</span>
+                                    <div class="step-content">
+                                        <span class="step-title">基本信息</span>
+                                    </div>
+                                </a>
+                            </li>
+
+                            <li class="step-item">
+                                <a class="step-content-wrapper" href="javascript:;" data-hs-step-form-next-options='{
+                    "targetSelector": "#addUserStepBillingAddress"
+                  }'>
+                                    <span class="step-icon step-icon-soft-dark">2</span>
+                                    <div class="step-content">
+                                        <span class="step-title">其他配置</span>
+                                    </div>
+                                </a>
+                            </li>
+                        </ul>
+                        <!-- End Step -->
+
+                        <!-- Content Step Form -->
+                        <div id="addUserStepFormContent">
+                            <!-- Card -->
+                            <div id="addUserStepProfile" class="card card-lg active">
+                                <!-- Body -->
+                                <div class="card-body">
+                                    <!-- Form -->
+                                    <div class="row mb-4">
+                                        <label class="col-sm-3 col-form-label form-label">头像</label>
+
+                                        <div class="col-sm-9">
+                                            <div class="d-flex align-items-center">
+                                                <!-- Avatar -->
+                                                <label class="avatar avatar-xl avatar-circle avatar-uploader me-5"
+                                                       for="avatarUploader">
+                                                    <img id="avatarImg" class="avatar-img"
+                                                         th:src="${consumer.img}"
+                                                         alt="Image Description">
+
+                                                    <input type="file" class="js-file-attach avatar-uploader-input"
+                                                           id="avatarUploader" data-hs-file-attach-options='{
+                                    "textTarget": "#avatarImg",
+                                    "mode": "image",
+                                    "targetAttr": "src",
+                                    "resetTarget": ".js-file-attach-reset-img",
+                                    "resetImg": "dashboard/assets/img/160x160/img1.jpg",
+                                    "allowTypes": [".png", ".jpeg", ".jpg"]
+                                 }'>
+
+                                                    <span class="avatar-uploader-trigger">
+                            <i class="bi-pencil avatar-uploader-icon shadow-sm"></i>
+                          </span>
+                                                </label>
+                                                <!-- End Avatar -->
+
+                                                <button type="button" class="js-file-attach-reset-img btn btn-white">
+                                                    清除
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- End Form -->
+
+                                    <!-- Form -->
+                                    <div class="row mb-4">
+                                        <label for="userName" class="col-sm-3 col-form-label form-label">用户名
+                                            <i class="bi-question-circle text-body ms-1" data-bs-toggle="tooltip"
+                                               data-bs-placement="top"
+                                               title="Displayed on public forums, such as Front."></i></label>
+
+                                        <div class="col-sm-9">
+                                            <div class="input-group input-group-sm-vertical">
+                                                <input type="text" class="form-control"
+                                                       id="userName" placeholder="请输入用户名" maxlength="30"
+                                                       th:value="${consumer.userName}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- End Form -->
+
+                                    <!-- Form -->
+                                    <div class="row mb-4">
+                                        <label for="email" class="col-sm-3 col-form-label form-label">邮箱地址</label>
+
+                                        <div class="col-sm-9">
+                                            <input type="email" class="form-control" id="email" maxlength="30"
+                                                   placeholder="请输入邮箱地址" th:value="${consumer.email}">
+                                        </div>
+                                    </div>
+                                    <!-- End Form -->
+
+                                    <!-- Form -->
+                                    <div class="row mb-4">
+                                        <label for="phone" class="col-sm-3 col-form-label form-label">手机号码</label>
+
+                                        <div class="col-sm-9">
+                                            <input type="number" class="form-control" id="phone" maxlength="11"
+                                                   placeholder="请输入手机号码" th:value="${consumer.phone}">
+                                        </div>
+                                    </div>
+                                    <!-- End Form -->
+
+                                    <!-- Form -->
+                                    <div class="row mb-4">
+                                        <label for="password"
+                                               class="col-sm-3 col-form-label form-label">登录密码</label>
+
+                                        <div class="col-sm-9">
+                                            <input type="password" class="form-control" id="password" maxlength="16"
+                                                   placeholder="留空则不修改密码">
+                                        </div>
+                                    </div>
+                                    <!-- End Form -->
+
+                                    <!-- Form -->
+                                    <div class="row mb-4">
+                                        <label for="website" class="col-sm-3 col-form-label form-label">个人网站</label>
+
+                                        <div class="col-sm-9">
+                                            <input type="text" class="form-control" id="website" maxlength="30"
+                                                   placeholder="请输入个人网站" th:value="${consumer.myWebsite}">
+                                        </div>
+                                    </div>
+                                    <!-- End Form -->
+
+                                </div>
+                                <!-- End Body -->
+
+                                <!-- Footer -->
+                                <div class="card-footer d-flex justify-content-end align-items-center">
+                                    <button type="button" class="btn btn-primary" data-hs-step-form-next-options='{
+                                        "targetSelector": "#addUserStepBillingAddress"
+                                      }'>
+                                        下一步 <i class="bi-chevron-right"></i>
+                                    </button>
+                                </div>
+                                <!-- End Footer -->
+                            </div>
+                            <!-- End Card -->
+
+                            <div id="addUserStepBillingAddress" class="card card-lg" style="display: none;">
+                                <!-- Body -->
+                                <div class="card-body">
+
+                                    <!-- Form -->
+                                    <div class="row mb-4">
+                                        <label for="realName"
+                                               class="col-sm-3 col-form-label form-label">真实姓名</label>
+
+                                        <div class="col-sm-9">
+                                            <input type="text" class="form-control" id="realName" maxlength="5"
+                                                   placeholder="请输入真实姓名" th:value="${consumer.realName}">
+                                        </div>
+                                    </div>
+                                    <!-- End Form -->
+
+                                    <!-- Form -->
+                                    <div class="row mb-4">
+                                        <label for="idCardNum"
+                                               class="col-sm-3 col-form-label form-label">身份证号</label>
+
+                                        <div class="col-sm-9">
+                                            <input type="text" class="form-control" id="idCardNum" maxlength="18"
+                                                   placeholder="请输入身份证号" th:value="${consumer.idCardNum}">
+                                        </div>
+                                    </div>
+                                    <!-- End Form -->
+
+                                    <!-- Form -->
+                                    <div class="row mb-4">
+                                        <label for="flowPrice"
+                                               class="col-sm-3 col-form-label form-label">流量单价</label>
+
+                                        <div class="col-sm-9">
+                                            <input type="number" class="form-control"
+                                                   id="flowPrice" placeholder="请输入流量单价"
+                                                   aria-label="Your address" th:value="${consumer.flowPrice}">
+                                        </div>
+                                    </div>
+                                    <!-- End Form -->
+
+                                    <!-- Form -->
+                                    <div class="row mb-4">
+                                        <label class="col-sm-3 col-form-label form-label">用户角色</label>
+
+                                        <div class="col-sm-9">
+                                            <!-- Select -->
+                                            <div class="tom-select-custom">
+                                                <select class="js-select form-select" autocomplete="off" id="roleSelect"
+                                                        data-hs-tom-select-options='{
+                                                          "placeholder": "选择用户角色",
+                                                          "hideSearch": true
+                                                        }'>
+                                                    <option th:each="r: ${roles}" th:value="${r.id}"
+                                                            th:selected="${r.id == consumer.roleId}"
+                                                            th:text="${r.roleName}"></option>
+                                                </select>
+                                            </div>
+                                            <!-- End Select -->
+                                        </div>
+                                    </div>
+
+                                    <!-- End Form -->
+                                    <div class="row mb-4">
+                                        <label class="col-sm-3 col-form-label form-label">代理等级</label>
+
+                                        <div class="col-sm-9">
+                                            <!-- Select -->
+                                            <div class="tom-select-custom">
+                                                <select class="js-select form-select" autocomplete="off" id="agentLevel"
+                                                        data-hs-tom-select-options='{
+                                                          "placeholder": "选择代理等级",
+                                                          "hideSearch": true
+                                                        }'>
+                                                    <option value="">无代理权限</option>
+                                                    <option th:each="a: ${agentLevelList}" th:value="${a.id}"
+                                                            th:selected="${a.id == consumer.agentLevelId}"
+                                                            th:text="${a.name}"></option>
+                                                </select>
+                                            </div>
+                                            <!-- End Select -->
+                                        </div>
+                                    </div>
+
+                                    <!-- End Form -->
+                                    <div class="row mb-4">
+                                        <label class="col-sm-3 col-form-label form-label">上级代理</label>
+
+                                        <div class="col-sm-9">
+                                            <!-- Select -->
+                                            <div class="tom-select-custom">
+                                                <select class="js-select form-select" autocomplete="off" id="agentUserId"
+                                                        data-hs-tom-select-options='{
+                                                          "placeholder": "选择上级代理用户"
+                                                        }'>
+                                                    <option value="">无上级代理</option>
+                                                    <option th:each="a: ${agents}" th:value="${a.id}"
+                                                            th:selected="${a.id == consumer.agentUserId}">
+                                                        [[${a.userName}]] [[${a.phone}]] [[${a.email}]]
+                                                    </option>
+                                                </select>
+                                            </div>
+                                            <!-- End Select -->
+                                        </div>
+                                    </div>
+
+                                    <!-- End Form -->
+                                    <div class="row mb-4">
+                                        <label class="col-sm-3 col-form-label form-label">自动结算</label>
+
+                                        <div class="col-sm-9">
+                                            <!-- Select -->
+                                            <div class="tom-select-custom">
+                                                <select class="js-select form-select" autocomplete="off" id="autoBalance"
+                                                        data-hs-tom-select-options='{
+                                                          "placeholder": "修改状态",
+                                                          "hideSearch": true
+                                                        }'>
+                                                    <option value="1" th:selected="${consumer.autoBalance == 1}">开启</option>
+                                                    <option value="0" th:selected="${consumer.autoBalance == 0}">关闭</option>
+                                                </select>
+                                            </div>
+                                            <!-- End Select -->
+                                        </div>
+                                    </div>
+
+                                </div>
+                                <!-- End Body -->
+
+                                <!-- Footer -->
+                                <div class="card-footer d-flex align-items-center">
+                                    <button type="button" class="btn btn-ghost-secondary"
+                                            data-hs-step-form-prev-options='{
+                       "targetSelector": "#addUserStepProfile"
+                     }'>
+                                        <i class="bi-chevron-left"></i> 上一步
+                                    </button>
+
+                                    <div class="ms-auto">
+                                        <button id="addUserFinishBtn" type="button" class="btn btn-primary"
+                                        >
+                                            <i class="bi-person-plus-fill me-1"></i> 保存用户
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- End Footer -->
+                            </div>
+
+                        </div>
+                        <!-- End Content Step Form -->
+
+                        <!-- Message Body -->
+                        <div id="successMessageContent" style="display:none;">
+                            <div class="text-center">
+                                <img class="img-fluid mb-3"
+                                     th:src="@{dashboard/assets/svg/illustrations/oc-hi-five.svg}"
+                                     alt="Image Description" data-hs-theme-appearance="default"
+                                     style="max-width: 15rem;">
+                                <img class="img-fluid mb-3"
+                                     th:src="@{dashboard/assets/svg/illustrations-light/oc-hi-five.svg}"
+                                     alt="Image Description" data-hs-theme-appearance="dark" style="max-width: 15rem;">
+
+                                <div class="mb-4">
+                                    <h2>修改成功！</h2>
+                                    <p>用户已被成功修改，请返回用户列表查看。</p>
+                                </div>
+
+                                <div class="d-flex justify-content-center">
+                                    <a class="btn btn-white me-3" href="user-list">
+                                        <i class="bi-chevron-left ms-1"></i> 用户列表
+                                    </a>
+                                    <!--                                    <a class="btn btn-primary" href="user-add">-->
+                                    <!--                                        <i class="bi-person-plus-fill me-1"></i> 继续添加-->
+                                    <!--                                    </a>-->
+                                </div>
+                            </div>
+                        </div>
+                        <!-- End Message Body -->
+                    </div>
+                </div>
+                <!-- End Row -->
+            </form>
+            <!-- End Step Form -->
+            <div class="col-lg-8 mt-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title h4">EdgeOne根域名额度</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center mb-4" th:if="${edgeOneQuotaSummary != null}">
+                            <div class="col">
+                                <span class="d-block h3 mb-0">[[${edgeOneQuotaSummary.totalQuota}]]</span>
+                                <span class="d-block text-muted">总额度</span>
+                            </div>
+                            <div class="col">
+                                <span class="d-block h3 mb-0">[[${edgeOneQuotaSummary.usedQuota}]]</span>
+                                <span class="d-block text-muted">已用</span>
+                            </div>
+                            <div class="col">
+                                <span class="d-block h3 mb-0">[[${edgeOneQuotaSummary.remainingQuota}]]</span>
+                                <span class="d-block text-muted">剩余</span>
+                            </div>
+                            <div class="col">
+                                <span class="d-block h3 mb-0">[[${edgeOneQuotaSummary.paidQuota}]]</span>
+                                <span class="d-block text-muted">付费额度</span>
+                            </div>
+                            <div class="col">
+                                <span class="d-block h3 mb-0">[[${edgeOneQuotaSummary.packageQuota}]]</span>
+                                <span class="d-block text-muted">套餐赠送</span>
+                            </div>
+                        </div>
+                        <div class="alert alert-soft-warning mb-4"
+                             th:if="${edgeOneQuotaSummary != null and edgeOneQuotaSummary.overQuota}">
+                            当前用户已超出EdgeOne根域名额度，已有域名不会自动删除，但会限制继续新增。
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-thead-bordered table-nowrap table-align-middle mb-0">
+                                <thead class="thead-light">
+                                <tr>
+                                    <th>根域名</th>
+                                    <th>首次绑定域名</th>
+                                    <th>状态</th>
+                                    <th>创建时间</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:if="${#lists.isEmpty(edgeOneRootDomainRecords)}">
+                                    <td colspan="4" class="text-center text-muted">暂无已绑定的EdgeOne根域名</td>
+                                </tr>
+                                <tr th:each="record : ${edgeOneRootDomainRecords}">
+                                    <td>[[${record.rootDomain}]]</td>
+                                    <td>[[${record.firstDomainName}]]</td>
+                                    <td><span class="badge bg-success">[[${record.status}]]</span></td>
+                                    <td>[[${#dates.format(record.createTime, 'yyyy-MM-dd HH:mm')}]]</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Content -->
+
+    <!-- Footer -->
+
+    <div th:replace="common/common-dashboard::#footer(curPage='user-list')"></div>
+
+    <!-- End Footer -->
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- ========== SECONDARY CONTENTS ========== -->
+
+<div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='user-list')"></div>
+
+<!-- ========== END SECONDARY CONTENTS ========== -->
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+<!-- JS Implementing Plugins -->
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-file-attach/dist/hs-file-attach.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-step-form/dist/hs-step-form.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-add-field/dist/hs-add-field.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/imask/dist/imask.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+
+<!-- JS Front -->
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+<script th:src="@{dashboard/assets/js/hs.theme-appearance-charts.js}"></script>
+
+
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/util/reg.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom_ceo.js}"></script>
+<script th:src="@{common/custom_cmo.js}"></script>
+<script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+
+<!-- JS Plugins Init. -->
+<script>
+    (function () {
+        window.onload = function () {
+
+
+            // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+            // =======================================================
+            new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+            // INITIALIZATION OF FORM SEARCH
+            // =======================================================
+            new HSFormSearch('.js-form-search')
+
+
+            // INITIALIZATION OF BOOTSTRAP DROPDOWN
+            // =======================================================
+            HSBsDropdown.init()
+
+
+            // INITIALIZATION OF FILE ATTACH
+            // =======================================================
+            new HSFileAttach('.js-file-attach')
+
+
+            // INITIALIZATION OF STEP FORM
+            // =======================================================
+            new HSStepForm('.js-step-form', {
+                finish: async () => {
+                    const fileObj = $('#avatarUploader')[0].files[0];
+
+                    let userName = $("#userName").val()
+                    let email = $("#email").val()
+                    let phone = $("#phone").val()
+                    let password = $("#password").val()
+                    let website = $("#website").val()
+                    let realName = $("#realName").val()
+                    let idCardNum = $("#idCardNum").val()
+                    let flowPrice = $("#flowPrice").val()
+                    let role = $("#roleSelect option:checked").val()
+                    let agentLevel = $("#agentLevel option:checked").val()
+                    let agentUserId = $("#agentUserId option:checked").val()
+                    let autoBalance = $("#autoBalance option:checked").val()
+                    console.log(autoBalance)
+                    // 1是没有修改
+                    let type = "1"
+                    if (!userName) {
+                        layerWarn("请输入用户名")
+                        return 0;
+                    }
+                    if (password) {
+                        if (!userPasswordReg(password)) {
+                            layerWarn("密码格式不正确")
+                            return 0;
+                        }
+                        type = "2"
+                    }
+
+                    if (email) {
+                        if (!emailReg(email)) {
+                            layerWarn("邮箱格式不正确")
+                            return 0;
+                        }
+                    }
+                    if (phone) {
+                        if (!phoneReg(phone)) {
+                            layerWarn("手机格式不正确")
+                            return 0;
+                        }
+                    }
+                    let params = new FormData();
+                    params.append("id", '[[${consumer.id}]]')
+                    params.append("file", fileObj)
+                    params.append("userName", userName)
+                    params.append("userPwd", password)
+                    params.append("myWebSite", website)
+                    params.append("email", email)
+                    params.append("phone", phone)
+                    params.append("realName", realName)
+                    params.append("roleId", role)
+                    params.append("flowPrice", flowPrice)
+                    params.append("idCardNum", idCardNum)
+                    params.append("type", type)
+                    params.append("agentLevelId", agentLevel)
+                    params.append("agentUserId", agentUserId)
+                    params.append("autoBalance", autoBalance)
+                    console.log(params)
+                    let data = await sendFileUploadRequest(
+                        "SysUser/updateUser",
+                        params);
+                    console.log(data);
+                    autoLayer(data);
+                    if (data['code'] === 'SUCCESS') {
+                        setTimeout(function () {
+                            document.getElementById("addUserStepFormProgress").style.display = 'none'
+                            document.getElementById("addUserStepProfile").style.display = 'none'
+                            document.getElementById("addUserStepBillingAddress").style.display = 'none'
+                            document.getElementById("successMessageContent").style.display = 'block'
+                            scrollToTop('#header');
+                            const formContainer = document.getElementById('formContainer')
+                        }, 1000);
+                    }
+                },
+                onNextStep: function () {
+                    scrollToTop()
+                },
+                onPrevStep: function () {
+                    scrollToTop()
+                }
+            })
+
+            function scrollToTop(el = '.js-step-form') {
+                el = document.querySelector(el)
+                window.scrollTo({
+                    top: (el.getBoundingClientRect().top + window.scrollY) - 30,
+                    left: 0,
+                    behavior: 'smooth'
+                })
+            }
+
+
+            // INITIALIZATION OF ADD FIELD
+            // =======================================================
+            new HSAddField('.js-add-field', {
+                addedField: field => {
+                    HSCore.components.HSTomSelect.init(field.querySelector('.js-select-dynamic'))
+                    HSCore.components.HSMask.init(field.querySelector('.js-input-mask'))
+                }
+            })
+
+
+            // INITIALIZATION OF SELECT
+            // =======================================================
+            HSCore.components.HSTomSelect.init('.js-select', {
+                render: {
+                    'option': function (data, escape) {
+                        return data.optionTemplate || `<div>${data.text}</div>>`
+                    },
+                    'item': function (data, escape) {
+                        return data.optionTemplate || `<div>${data.text}</div>>`
+                    }
+                }
+            })
+
+
+            // INITIALIZATION OF INPUT MASK
+            // =======================================================
+            HSCore.components.HSMask.init('.js-input-mask')
+        }
+    })()
+</script>
+
+<!-- Style Switcher JS -->
+
+<script>
+    (function () {
+        // STYLE SWITCHER
+        // =======================================================
+        const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+        const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+        // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+        const setActiveStyle = function () {
+            $variants.forEach($item => {
+                if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                    $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                    return $item.classList.add('active')
+                }
+
+                $item.classList.remove('active')
+            })
+        }
+
+        // Add a click event to all items of the dropdown to set the style
+        $variants.forEach(function ($item) {
+            $item.addEventListener('click', function () {
+                HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+            })
+        })
+
+        // Call the setActiveStyle on load page
+        setActiveStyle()
+
+        // Add event listener on change style to call the setActiveStyle function
+        window.addEventListener('on-hs-appearance-change', function () {
+            setActiveStyle()
+        })
+    })()
+</script>
+<!-- End Style Switcher JS -->
+</body>
+
+</html>
+

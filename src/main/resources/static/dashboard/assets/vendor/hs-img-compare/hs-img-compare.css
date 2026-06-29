@@ -1,0 +1,62 @@
+.hs-img-comp-slider {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index:9;
+  cursor: ew-resize;
+  width: 40px;
+  height: 40px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  border: 2px solid #377dff;
+}
+
+.hs-img-comp-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.hs-img-comp-a {
+  height: auto;
+  position: static;
+  z-index: 1;
+  left: 0;
+}
+
+.hs-img-comp-b {
+  height: 100%;
+  position: absolute;
+  z-index: 2;
+  left: auto;
+  right: 0;
+  width: auto;
+}
+
+
+.hs-img-comp {
+  pointer-events: none;
+  -o-user-select: none;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  max-width: none;
+  width: 100%;
+  margin: 0!important;
+  padding: 0!important;
+  border: 0!important;
+  top: 0;
+  display: block;
+}
+
+.hs-img-comp-wrapper {
+  position: absolute;
+  top: 0;
+  right: 0;
+  overflow: hidden;
+  background-size: cover;
+  background-position: 50%;
+  z-index: 3;
+  height: 100%!important;
+}

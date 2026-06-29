@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title th:if="${!openAgent}">[[${websiteBaseConfig.websiteName}]] 证书列表</title>
+    <title th:if="${openAgent}">[[${agentConfig.websiteName}]] 证书列表</title>
+
+    <!-- Favicon -->
+    <link th:if="${!openAgent}" rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:if="${openAgent}" rel="shortcut icon" th:href="${agentConfig.icon}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {"switcherSupport": true},
+                "header": {"layoutMode": "default", "containerMode": "container-fluid"},
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {"100": "#f9fafc", "900": "#1e2022"}
+                    }, "font": "Inter"
+                }
+            },
+            "languageDirection": {"lang": "en"},
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {"*assets/js/theme-custom.js": ""},
+                "build": {"*assets/js/theme-custom.js": "", "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"}
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {"src": "./src", "dist": "./dist", "build": "./build"},
+            "fileNames": {
+                "dist": {"js": "theme.min.js", "css": "theme.min.css"},
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl   footer-offset">
+
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+<!-- ========== HEADER ========== -->
+
+<div th:replace="common/common-dashboard::header(curPage='certification-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<!-- Navbar Vertical -->
+
+<div th:replace="common/common-dashboard::aside(curPage='certification-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- End Navbar Vertical -->
+<main id="content" role="main" class="main">
+    <!-- Content -->
+    <div class="content container-fluid">
+        <!-- Page Header -->
+        <div class="page-header" style="padding-bottom: 5px;margin-bottom: 10px">
+            <div class="row align-items-center">
+                <div class="col-sm mb-2 mb-sm-0">
+                    <h1 class="page-header-title">证书管理 <i class="bi-diagram-3 nav-icon"></i>
+                    </h1>
+
+                </div>
+                <!-- End Col -->
+
+                <div class="col-sm-auto">
+                    <a class="btn btn-primary" href="certification-create">添加证书</a>
+                </div>
+                <!-- End Col -->
+            </div>
+            <!-- End Row -->
+        </div>
+        <!-- End Page Header -->
+
+        <!-- Card -->
+        <!-- Card -->
+        <div class="card">
+            <!-- Header -->
+            <div class="card-header card-header-content-md-between">
+                <div class="mb-2 mb-md-0">
+                    <form>
+                        <!-- Search -->
+                        <div class="input-group input-group-merge input-group-flush">
+                            <div class="input-group-prepend input-group-text">
+                                <i class="bi-search"></i>
+                            </div>
+                            <input id="datatableSearch" type="search" class="form-control"
+                                   placeholder="关键词搜索" maxlength="30"
+                                   aria-label="关键词搜索">
+                        </div>
+                        <!-- End Search -->
+                    </form>
+                </div>
+
+                <div class="d-grid d-sm-flex gap-2">
+
+                </div>
+                <!-- End Dropdown -->
+            </div>
+            <!-- End Header -->
+
+            <!-- Table -->
+            <div class="table-responsive datatable-custom" style="min-height: 350px;">
+                <table id="datatable"
+                       class="table table-borderless table-thead-bordered table-nowrap table-align-middle card-table table-hover"
+                       data-hs-datatables-options='{
+                   "columnDefs": [{
+                      "targets": [0,1,2,3,4,5,6,7,8,9],
+                      "orderable": false
+                    }],
+                   "order": [],
+                   "info": {
+                     "totalQty": "#datatableWithPaginationInfoTotalQty"
+                   },
+                   "search": "#datatableSearch",
+                   "entries": "#datatableEntries",
+                   "pageLength": 10,
+                   "isResponsive": false,
+                   "isShowPaging": false,
+                   "pagination": "datatablePagination",
+                   "paginationPrevLinkMarkup": "<span aria-hidden=\"true\">前一页</span>",
+                   "paginationNextLinkMarkup": "<span aria-hidden=\"true\">后一页</span>"
+
+
+                 }'>
+                    <thead class="thead-light">
+                    <tr>
+                        <th class="table-column-pe-0" style="width: 10%">用户
+                        </th>
+                        <th style="width: 15%">加速域名</th>
+                        <th style="width: 15%">证书名称
+                        </th>
+                        <th style="width: 5%">证书状态
+                        </th>
+                        <th style="width: 5%">证书来源
+                        </th>
+                        <th style="width: 5%">强制跳转
+                        </th>
+                        <th style="width: 5%">HTTP/2
+                        </th>
+                        <th style="width: 5%">OCSP Stapling
+                        </th>
+                        <th style="width: 15%">证书到期时间
+                        </th>
+                        <th style="width: 10%">操作
+                        </th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+
+                    <tr th:each="info, index: ${certificateInfo.https}">
+                        <td class="table-column-pe-0">
+                            <span class="avatar avatar-sm avatar-circle">
+                              <img class="avatar-img" th:src="${(info.img)}" alt="Image Description">
+                            </span>
+                            <span style="font-weight: bold">
+                                [[${info.userName}]]
+                            </span>
+                        </td>
+                        <td>[[${info.domain_name}]]</td>
+                        <td>[[${info.cert_name}]]</td>
+                        <td>
+                            <th:block th:if="${info.expiration_time} < ${new java.util.Date().getTime()}">
+                                <span class="legend-indicator bg-danger"></span>过期
+                            </th:block>
+                            <th:block th:if=" ${info.expiration_time} >= ${new java.util.Date().getTime()} ">
+                                <span class="legend-indicator bg-success"></span>正常
+                            </th:block>
+                        </td>
+                        <td>
+                            <th:block th:if="${info.certificate_type} == 1">
+                                云托管证书
+                            </th:block>
+                            <th:block th:if=" ${info.certificate_type} == 0  ">
+                                自有证书
+                            </th:block>
+                        </td>
+                        <td>
+                            <th:block th:if="${info.force_redirect_https} == 2">
+                                HTTP
+                            </th:block>
+                            <th:block th:if="${info.force_redirect_https} == 1">
+                                HTTPS
+                            </th:block>
+                            <th:block th:if="${info.force_redirect_https} == 0">
+                                默认
+                            </th:block>
+                        </td>
+                        <td>
+                            <th:block th:if="${info.http2} == 1">
+                                已开启
+                            </th:block>
+                            <th:block th:if="${info.http2} == 0">
+                                已关闭
+                            </th:block>
+                        </td>
+                        <td>
+                            <th:block th:if="${info.ocsp_stapling} == 1">
+                                已开启
+                            </th:block>
+                            <th:block th:if="${info.ocsp_stapling} == null or ${info.ocsp_stapling} == 0">
+                                已关闭
+                            </th:block>
+                        </td>
+                        <td>[[${#dates.format(info.expiration_time,'yyyy-MM-dd hh:mm:ss')}]]</td>
+                        <td>
+                            <button class="btn btn-white btn-sm"
+                                    th:onclick="openCertificationDetailModal('[[${info.domain_name}]]', '[[${info.cert_name}]]', '[[${info.force_redirect_https}]]', '[[${info.https_status}]]', '[[${info.http2}]]', '[[${info.ocsp_stapling}]]', '[[${info.domainId}]]')">
+                                <i class="bi bi-bar-chart-fill"></i> 编辑
+                            </button>
+                            <button class="btn btn-white btn-sm"
+                                    th:onclick="deleteHttpsConfig('[[${info.domain_name}]]', '[[${info.cert_name}]]', '[[${info.force_redirect_https}]]', '[[${info.https_status}]]', '[[${info.http2}]]', '[[${info.ocsp_stapling}]]', '[[${info.domainId}]]')">
+                                <i class="bi bi-bar-chart-fill"></i> 删除
+                            </button>
+                        </td>
+                    </tr>
+
+                    </tbody>
+                </table>
+            </div>
+            <!-- End Table -->
+
+            <!-- Footer -->
+            <div class="card-footer">
+                <div class="row justify-content-center justify-content-sm-between align-items-sm-center">
+                    <div class="col-sm mb-2 mb-sm-0">
+                        <div class="d-flex justify-content-center justify-content-sm-start align-items-center">
+                            <span class="me-2">每页显示</span>
+
+                            <!-- Select -->
+                            <div class="tom-select-custom">
+                                <select id="datatableEntries"
+                                        class="js-select form-select form-select-borderless" autocomplete="off"
+                                        data-hs-tom-select-options='{
+                                            "searchInDropdown": false,
+                                            "hideSearch": true,
+                                            "dropdownWidth": "6rem"
+                                          }'>
+                                    <option value="5">5</option>
+                                    <option value="10" selected>10</option>
+                                    <option value="20">20</option>
+                                    <option value="50">50</option>
+                                </select>
+                            </div>
+                            <!-- End Select -->
+
+                            <span class="text-secondary me-2">条，</span>
+                            共
+                            <!-- Pagination Quantity -->
+                            <span id="datatableWithPaginationInfoTotalQty" style="margin: 0px 5px"></span>
+                            条
+                        </div>
+                    </div>
+                    <!-- End Col -->
+
+                    <div class="col-sm-auto">
+                        <div class="d-flex justify-content-center justify-content-sm-end">
+                            <!-- Pagination -->
+                            <nav id="datatablePagination" aria-label="Activity pagination"></nav>
+                        </div>
+                    </div>
+                    <!-- End Col -->
+                </div>
+                <!-- End Row -->
+            </div>
+            <!-- End Footer -->
+        </div>
+        <!-- End Card -->
+    </div>
+    <!-- End Content -->
+
+    <!-- Footer -->
+    <div th:replace="common/common-dashboard::#footer(curPage='certification-list')"></div>
+    <!-- End Footer -->
+</main>
+
+<!-- Modal -->
+<div id="certificationDetail" class="modal fade modal-lg" tabindex="-1" role="dialog"
+     aria-labelledby="exampleModalCenterTitle"
+     aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalCenterTitle">配置HTTPS安全加速</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <!-- Body -->
+            <div class="modal-body">
+                <div class="row mb-4">
+                    <div class="col-sm-6">
+                        <label for="domainNameModal" class="form-label">域名</label>
+                        <input type="hidden" value="" id="domainId">
+                        <input type="text" class="form-control form-control-borderless form-control-flush"
+                               id="domainNameModal"
+                               readonly>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-sm-6">
+                        <label class="form-label">证书来源</label>
+
+                        <div class="input-group input-group-sm-vertical">
+                            <!-- Radio Check -->
+                            <label class="form-control">
+                                <span class="form-check">
+                                    <input type="radio" class="form-check-input" name="certificationSource" checked
+                                           value="self">
+                                      <span class="form-check-label">自有证书</span>
+                                        <i class="bi-question-circle text-body ms-1"
+                                           title="111"></i>
+                                    </span>
+                            </label>
+                            <!-- End Radio Check -->
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label for="certificationName" class="form-label">证书名称</label>
+                        <input type="text" class="form-control" name="productName" id="certificationName"
+                               placeholder="请输入证书名称"
+                               value="1111">
+                    </div>
+                </div>
+                <!-- End Row -->
+
+                <!-- Form -->
+                <div class="mb-4 row">
+                    <div class="col-sm-6">
+                        <label for="certificationContent" class="form-label">证书内容</label>
+                        <textarea id="certificationContent" class="form-control"
+                                  placeholder="请输入PEM格式的证书内容" rows="4"></textarea>
+                    </div>
+                    <div class="col-sm-6">
+                        <label for="certificationKey" class="form-label">私钥内容 <i
+                                class="bi-question-circle text-body ms-1" data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="-"></i></label>
+                        <textarea id="certificationKey" class="form-control"
+                                  placeholder="请输入PEM格式的私钥内容" rows="4"></textarea>
+                    </div>
+                </div>
+                <!-- End Form -->
+
+                <!-- Form -->
+                <div class="mb-4 row">
+                    <div class="col-sm-6">
+                        <label class="form-label">回源方式</label>
+                        <div>
+                            <!-- Form Check -->
+                            <div class="form-check form-check-inline">
+                                <input type="radio" id="originType1" class="form-check-input" name="originType"
+                                       value="2"
+                                >
+                                <label class="form-check-label" for="originType1">HTTP</label>
+                            </div>
+                            <!-- End Form Check -->
+
+                            <!-- Form Check -->
+                            <div class="form-check form-check-inline">
+                                <input type="radio" id="originType2"
+                                       class="form-check-input indeterminate-checkbox"
+                                       name="originType" value="3">
+                                <label class="form-check-label" for="originType2">HTTPS</label>
+                            </div>
+                            <!-- End Form Check -->
+
+                            <!-- Form Check -->
+                            <div class="form-check form-check-inline">
+                                <input type="radio" id="originType3"
+                                       class="form-check-input indeterminate-checkbox"
+                                       name="originType" value="1">
+                                <label class="form-check-label" for="originType3">协议跟随</label>
+                            </div>
+                            <!-- End Form Check -->
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label">强制跳转 <i
+                                class="bi-question-circle text-body ms-1" data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="将用户访问方式强制跳转为HTTP或HTTPS，选择“默认”时同时支持HTTP和HTTPS请求。"></i></label>
+                        <div>
+                            <!-- Form Check -->
+                            <div class="form-check form-check-inline">
+                                <input type="radio" id="forcedJump3" class="form-check-input" name="forcedJump"
+                                       value="0"
+                                >
+                                <label class="form-check-label" for="forcedJump3">默认</label>
+                            </div>
+                            <!-- End Form Check -->
+                            <!-- Form Check -->
+                            <div class="form-check form-check-inline">
+                                <input type="radio" id="forcedJump1" class="form-check-input" name="forcedJump"
+                                       value="2"
+                                >
+                                <label class="form-check-label" for="forcedJump1">HTTP</label>
+                            </div>
+                            <!-- End Form Check -->
+
+                            <!-- Form Check -->
+                            <div class="form-check form-check-inline">
+                                <input type="radio" id="forcedJump2"
+                                       class="form-check-input indeterminate-checkbox"
+                                       name="forcedJump" value="1">
+                                <label class="form-check-label" for="forcedJump2">HTTPS</label>
+                            </div>
+                            <!-- End Form Check -->
+                        </div>
+                    </div>
+
+                </div>
+                <!-- End Form -->
+
+                <!-- Form -->
+                <div class="mb-4 row">
+                    <div class="col-sm-6">
+                        <label class="form-label">HTTP/2<i
+                                class="bi-question-circle text-body ms-1" data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="HTTP/2即HTTP超文本传输协议的新一代版本，较之HTTP1.x具有有效提升数据传输效率、节省带宽和流量、缓解网络阻塞状况等优点。"></i></label>
+                        <div class="form-check form-switch mb-4">
+                            <input type="checkbox" class="form-check-input" id="http2Status" onchange="changeLabel()">
+                            <label class="form-check-label" for="http2Status" id="http2StatusLabel"></label>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label">OCSP Stapling<i
+                                class="bi-question-circle text-body ms-1" data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="实现由CDN预先缓存在线证书验证结果并下发客户端。"></i></label>
+                        <div class="form-check form-switch mb-4">
+                            <input type="checkbox" class="form-check-input" id="OCSPStatus" onchange="changeLabel()">
+                            <label class="form-check-label" for="OCSPStatus" id="OCSPStatusLabel"></label>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <!-- Body -->
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="updateHttpsConfig()">保存</button>
+                <button type="button" class="btn btn-white" data-bs-dismiss="modal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End Modal -->
+<script>
+    function changeLabel() {
+        console.log($("#http2Status").is(":checked"))
+        if ($("#http2Status").is(":checked")) {
+            $("#http2StatusLabel").html("已启用")
+        } else {
+            $("#http2StatusLabel").html("未启用")
+        }
+        if ($("#OCSPStatus").is(":checked")) {
+            $("#OCSPStatusLabel").html("已启用")
+        } else {
+            $("#OCSPStatusLabel").html("未启用")
+        }
+    }
+
+    //打开对应证书的设置详情页
+    function openCertificationDetailModal(domainName, certName, forceRedirectHttps, httpsStatus, http2, ocspStapling, domainId) {
+        $("#domainId").val(domainId)
+        $("#domainNameModal").val(domainName.replaceAll("\"", ""))
+        $("#certificationName").val(certName.replaceAll("\"", ""))
+        $("input[name='forcedJump']").each(function () {
+            if (forceRedirectHttps == this.value) {
+                $(this).attr("checked", true);
+            }
+        })
+
+        $("input[name='originType']").each(function () {
+                if (this.value == httpsStatus) {
+                    $(this).attr("checked", true);
+                }
+            }
+        )
+        if (http2 == 0) {
+            $("#http2StatusLabel").html("未启用")
+        } else {
+            $("#http2Status").attr("checked", true);
+            $("#http2StatusLabel").html("已启用")
+        }
+        if (ocspStapling == 0) {
+            $("#OCSPStatusLabel").html("未启用")
+        } else {
+            $("#OCSPStatus").attr("checked", true);
+            $("#OCSPStatusLabel").html("已启用")
+        }
+        $("#certificationDetail").modal("show");
+    }
+
+    /**
+     * 修改https配置 并提交
+     */
+    async function updateHttpsConfig() {
+        let redirectType = ""
+        if ($("input[name='forcedJump']:radio:checked").val() == 1) {
+            redirectType = "https"
+        } else if ($("input[name='forcedJump']:radio:checked").val() == 2) {
+            redirectType = "http"
+        }
+        let param = {
+            "https": {
+                "https_status": $("input[name='originType']:radio:checked").val(),
+                "force_redirect_https": $("input[name='forcedJump']:radio:checked").val(),
+                "force_redirect_config": {
+                    "switch": $("input[name='forcedJump']:radio:checked").val() == 0 ? 0 : 1,
+                    "redirect_type": redirectType
+                },
+                "http2": $("#http2Status").is(":checked") ? 1 : 0,
+                "ocsp_stapling": $("#OCSPStatus").is(":checked") ? 1 : 0,
+                "certificate_type": 0,
+                "cert_name": $("#certificationName").val(),
+                "certificate": "",
+                "private_key": ""
+            },
+            "domainId": $("#domainId").val().replaceAll("\"", "")
+        }
+        let data = await sendRequest(
+            "POST",
+            "CdnDomainHttps/modifyCertificate",
+            JSON.stringify(param), "application/json");
+        autoLayer(data);
+        if (data['code'] === 'SUCCESS') {
+            setTimeout(function () {
+                reload()
+            }, 1000);
+        }
+    }
+
+    /**
+     * 修改https配置_删除 并提交
+     */
+    function deleteHttpsConfig(domainName, certName, forceRedirectHttps, httpsStatus, http2, ocspStapling, domainId) {
+        layer.confirm('删除操作不可逆，确认删除吗？', {
+            title: "删除操作",
+            icon: 3,
+            btn: ['确认'] //按钮
+        }, async function () {
+            let redirectType = ""
+            if (forceRedirectHttps == 1) {
+                redirectType = "https"
+            } else if (forceRedirectHttps == 2) {
+                redirectType = "http"
+            }
+            let param = {
+                "https": {
+                    "https_status": 0,
+                    "force_redirect_https": forceRedirectHttps,
+                    "force_redirect_config": {
+                        "switch": forceRedirectHttps == 0 ? 0 : 1,
+                        "redirect_type": redirectType
+                    },
+                    "http2": http2,
+                    "ocsp_stapling": ocspStapling,
+                    "certificate_type": 0,
+                    "cert_name": certName,
+                    "certificate": "",
+                    "private_key": ""
+                },
+                "domainId": domainId.replaceAll("\"", "")
+            }
+            let data = await sendRequest(
+                "POST",
+                "CdnDomainHttps/modifyCertificate",
+                JSON.stringify(param), "application/json");
+            autoLayer(data);
+            if (data['code'] === 'SUCCESS') {
+
+            }
+            setTimeout(function () {
+                reload()
+            }, 1000);
+        });
+    }
+
+</script>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- ========== SECONDARY CONTENTS ========== -->
+
+<div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='certification-list')"></div>
+
+<!-- End Import Products Modal -->
+
+<!-- ========== END SECONDARY CONTENTS ========== -->
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+<!-- JS Implementing Plugins -->
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-nav-scroller/dist/hs-nav-scroller.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/clipboard/dist/clipboard.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/datatables/media/js/jquery.dataTables.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/datatables.net.extensions/select/select.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/dropzone/dist/min/dropzone.min.js}"></script>
+
+<!-- JS Front -->
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/util/reg.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom_ceo.js}"></script>
+<script th:src="@{common/custom_cmo.js}"></script>
+<script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+
+<!-- JS Plugins Init. -->
+<script>
+    $(document).on('ready', function () {
+        // INITIALIZATION OF DATATABLES
+        // =======================================================
+        HSCore.components.HSDatatables.init($('#datatable'), {
+            select: {
+                style: 'multi',
+                selector: 'td:first-child input[type="checkbox"]',
+                classMap: {
+                    checkAll: '#datatableCheckAll',
+                    counter: '#datatableCounter',
+                    counterInfo: '#datatableCounterInfo'
+                }
+            },
+            language: {
+                zeroRecords: `<div class="text-center p-4">
+                              <img class="mb-3" src="dashboard/assets/svg/illustrations/oc-error.svg" alt="Image Description" style="width: 10rem;" data-hs-theme-appearance="default">
+                              <img class="mb-3" src="dashboard/assets/svg/illustrations-light/oc-error.svg" alt="Image Description" style="width: 10rem;" data-hs-theme-appearance="dark">
+                            <p class="mb-0">无数据</p>
+                            </div>`
+            }
+        });
+
+        const datatable = HSCore.components.HSDatatables.getItem('datatable')
+
+        $('.js-datatable-filter').on('change', function () {
+            var $this = $(this),
+                elVal = $this.val(),
+                targetColumnIndex = $this.data('target-column-index');
+
+            datatable.column(targetColumnIndex).search(elVal).draw();
+        });
+
+        $('#datatableSearch').on('mouseup', function (e) {
+            var $input = $(this),
+                oldValue = $input.val();
+
+            if (oldValue == "") return;
+
+            setTimeout(function () {
+                var newValue = $input.val();
+
+                if (newValue == "") {
+                    // Gotcha
+                    datatable.search('').draw();
+                }
+            }, 1);
+        });
+
+        $('#toggleColumn_product').change(function (e) {
+            datatable.columns(1).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_type').change(function (e) {
+            datatable.columns(2).visible(e.target.checked)
+        })
+
+
+        $('#toggleColumn_vendor').change(function (e) {
+            datatable.columns(3).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_stocks').change(function (e) {
+            datatable.columns(4).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_sku').change(function (e) {
+            datatable.columns(5).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_price').change(function (e) {
+            datatable.columns(6).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_quantity').change(function (e) {
+            datatable.columns(7).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_variants').change(function (e) {
+            datatable.columns(8).visible(e.target.checked)
+        })
+
+        // 每分钟刷新
+        setTimeout(reload, 60000);
+    });
+</script>
+
+<!-- JS Plugins Init. -->
+<script>
+    (function () {
+        window.onload = function () {
+
+
+            // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+            // =======================================================
+            new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+            // INITIALIZATION OF FORM SEARCH
+            // =======================================================
+            new HSFormSearch('.js-form-search')
+
+
+            // INITIALIZATION OF BOOTSTRAP DROPDOWN
+            // =======================================================
+            HSBsDropdown.init()
+
+
+            // INITIALIZATION OF SELECT
+            // =======================================================
+            HSCore.components.HSTomSelect.init('.js-select')
+
+
+            // INITIALIZATION OF NAV SCROLLER
+            // =======================================================
+            new HsNavScroller('.js-nav-scroller')
+
+
+            // INITIALIZATION OF DROPZONE
+            // =======================================================
+            HSCore.components.HSDropzone.init('.js-dropzone')
+
+            HSCore.components.HSClipboard.init('.js-clipboard')
+        }
+    })()
+</script>
+
+<!-- Style Switcher JS -->
+
+<script>
+    (function () {
+        // STYLE SWITCHER
+        // =======================================================
+        const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+        const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+        // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+        const setActiveStyle = function () {
+            $variants.forEach($item => {
+                if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                    $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                    return $item.classList.add('active')
+                }
+
+                $item.classList.remove('active')
+            })
+        }
+
+        // Add a click event to all items of the dropdown to set the style
+        $variants.forEach(function ($item) {
+            $item.addEventListener('click', function () {
+                HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+            })
+        })
+
+        // Call the setActiveStyle on load page
+        setActiveStyle()
+
+        // Add event listener on change style to call the setActiveStyle function
+        window.addEventListener('on-hs-appearance-change', function () {
+            setActiveStyle()
+        })
+
+
+    })()
+</script>
+
+<!-- End Style Switcher JS -->
+</body>
+</html>
+<div th:replace="common/common-dashboard::#agent"></div>

@@ -1,0 +1,65 @@
+//
+// HS Loading State
+//
+// Imports
+@import "./variables";
+
+.hs-loader-wrapper {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: none;
+  background-color: $loaderWrapperBg;
+
+  &.hs-loader-wrapper-dark {
+    background-color: $loaderWrapperDarkBg;
+  }
+}
+
+.hs-loader {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  transform: translate(-50%, -50%);
+
+  &.hs-loader-with-text {
+    background-color: $loaderWithTextBg;
+    border-radius: $loaderWithTextRadius;
+    box-shadow: $loaderWithTextShadow;
+    padding: $loaderWithTextPadding;
+  }
+
+  &.hs-loader-top-left {
+    top: 1rem;
+    left: 1rem;
+    transform: translate(0, 0);
+  }
+}
+
+.hs-loader-icon {
+  display: inline-flex;
+  font-size: $loaderIconSize;
+  color: $loaderIconColor;
+  animation: rotation 2s linear infinite;
+
+  .hs-loader-wrapper-dark & {
+    color: $loaderIconDarkColor;
+  }
+}
+
+.hs-loader-text {
+  font-size: $loaderTextSize;
+  color: $loaderTextColor;
+  margin-right: $loaderTextSpaceX;
+
+  .hs-loader-wrapper-dark & {
+    color: $loaderTextDarkColor;
+  }
+}
+
+@import "./animations";

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title>认证</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" th:href="@{front/favicon.ico}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{front/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <!-- CSS Front Template -->
+    <link rel="stylesheet" th:href="@{front/assets/css/theme.min.css}">
+</head>
+
+<body class="d-flex flex-column justify-content-center align-items-center h-100">
+<!-- ========== HEADER ========== -->
+<header id="header" class="navbar navbar-expand navbar-light navbar-absolute-top">
+    <div class="container">
+        <nav class="navbar-nav-wrap">
+            <!-- Default Logo -->
+
+            <!-- End Default Logo -->
+        </nav>
+    </div>
+</header>
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<main id="content" role="main">
+    <!-- Content -->
+    <div class="container text-center" style="margin-top: 40%">
+        <div class="mb-4">
+            <p class="fs-4 mb-0">认证失败</p>
+            <p class="fs-4" th:text="${msg}"></p>
+        </div>
+    </div>
+    <!-- End Content -->
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- ========== FOOTER ========== -->
+<div th:replace="common/common-error::#error_footer"></div>
+<!-- ========== END FOOTER ========== -->
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{front/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+<!-- JS Front -->
+<script th:src="@{front/assets/js/theme.min.js}"></script>
+</body>
+</html>

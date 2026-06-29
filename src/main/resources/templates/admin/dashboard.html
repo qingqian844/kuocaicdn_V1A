@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title>[[${websiteBaseConfig.websiteName}]] 服务概览</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/daterangepicker/daterangepicker.css}">
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/jsvectormap/dist/css/jsvectormap.min.css}">
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <style>
+        .dashboard-statistics-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-statistics-loading-mask {
+            position: absolute;
+            inset: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, .78);
+            backdrop-filter: blur(2px);
+        }
+
+        .dashboard-statistics-loading-mask.d-none {
+            display: none !important;
+        }
+
+        .dashboard-statistics-loading-panel {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            min-width: 17rem;
+            padding: 1rem 1.25rem;
+            border: 1px solid rgba(231, 234, 243, .95);
+            border-radius: .75rem;
+            background: #fff;
+            box-shadow: 0 1rem 2.5rem rgba(19, 33, 68, .12);
+        }
+
+        .dashboard-statistics-loading-title {
+            color: #132144;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .dashboard-statistics-loading-text {
+            color: #71869d;
+            font-size: .8125rem;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 767.98px) {
+            .dashboard-statistics-loading-panel {
+                width: min(100%, 22rem);
+            }
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {"switcherSupport": true},
+                "header": {"layoutMode": "default", "containerMode": "container-fluid"},
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {"100": "#f9fafc", "900": "#1e2022"}
+                    }, "font": "Inter"
+                }
+            },
+            "languageDirection": {"lang": "en"},
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {"*assets/js/theme-custom.js": ""},
+                "build": {"*assets/js/theme-custom.js": "", "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"}
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {"src": "./src", "dist": "./dist", "build": "./build"},
+            "fileNames": {
+                "dist": {"js": "theme.min.js", "css": "theme.min.css"},
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl   footer-offset">
+
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+<!-- ========== HEADER ========== -->
+
+<div th:replace="common/common-dashboard::header(curPage='dashboard', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<!-- Navbar Vertical -->
+
+<div th:replace="common/common-dashboard::aside(curPage='dashboard', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<main id="content" role="main" class="main">
+    <!-- Content -->
+    <div class="content container-fluid">
+        <!-- Page Header -->
+        <div class="page-header" style="padding-bottom: 5px;margin-bottom: 10px">
+            <div class="row align-items-center">
+                <div class="col-sm mb-2 mb-sm-0">
+                    <h1 class="page-header-title">服务概览 <i class="bi-speedometer nav-icon"></i></h1>
+                </div>
+                <!-- End Col -->
+            </div>
+        </div>
+        <!-- End Page Header -->
+
+        <!-- Card -->
+        <div class="card card-body mb-3 mb-lg-5">
+            <div class="row col-lg-divider gx-lg-6">
+                <div class="col-lg-4">
+                    <!-- Media -->
+                    <div class="d-flex">
+                        <div class="flex-grow-1">
+                            <h6 class="card-subtitle mb-3">域名总数</h6>
+                            <h3 class="card-title" th:text="${domainCount}"></h3>
+                        </div>
+
+                        <span class="icon icon-soft-secondary icon-sm icon-circle ms-3">
+                            <i class="bi-router-fill"></i>
+                        </span>
+                    </div>
+                    <!-- End Media -->
+                </div>
+                <!-- End Col -->
+
+                <!--                <div class="col-lg-3">-->
+                <!--                    &lt;!&ndash; Media &ndash;&gt;-->
+                <!--                    <div class="d-flex">-->
+                <!--                        <div class="flex-grow-1">-->
+                <!--                            <h6 class="card-subtitle mb-3">证书总数</h6>-->
+                <!--                            <h3 class="card-title" th:text="${certificateCount}">184</h3>-->
+                <!--                        </div>-->
+                <!--                        <span class="icon icon-soft-secondary icon-sm icon-circle ms-3">-->
+                <!--                            <i class="bi-patch-check-fill"></i>-->
+                <!--                        </span>-->
+                <!--                    </div>-->
+                <!--                    &lt;!&ndash; End Media &ndash;&gt;-->
+                <!--                </div>-->
+                <!--                &lt;!&ndash; End Col &ndash;&gt;-->
+
+                <div class="col-lg-4">
+                    <!-- Media -->
+                    <div class="d-flex">
+                        <div class="flex-grow-1">
+                            <h6 class="card-subtitle mb-3">用户总数</h6>
+                            <h3 class="card-title" th:text="${userCount}">1098</h3>
+                        </div>
+
+                        <span class="icon icon-soft-secondary icon-sm icon-circle ms-3">
+                            <i class="bi-people-fill"></i>
+                        </span>
+                    </div>
+                    <!-- End Media -->
+                </div>
+                <!-- End Col -->
+
+                <div class="col-lg-4">
+                    <!-- Media -->
+                    <div class="d-flex">
+                        <div class="flex-grow-1">
+                            <h6 class="card-subtitle mb-3">工单总数</h6>
+                            <h3 class="card-title" th:text="${orderCount}"></h3>
+                        </div>
+
+                        <span class="icon icon-soft-secondary icon-sm icon-circle ms-3">
+                            <i class="bi-border-width"></i>
+                        </span>
+                    </div>
+                    <!-- End Media -->
+                </div>
+                <!-- End Col -->
+            </div>
+            <!-- End Row -->
+        </div>
+        <!-- End Card -->
+
+        <div class="row">
+
+            <div class="col-lg-4 mb-3 mb-lg-4">
+                <div class="card">
+                    <div class="card-header card-header-content-between">
+                        <h4 class="card-header-title">财务统计</h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- Pie Chart -->
+                        <div class="chartjs-custom mb-3 mb-sm-5" style="height: 15rem;">
+                            <canvas id="doughnut-chart" class="js-chart"
+                                    data-hs-chartjs-options='{
+                  "type": "doughnut",
+                  "data": {
+                    "labels": ["总充值", "总消费", "差额"],
+                    "datasets": [{
+                      "data": [86000, 4000, 82000],
+                      "backgroundColor": ["#377dff", "#ed4c78", "#00c9a7"],
+                      "borderWidth": 5,
+                      "hoverBorderColor": "#fff"
+                    }]
+                  },
+                  "options": {
+                    "cutout": "80%",
+                    "plugins": {
+                      "tooltip": {
+                        "postfix": "元",
+                        "hasIndicator": true,
+                        "mode": "index",
+                        "intersect": false
+                      }
+                    },
+                    "hover": {
+                      "mode": "nearest",
+                      "intersect": true
+                    }
+                  }
+                }'></canvas>
+                        </div>
+                        <!-- End Pie Chart -->
+
+                        <!-- Legend Indicators -->
+                        <div class="row justify-content-center">
+                            <div class="col-auto mb-3 mb-sm-0">
+                                <h4 class="card-title" th:text="${allAccountInfo.totalRecharge} + '元'"></h4>
+                                <span class="legend-indicator bg-primary"></span> 总充值
+                            </div>
+                            <!-- End Col -->
+
+                            <div class="col-auto mb-3 mb-sm-0">
+                                <h4 class="card-title"
+                                    th:text="${allAccountInfo.totalRecharge - allAccountInfo.difference} + '元'">
+                                    4000元</h4>
+                                <span class="legend-indicator bg-danger"></span> 总消费
+                            </div>
+                            <!-- End Col -->
+
+                            <div class="col-auto">
+                                <h4 class="card-title" th:text="${allAccountInfo.difference} + '元'">82000元</h4>
+                                <span class="legend-indicator bg-success"></span> 差额
+                            </div>
+                            <!-- End Col -->
+                        </div>
+                        <!-- End Legend Indicators -->
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-lg-4 mb-3 mb-lg-4">
+                <div class="card">
+                    <!-- Header -->
+                    <div class="card-header card-header-content-between">
+                        <h4 class="card-header-title">一周注册趋势</h4>
+                    </div>
+                    <!-- End Header -->
+                    <!-- Body -->
+                    <div class="card-body">
+                        <!-- Bar Chart -->
+                        <div class="chartjs-custom mb-4" style="height: 18rem;">
+                            <canvas id="ecommerce-overview-1" class="js-chart" data-hs-chartjs-options='{
+                          "type": "line",
+                          "data": {
+                             "labels": ["星期一","星期二","星期三","星期四","星期五","星期六","星期日"],
+                             "datasets": [{
+                              "data": [200, 200, 240, 350, 200, 350, 200],
+                              "backgroundColor": "transparent",
+                              "borderColor": "#377dff",
+                              "borderWidth": 3,
+                              "pointRadius": 5,
+                              "hoverBorderColor": "#377dff",
+                              "pointBackgroundColor": "#377dff",
+                              "pointBorderColor": "#fff",
+                              "pointHoverRadius": 0,
+                              "tension": 0.4
+                            },
+                            {
+                              "data": [50, 230, 382, 204, 269, 290, 200],
+                              "backgroundColor": "transparent",
+                              "borderColor": "#e7eaf3",
+                              "borderWidth": 3,
+                              "pointRadius": 5,
+                              "hoverBorderColor": "#e7eaf3",
+                              "pointBackgroundColor": "#e7eaf3",
+                              "pointBorderColor": "#fff",
+                              "pointHoverRadius": 0,
+                              "tension": 0.4
+                            }]
+                          },
+                          "options": {
+                             "scales": {
+                                "y": {
+                                  "grid": {
+                                    "color": "#e7eaf3",
+                                    "drawBorder": false,
+                                    "zeroLineColor": "#e7eaf3"
+                                  },
+                                  "ticks": {
+                                    "beginAtZero": true,
+                                    "stepSize": 100,
+                                    "color": "#97a4af",
+                                    "font": {
+                                      "size": 12,
+                                      "family": "Open Sans, sans-serif"
+                                    },
+                                    "padding": 10,
+                                    "prefix": "注册量：",
+                                    "postfix": "人"
+                                  }
+                                },
+                                "x": {
+                                  "grid": {
+                                    "display": false,
+                                    "drawBorder": false
+                                  },
+                                  "ticks": {
+                                    "color": "#97a4af",
+                                    "font": {
+                                      "size": 12,
+                                      "family": "Open Sans, sans-serif"
+                                    },
+                                    "padding": 5
+                                  }
+                                }
+                            },
+                            "plugins": {
+                              "tooltip": {
+                                "prefix": "注册量：",
+                                "postfix": "人",
+                                "hasIndicator": true,
+                                "mode": "index",
+                                "intersect": false,
+                                "lineMode": true,
+                                "lineWithLineColor": "rgba(19, 33, 68, 0.075)"
+                              }
+                            },
+                            "hover": {
+                              "mode": "nearest",
+                              "intersect": true
+                            }
+                          }
+                        }'>
+                            </canvas>
+                        </div>
+                        <!-- End Bar Chart -->
+
+                        <!-- Legend Indicators -->
+                        <div class="row justify-content-center">
+                            <div class="col-auto">
+                                <span class="legend-indicator"></span> 上周
+                            </div>
+                            <!-- End Col -->
+
+                            <div class="col-auto">
+                                <span class="legend-indicator bg-primary"></span> 本周
+                            </div>
+                            <!-- End Col -->
+                        </div>
+                        <!-- End Legend Indicators -->
+                    </div>
+                    <!-- End Body -->
+                </div>
+            </div>
+
+            <div class="col-lg-4 mb-3 mb-lg-4">
+                <div class="card">
+                    <!-- Header -->
+                    <div class="card-header card-header-content-between">
+                        <h4 class="card-header-title">一周登录趋势</h4>
+                    </div>
+                    <!-- End Header -->
+                    <!-- Body -->
+                    <div class="card-body">
+                        <!-- Bar Chart -->
+                        <div class="chartjs-custom mb-4" style="height: 18rem;">
+                            <canvas id="ecommerce-overview-10" class="js-chart" data-hs-chartjs-options='{
+                          "type": "line",
+                          "data": {
+                             "labels": ["星期一","星期二","星期三","星期四","星期五","星期六","星期日"],
+                             "datasets": [{
+                              "data": [10, 20, 24, 35, 20, 35, 20],
+                              "backgroundColor": "transparent",
+                              "borderColor": "#377dff",
+                              "borderWidth": 3,
+                              "pointRadius": 5,
+                              "hoverBorderColor": "#377dff",
+                              "pointBackgroundColor": "#377dff",
+                              "pointBorderColor": "#fff",
+                              "pointHoverRadius": 0,
+                              "tension": 0.4
+                            },
+                            {
+                              "data": [50, 23, 38, 24, 29, 20, 20],
+                              "backgroundColor": "transparent",
+                              "borderColor": "#e7eaf3",
+                              "borderWidth": 3,
+                              "pointRadius": 5,
+                              "hoverBorderColor": "#e7eaf3",
+                              "pointBackgroundColor": "#e7eaf3",
+                              "pointBorderColor": "#fff",
+                              "pointHoverRadius": 0,
+                              "tension": 0.4
+                            }]
+                          },
+                          "options": {
+                             "scales": {
+                                "y": {
+                                  "grid": {
+                                    "color": "#e7eaf3",
+                                    "drawBorder": false,
+                                    "zeroLineColor": "#e7eaf3"
+                                  },
+                                  "ticks": {
+                                    "beginAtZero": true,
+                                    "stepSize": 100,
+                                    "color": "#97a4af",
+                                    "font": {
+                                      "size": 12,
+                                      "family": "Open Sans, sans-serif"
+                                    },
+                                    "padding": 10,
+                                    "prefix": "登录数：",
+                                    "postfix": "人"
+                                  }
+                                },
+                                "x": {
+                                  "grid": {
+                                    "display": false,
+                                    "drawBorder": false
+                                  },
+                                  "ticks": {
+                                    "color": "#97a4af",
+                                    "font": {
+                                      "size": 12,
+                                      "family": "Open Sans, sans-serif"
+                                    },
+                                    "padding": 5
+                                  }
+                                }
+                            },
+                            "plugins": {
+                              "tooltip": {
+                                "prefix": "登录数：",
+                                "postfix": "人",
+                                "hasIndicator": true,
+                                "mode": "index",
+                                "intersect": false,
+                                "lineMode": true,
+                                "lineWithLineColor": "rgba(19, 33, 68, 0.075)"
+                              }
+                            },
+                            "hover": {
+                              "mode": "nearest",
+                              "intersect": true
+                            }
+                          }
+                        }'>
+                            </canvas>
+                        </div>
+                        <!-- End Bar Chart -->
+
+                        <!-- Legend Indicators -->
+                        <div class="row justify-content-center">
+                            <div class="col-auto">
+                                <span class="legend-indicator"></span> 上周
+                            </div>
+                            <!-- End Col -->
+
+                            <div class="col-auto">
+                                <span class="legend-indicator bg-primary"></span> 本周
+                            </div>
+                            <!-- End Col -->
+                        </div>
+                        <!-- End Legend Indicators -->
+                    </div>
+                    <!-- End Body -->
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+
+
+            <div class="col-lg-12 mb-3 mb-lg-5">
+                <!-- Card -->
+                <!--                <div class="card">-->
+                <!--                    &lt;!&ndash; Header &ndash;&gt;-->
+                <!--                    <div class="card-header card-header-content-between">-->
+                <!--                        <h4 class="card-header-title">充值排行榜</h4>-->
+                <!--                    </div>-->
+                <!--                    &lt;!&ndash; End Header &ndash;&gt;-->
+
+                <!--                    &lt;!&ndash; Body &ndash;&gt;-->
+                <!--                    <div class="card-body-height">-->
+                <!--                        &lt;!&ndash; Table &ndash;&gt;-->
+                <!--                        <div class="table-responsive">-->
+                <!--                            <table class="table table-borderless table-thead-bordered table-nowrap table-align-middle card-table table-hover">-->
+                <!--                                <thead class="thead-light">-->
+                <!--                                <tr>-->
+                <!--                                    <th scope="col">用户</th>-->
+                <!--                                    <th scope="col">账户余额</th>-->
+                <!--                                    <th scope="col">累积充值</th>-->
+                <!--                                    <th scope="col">排名</th>-->
+                <!--                                </tr>-->
+                <!--                                </thead>-->
+
+                <!--                                <tbody>-->
+                <!--                                <tr th:each="userAccount, index: ${queryRankingList}">-->
+                <!--                                    <td>-->
+                <!--                                        &lt;!&ndash; Media &ndash;&gt;-->
+                <!--                                        <div class="d-flex align-items-center">-->
+                <!--                                            <div class="flex-shrink-0">-->
+                <!--                                                <img class="avatar" th:src="${userAccount.img}"-->
+                <!--                                                     alt="Image Description">-->
+                <!--                                            </div>-->
+
+                <!--                                            <div class="flex-grow-1 ms-3">-->
+                <!--                                                <h5 class="text-inherit mb-0" th:text="${userAccount.userName}"></h5>-->
+                <!--                                            </div>-->
+                <!--                                        </div>-->
+                <!--                                        &lt;!&ndash; End Media &ndash;&gt;-->
+                <!--                                    </td>-->
+                <!--                                    <td th:text="${userAccount.accountBalance} + '元'">-->
+
+                <!--                                    </td>-->
+                <!--                                    <td th:text="${userAccount.amassRecharge} + '元'">-->
+
+                <!--                                    </td>-->
+                <!--                                    <td style="font-size: 1.5rem;text-align: left">-->
+                <!--                                        <span th:if="${index.count}==1">🥇</span>-->
+                <!--                                        <span th:if="${index.count}==2">🥈</span>-->
+                <!--                                        <span th:if="${index.count}==3">🥉</span>-->
+                <!--                                        <span th:if="${index.count}==4" style="font-size: 1.2rem;padding-left: 7px"><i class="bi bi-4-circle"></i></span>-->
+                <!--                                        <span th:if="${index.count}==5" style="font-size: 1.2rem;padding-left: 7px"><i class="bi bi-5-circle"></i></span>-->
+                <!--                                    </td>-->
+                <!--                                </tr>-->
+                <!--                                </tbody>-->
+                <!--                            </table>-->
+                <!--                        </div>-->
+                <!--                        &lt;!&ndash; End Table &ndash;&gt;-->
+                <!--                    </div>-->
+                <!--                    &lt;!&ndash; End Body &ndash;&gt;-->
+                <!--                </div>-->
+                <!-- End Card -->
+
+                <!-- Card -->
+                <div id="dashboardStatisticsCard" class="card mb-3 dashboard-statistics-card" aria-busy="false">
+                    <div id="dashboardStatisticsLoadingMask" class="dashboard-statistics-loading-mask d-none"
+                         aria-live="polite" aria-hidden="true">
+                        <div class="dashboard-statistics-loading-panel">
+                            <div class="spinner-border text-primary" role="status" aria-label="数据加载中"></div>
+                            <div>
+                                <div class="dashboard-statistics-loading-title">数据加载中</div>
+                                <div class="dashboard-statistics-loading-text">正在查询服务概览数据，请稍候</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Header -->
+                    <div class="card-header card-header-content-sm-between">
+                        <!-- Nav -->
+                        <div>
+                            <ul class="nav nav-segment nav-pills" role="tablist">
+                                <li class="nav-item">
+                                    <a class="nav-link active" id="nav-one-eg1-tab" href="#nav-one-eg1"
+                                       data-bs-toggle="pill" data-bs-target="#nav-one-eg1" role="tab"
+                                       aria-controls="nav-one-eg1" aria-selected="true">流量趋势</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="nav-two-eg1-tab" href="#nav-two-eg1"
+                                       data-bs-toggle="pill" data-bs-target="#nav-two-eg1" role="tab"
+                                       aria-controls="nav-two-eg1" aria-selected="false">峰值带宽</a>
+                                </li>
+
+                            </ul>
+                        </div>
+                        <!-- End Nav -->
+
+                        <button id="flux-daterangepicker-predefined"
+                                class="btn btn-ghost-secondary btn-sm dropdown-toggle">
+                            <i class="tio-date-range"></i>
+                            <span class="flux-daterangepicker-predefined-preview ms-1"></span>
+                        </button>
+                    </div>
+                    <!-- End Header -->
+
+                    <!-- Body -->
+                    <div class="card-body">
+                        <!-- Tab Content -->
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="nav-one-eg1" role="tabpanel"
+                                 aria-labelledby="nav-one-eg1-tab">
+                                <!-- Bar Chart -->
+                                <div class="chartjs-custom mb-3 mb-sm-5" style="height: 300px">
+                                    <canvas id="fluxChart" class="js-chart"
+                                            data-hs-chartjs-options='{
+                                          "type": "line",
+                                          "data": {
+                                            "labels": ["1:00", "2:00", "3:00", "4:00", "5:00", "6:00", "7:00", "8:00", "9:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00", "24:00"],
+                                            "datasets": [{
+                                              "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                              "backgroundColor": "#377dff",
+                                              "hoverBackgroundColor": "#377dff",
+                                              "borderColor": "#377dff",
+                                              "maxBarThickness": "10"
+                                            },
+                                            {
+                                              "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                              "backgroundColor": "#31a3be",
+                                              "hoverBackgroundColor": "#31a3be",
+                                              "borderColor": "#31a3be",
+                                              "maxBarThickness": "10"
+                                            }]
+                                          },
+                                          "options": {
+                                            "scales": {
+                                              "y": {
+                                                "grid": {
+                                                  "color": "#e7eaf3",
+                                                  "drawBorder": false,
+                                                  "zeroLineColor": "#e7eaf3"
+                                                },
+                                                "ticks": {
+                                                  "beginAtZero": true,
+                                                  "stepSize": 100,
+                                                  "color": "#97a4af",
+                                                    "font": {
+                                                      "size": 12,
+                                                      "family": "Open Sans, sans-serif"
+                                                    },
+                                                  "padding": 10,
+                                                  "postfix": ""
+                                                }
+                                              },
+                                              "x": {
+                                                "grid": {
+                                                  "display": false,
+                                                  "drawBorder": false
+                                                },
+                                                "ticks": {
+                                                  "color": "#97a4af",
+                                                    "font": {
+                                                      "size": 12,
+                                                      "family": "Open Sans, sans-serif"
+                                                    },
+                                                  "padding": 5
+                                                },
+                                                "categoryPercentage": 0.5,
+                                                "maxBarThickness": "10"
+                                              }
+                                            },
+                                            "cornerRadius": 2,
+                                            "plugins": {
+                                              "tooltip": {
+                                                "prefix": "",
+                                                "postfix": "",
+                                                "hasIndicator": true,
+                                                "mode": "index",
+                                                "intersect": false
+                                              }
+                                            },
+                                            "hover": {
+                                              "mode": "nearest",
+                                              "intersect": true
+                                            }
+                                          }
+                                        }'></canvas>
+                                </div>
+                                <!-- End Bar Chart -->
+
+                                <!-- Legend Indicators -->
+                                <div class="row justify-content-center">
+                                    <div class="col-auto mb-3 mb-sm-0">
+                                        <span class="legend-indicator bg-primary"></span> 流出流量 <small>(<small
+                                            class="text-primary" id="sum_flux">0</small>)</small>
+                                    </div>
+
+                                    <div class="col-auto mb-3 mb-sm-0">
+                                        <span class="legend-indicator bg-info"></span> 回源流量 <small>(<small
+                                            class="text-info"
+                                            id="sum_bs_flux">0</small>)</small>
+                                    </div>
+                                </div>
+                                <!-- End Legend Indicators -->
+                            </div>
+
+                            <div class="tab-pane fade" id="nav-two-eg1" role="tabpanel"
+                                 aria-labelledby="nav-two-eg1-tab">
+                                <!-- Bar Chart -->
+                                <div class="chartjs-custom mb-3 mb-sm-5" style="height: 300px">
+                                    <canvas id="bwChart" class="js-chart"
+                                            data-hs-chartjs-options='{
+                                                  "type": "line",
+                                                  "data": {
+                                                    "labels": ["1:00", "2:00", "3:00", "4:00", "5:00", "6:00", "7:00", "8:00", "9:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00", "24:00"],
+                                                    "datasets": [{
+                                                      "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                                      "backgroundColor": "#377dff",
+                                                      "hoverBackgroundColor": "#377dff",
+                                                      "borderColor": "#377dff",
+                                                      "maxBarThickness": "10"
+                                                    },
+                                                    {
+                                                      "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                                      "backgroundColor": "#31a3be",
+                                                      "hoverBackgroundColor": "#31a3be",
+                                                      "borderColor": "#31a3be",
+                                                      "maxBarThickness": "10"
+                                                    }]
+                                                  },
+                                                  "options": {
+                                                    "scales": {
+                                                      "y": {
+                                                        "grid": {
+                                                          "color": "#e7eaf3",
+                                                          "drawBorder": false,
+                                                          "zeroLineColor": "#e7eaf3"
+                                                        },
+                                                        "ticks": {
+                                                          "beginAtZero": true,
+                                                          "stepSize": 100,
+                                                          "color": "#97a4af",
+                                                            "font": {
+                                                              "size": 12,
+                                                              "family": "Open Sans, sans-serif"
+                                                            },
+                                                          "padding": 10,
+                                                          "postfix": ""
+                                                        }
+                                                      },
+                                                      "x": {
+                                                        "grid": {
+                                                          "display": false,
+                                                          "drawBorder": false
+                                                        },
+                                                        "ticks": {
+                                                          "color": "#97a4af",
+                                                            "font": {
+                                                              "size": 12,
+                                                              "family": "Open Sans, sans-serif"
+                                                            },
+                                                          "padding": 5
+                                                        },
+                                                        "categoryPercentage": 0.5,
+                                                        "maxBarThickness": "10"
+                                                      }
+                                                    },
+                                                    "cornerRadius": 2,
+                                                    "plugins": {
+                                                      "tooltip": {
+                                                        "prefix": "",
+                                                        "postfix": "",
+                                                        "hasIndicator": true,
+                                                        "mode": "index",
+                                                        "intersect": false
+                                                      }
+                                                    },
+                                                    "hover": {
+                                                      "mode": "nearest",
+                                                      "intersect": true
+                                                    }
+                                                  }
+                                                }'></canvas>
+                                </div>
+                                <!-- End Bar Chart -->
+                                <!-- Legend Indicators -->
+                                <div class="row justify-content-center">
+                                    <div class="col-auto mb-3 mb-sm-0">
+                                        <span class="legend-indicator bg-primary"></span> 峰值带宽 <small>(<small
+                                            class="text-primary" id="sum_bw">0</small>)</small>
+                                    </div>
+
+                                    <div class="col-auto mb-3 mb-sm-0">
+                                        <span class="legend-indicator bg-info"></span> 峰值回源带宽 <small>(<small
+                                            class="text-info"
+                                            id="sum_bs_bw">0</small>)</small>
+                                    </div>
+                                </div>
+                                <!-- End Legend Indicators -->
+                            </div>
+                        </div>
+                        <!-- End Tab Content -->
+                    </div>
+                    <!-- End Body -->
+                </div>
+                <!-- End Card -->
+            </div>
+        </div>
+
+        <!--        <div class="row">-->
+        <!--            <div class="col-lg-8 mb-3 mb-lg-5">-->
+        <!--                <div class="d-grid gap-2 gap-lg-4">-->
+        <!--                    &lt;!&ndash; Card &ndash;&gt;-->
+        <!--                    <a class="card card-hover-shadow" href="website-setting">-->
+        <!--                        <div class="card-body">-->
+        <!--                            <div class="d-flex align-items-center">-->
+        <!--                                <div class="flex-shrink-0">-->
+        <!--                                    <img class="avatar avatar-lg avatar-4x3"-->
+        <!--                                         th:src="@{dashboard/assets/svg/illustrations/oc-megaphone.svg}"-->
+        <!--                                         alt="Image Description" style="min-height: 5rem;"-->
+        <!--                                         data-hs-theme-appearance="default">-->
+        <!--                                    <img class="avatar avatar-lg avatar-4x3"-->
+        <!--                                         th:src="@{dashboard/assets/svg/illustrations-light/oc-megaphone.svg}"-->
+        <!--                                         alt="Image Description" style="min-height: 5rem;"-->
+        <!--                                         data-hs-theme-appearance="dark">-->
+        <!--                                </div>-->
+
+        <!--                                <div class="flex-grow-1 ms-4">-->
+        <!--                                    <h3 class="text-inherit mb-1">发布公告</h3>-->
+        <!--                                    <span class="text-body">发布一个系统公告吧~</span>-->
+        <!--                                </div>-->
+
+        <!--                                <div class="ms-2 text-end">-->
+        <!--                                    <i class="bi-chevron-right text-body text-inherit"></i>-->
+        <!--                                </div>-->
+        <!--                            </div>-->
+        <!--                        </div>-->
+        <!--                    </a>-->
+        <!--                    &lt;!&ndash; End Card &ndash;&gt;-->
+
+        <!--                    &lt;!&ndash; Card &ndash;&gt;-->
+        <!--                    <a class="card card-hover-shadow" href="user-info">-->
+        <!--                        <div class="card-body">-->
+        <!--                            <div class="d-flex align-items-center">-->
+        <!--                                <div class="flex-shrink-0">-->
+        <!--                                    <img class="avatar avatar-lg avatar-4x3"-->
+        <!--                                         th:src="@{dashboard/assets/svg/illustrations/oc-discount.svg}"-->
+        <!--                                         alt="Image Description" style="min-height: 5rem;"-->
+        <!--                                         data-hs-theme-appearance="default">-->
+        <!--                                    <img class="avatar avatar-lg avatar-4x3"-->
+        <!--                                         th:src="@{dashboard/assets/svg/illustrations-light/oc-discount.svg}"-->
+        <!--                                         alt="Image Description" style="min-height: 5rem;"-->
+        <!--                                         data-hs-theme-appearance="dark">-->
+        <!--                                </div>-->
+
+        <!--                                <div class="flex-grow-1 ms-4">-->
+        <!--                                    <h3 class="text-inherit mb-1">修改资料</h3>-->
+        <!--                                    <span class="text-body">修改我的个人资料</span>-->
+        <!--                                </div>-->
+
+        <!--                                <div class="ms-2 text-end">-->
+        <!--                                    <i class="bi-chevron-right text-body text-inherit"></i>-->
+        <!--                                </div>-->
+        <!--                            </div>-->
+        <!--                        </div>-->
+        <!--                    </a>-->
+        <!--                    &lt;!&ndash; End Card &ndash;&gt;-->
+        <!--                </div>-->
+        <!--            </div>-->
+        <!--            &lt;!&ndash; End Col &ndash;&gt;-->
+
+        <!--            <div class="col-lg-4 mb-3 mb-lg-5">-->
+        <!--                &lt;!&ndash; Card &ndash;&gt;-->
+        <!--                <div class="card card-hover-shadow text-center h-100" style="max-width: 25rem;">-->
+        <!--                    <div class="card-progress-wrap">-->
+        <!--                        &lt;!&ndash; Progress &ndash;&gt;-->
+        <!--                        <div class="progress card-progress">-->
+        <!--                            <div class="progress-bar" role="progressbar" style="width: 100%" aria-valuenow="25"-->
+        <!--                                 aria-valuemin="25" aria-valuemax="100"></div>-->
+        <!--                        </div>-->
+        <!--                        &lt;!&ndash; End Progress &ndash;&gt;-->
+        <!--                    </div>-->
+
+        <!--                    &lt;!&ndash; Body &ndash;&gt;-->
+        <!--                    <div class="card-body">-->
+        <!--                        <div class="row align-items-center text-start mb-4">-->
+        <!--                            <div class="col">-->
+        <!--                                <span class="badge bg-soft-secondary text-secondary p-2">版权注释</span>-->
+        <!--                            </div>-->
+        <!--                            &lt;!&ndash; End Col &ndash;&gt;-->
+
+        <!--                            <div class="col-auto">-->
+        <!--                                &lt;!&ndash; Dropdown &ndash;&gt;-->
+        <!--                                <div class="dropdown">-->
+        <!--                                    <button type="button"-->
+        <!--                                            class="btn btn-ghost-secondary btn-icon btn-sm card-dropdown-btn rounded-circle"-->
+        <!--                                            id="projectsGridDropdown8" data-bs-toggle="dropdown" aria-expanded="false">-->
+        <!--                                        <i class="bi-three-dots-vertical"></i>-->
+        <!--                                    </button>-->
+
+        <!--                                    <div class="dropdown-menu dropdown-menu-end"-->
+        <!--                                         aria-labelledby="projectsGridDropdown8">-->
+        <!--                                        <a class="dropdown-item" href="#">更换产品识别码</a>-->
+        <!--                                        <a class="dropdown-item" href="#">公司介绍</a>-->
+        <!--                                        <a class="dropdown-item" href="#">联系我们</a>-->
+        <!--                                    </div>-->
+        <!--                                </div>-->
+        <!--                                &lt;!&ndash; End Dropdown &ndash;&gt;-->
+        <!--                            </div>-->
+        <!--                            &lt;!&ndash; End Col &ndash;&gt;-->
+        <!--                        </div>-->
+
+        <!--                        <div class="d-flex justify-content-center mb-2">-->
+        <!--                            &lt;!&ndash; Avatar &ndash;&gt;-->
+        <!--                            <img class="avatar avatar-lg" src="dashboard/assets/svg/logos/logo-short.svg"-->
+        <!--                                 alt="Image Description">-->
+        <!--                        </div>-->
+
+        <!--                        <div class="mb-4">-->
+        <!--                            <h2 class="mb-1">括彩科技</h2>-->
+
+        <!--                            <span class="fs-5">KuocaiCDN主控</span>-->
+        <!--                        </div>-->
+
+        <!--                        <small class="card-subtitle">产品识别码</small>-->
+        <!--                        <small class="card-subtitle">XHSHJKFHSJDFHUISDFHSDFGQW</small>-->
+
+        <!--                    </div>-->
+        <!--                    &lt;!&ndash; End Body &ndash;&gt;-->
+
+        <!--                    &lt;!&ndash; Footer &ndash;&gt;-->
+        <!--                    <div class="card-footer">-->
+        <!--                        &lt;!&ndash; Stats &ndash;&gt;-->
+        <!--                        <div class="row col-divider">-->
+        <!--                            <div class="col">-->
+        <!--                                <span class="h4 text-secondary">客服热线</span>-->
+        <!--                                <span class="d-block fs-5">400-8899-0909</span>-->
+        <!--                            </div>-->
+        <!--                            &lt;!&ndash; End Col &ndash;&gt;-->
+
+        <!--                            <div class="col">-->
+        <!--                                <span class="h4 text-secondary">版本号</span>-->
+        <!--                                <span class="d-block fs-5">V1.0 Beta</span>-->
+        <!--                            </div>-->
+        <!--                            &lt;!&ndash; End Col &ndash;&gt;-->
+
+        <!--                        </div>-->
+        <!--                        &lt;!&ndash; End Stats &ndash;&gt;-->
+        <!--                    </div>-->
+        <!--                    &lt;!&ndash; End Footer &ndash;&gt;-->
+        <!--                </div>-->
+        <!--                &lt;!&ndash; End Card &ndash;&gt;-->
+        <!--            </div>-->
+        <!--            &lt;!&ndash; End Col &ndash;&gt;-->
+        <!--        </div>-->
+        <!--        &lt;!&ndash; End Row &ndash;&gt;-->
+
+    </div>
+    <!-- End Content -->
+
+    <!-- Footer -->
+    <div th:replace="common/common-dashboard::#footer(curPage='dashboard')"></div>
+    <!-- End Footer -->
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- ========== SECONDARY CONTENTS ========== -->
+
+<!-- Activity -->
+<div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='dashboard')"></div>
+<!-- End Activity -->
+
+<!-- ========== END SECONDARY CONTENTS ========== -->
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+<!-- JS Implementing Plugins -->
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/daterangepicker/moment.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/daterangepicker/daterangepicker.js}"></script>
+<script th:src="@{dashboard/assets/vendor/chart.js/dist/chart.js}"></script>
+<script th:src="@{dashboard/assets/vendor/chartjs-chart-matrix/dist/chartjs-chart-matrix.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jsvectormap/dist/js/jsvectormap.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jsvectormap/dist/maps/world.js}"></script>
+<script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+
+<!-- JS Front -->
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+<script th:src="@{dashboard/assets/js/hs.theme-appearance-charts.js}"></script>
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/util/reg.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom_ceo.js}"></script>
+<script th:src="@{common/custom_cmo.js}"></script>
+<script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+<!-- JS Plugins Init. -->
+<script>
+    $(document).on('ready', function () {
+        HSCore.components.HSChartJS.init('.js-chart')
+
+        async function queryStatistics(startTime, endTime, domains, type, userId) {
+            if (!domains) {
+                domains = 'all'
+            }
+            if (!type) {
+                type = 'All'
+            }
+            let param = {
+                startTime: startTime, endTime: endTime, domains: domains, type: type, userId
+            }
+            // console.log(param);
+            let data = await sendRequest('GET', "CdnDomainStatistics/queryStatistics", param, 'application/x-www-form-urlencoded; charset=UTF-8', false)
+            if (!data) {
+                layerFail('请求失败');
+            } else {
+                if (data['code'] === 'SUCCESS') {
+                    let result = data.data;
+                    if (result && result.Resource) {
+                        result.Resource.labels = result.labels;
+                        return result.Resource;
+                    }
+                    return result;
+                } else if (data['code'] === 'SERVER_BUSY') {
+                    layerFail(data['message']);
+                }
+            }
+        }
+
+        function cb() {
+            // 财务统计
+            const moneyChart = HSCore.components.HSChartJS.getItem('doughnut-chart');
+            let totalRecharge = [[${allAccountInfo.totalRecharge}]]
+            let difference = [[${allAccountInfo.totalRecharge - allAccountInfo.difference}]]
+            let moneyTotal = [totalRecharge, difference, totalRecharge - difference]
+            moneyChart.data.datasets[0].data = moneyTotal
+            moneyChart.update()
+            // 注册
+            const updatingChart = HSCore.components.HSChartJS.getItem('ecommerce-overview-1');
+            updatingChart.data.datasets[1].data = [[${weekRegisterCount.lastWeekRegister}]]
+            updatingChart.data.datasets[0].data = [[${weekRegisterCount.thisWeekRegister}]]
+            updatingChart.update()
+            // 登录
+            const loginChart = HSCore.components.HSChartJS.getItem('ecommerce-overview-10');
+            loginChart.data.datasets[1].data = [[${weekLoginCount.lastWeekLogin}]]
+            loginChart.data.datasets[0].data = [[${weekLoginCount.thisWeekLogin}]]
+            loginChart.update()
+        }
+
+        cb();
+
+        // 流量趋势 开始
+        var start = moment();
+        var end = moment();
+
+        function setDashboardStatisticsLoading(loading) {
+            $('#dashboardStatisticsCard').attr('aria-busy', loading ? 'true' : 'false');
+            $('#dashboardStatisticsLoadingMask')
+                .toggleClass('d-none', !loading)
+                .attr('aria-hidden', loading ? 'false' : 'true');
+        }
+
+        async function cbFlux(start, end, lebel) {
+            let name = 'flux';
+            const rangeStart = start.clone();
+            const rangeEnd = end.clone();
+            $('#' + name + '-daterangepicker-predefined .' + name + '-daterangepicker-predefined-preview').html(rangeStart.format('YYYY/MM/DD') + ' - ' + rangeEnd.format('YYYY/MM/DD'));
+            let startTime = rangeStart.format('YYYY-MM-DD') + ' 00:00:00';
+            let endTime = rangeEnd.clone().add(1, 'days').format('YYYY-MM-DD') + ' 00:00:00'
+            if (!lebel || lebel === '今天') {
+
+            } else if (lebel === '昨天') {
+
+            } else if (lebel === '最近7天') {
+
+            } else if (lebel === '最近30天') {
+
+            } else if (lebel === '自定义范围') {
+                if (end.diff(start, 'day') > 30) {
+                    layerWarn("最大支持查询天数为30天！");
+                    return;
+                }
+            }
+            setDashboardStatisticsLoading(true);
+            try {
+                let resp = await queryStatistics(startTime, endTime, null, 'Resource');
+                if (!resp || !resp.resource_summary || !resp.resource_detail) {
+                    return;
+                }
+                let labels = resp.labels;
+                let flux = resp.resource_summary.flux;
+                let bs_flux = resp.resource_summary.bs_flux;
+                let bw = resp.resource_summary.bw;
+                let bs_bw = resp.resource_summary.bs_bw;
+                $('#sum_flux').text(flux === undefined ? 0 : flux);
+                $('#sum_bs_flux').text(bs_flux === undefined ? 0 : bs_flux);
+                $('#sum_bw').text(bw === undefined ? 0 : bw);
+                $('#sum_bs_bw').text(bs_bw === undefined ? 0 : bs_bw);
+
+                const fluxChart = HSCore.components.HSChartJS.getItem('fluxChart');
+                fluxChart.data.labels = labels;
+                fluxChart.data.datasets[0].data = resp.resource_detail.flux.data;
+                fluxChart.data.datasets[1].data = resp.resource_detail.bs_flux.data;
+                fluxChart.options.plugins.tooltip.postfix = resp.resource_detail.flux.unit;
+                fluxChart.update();
+                const bwChart = HSCore.components.HSChartJS.getItem('bwChart');
+                bwChart.data.labels = labels;
+                bwChart.data.datasets[0].data = resp.resource_detail.bw.data;
+                bwChart.data.datasets[1].data = resp.resource_detail.bs_bw.data;
+                bwChart.options.plugins.tooltip.postfix = resp.resource_detail.bw.unit;
+                bwChart.update();
+            } catch (error) {
+                console.error('Dashboard statistics loading failed:', error);
+                layerFail('数据加载失败，请稍后重试');
+            } finally {
+                setDashboardStatisticsLoading(false);
+            }
+        }
+
+        $('#flux-daterangepicker-predefined').daterangepicker({
+            startDate: start,
+            endDate: end,
+            "locale": {//汉化
+                format: "YYYY-MM-DD",
+                separator: " 至 ",
+                applyLabel: "应用",
+                cancelLabel: "取消",
+                customRangeLabel: "自定义范围",
+                daysOfWeek: ['日', '一', '二', '三', '四', '五', '六'],
+                monthNames: ['一月', '二月', '三月', '四月', '五月', '六月',
+                    '七月', '八月', '九月', '十月', '十一月', '十二月'],
+            },
+            ranges: {
+                '今天': [moment(), moment()],
+                '昨天': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                '最近7天': [moment().subtract(6, 'days'), moment()],
+                '最近30天': [moment().subtract(29, 'days'), moment()]
+            }
+        }, cbFlux);
+        cbFlux(start, end);
+        // 流量趋势 结束
+    });
+</script>
+
+<!-- JS Plugins Init. -->
+<script>
+    (function () {
+        window.onload = function () {
+
+
+            // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+            // =======================================================
+            new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+            // INITIALIZATION OF FORM SEARCH
+            // =======================================================
+            new HSFormSearch('.js-form-search')
+
+
+            // INITIALIZATION OF BOOTSTRAP DROPDOWN
+            // =======================================================
+            HSBsDropdown.init()
+
+
+            // INITIALIZATION OF CHARTJS
+            // =======================================================
+            // HSCore.components.HSChartJS.init('.js-chart')
+
+
+            // INITIALIZATION OF VECTOR MAP
+            // =======================================================
+
+            // INITIALIZATION OF SELECT
+            // =======================================================
+            HSCore.components.HSTomSelect.init('.js-select')
+        }
+    })()
+</script>
+
+<!-- Style Switcher JS -->
+
+<script>
+    (function () {
+        // STYLE SWITCHER
+        // =======================================================
+        const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+        const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+        // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+        const setActiveStyle = function () {
+            $variants.forEach($item => {
+                if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                    $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                    return $item.classList.add('active')
+                }
+
+                $item.classList.remove('active')
+            })
+        }
+
+        // Add a click event to all items of the dropdown to set the style
+        $variants.forEach(function ($item) {
+            $item.addEventListener('click', function () {
+                HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+            })
+        })
+
+        // Call the setActiveStyle on load page
+        setActiveStyle()
+
+        // Add event listener on change style to call the setActiveStyle function
+        window.addEventListener('on-hs-appearance-change', function () {
+            setActiveStyle()
+        })
+    })()
+</script>
+
+<!-- End Style Switcher JS -->
+</body>
+</html>

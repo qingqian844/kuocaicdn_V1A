@@ -1,0 +1,294 @@
+﻿<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>前台公共部分</title>
+</head>
+<body>
+
+<header id="header" class="navbar navbar-expand-lg navbar-end navbar-absolute-top navbar-dark navbar-show-hide"
+        data-hs-header-options='{
+            "fixMoment": 1000,
+            "fixEffect": "slide"
+          }'>
+
+    <div class="container">
+        <nav class="js-mega-menu navbar-nav-wrap">
+            <!-- Default Logo -->
+            <a class="navbar-brand" href="index" aria-label="Front">
+                <img th:if="${!openAgent}" class="navbar-brand-logo"
+                     th:src="${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : @{front/assets/svg/logos/logo-white.svg}"
+                     alt="Logo">
+                <img style="max-width: 150px;max-height: 60px;" th:if="${openAgent}" class="navbar-brand-logo"
+                     th:src="${agentConfig.logo}" alt="Logo">
+            </a>
+            <!-- End Default Logo -->
+
+            <!-- Toggler -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
+                    aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-default">
+            <i class="bi-list"></i>
+          </span>
+                <span class="navbar-toggler-toggled">
+            <i class="bi-x"></i>
+          </span>
+            </button>
+            <!-- End Toggler -->
+
+            <!-- 折叠 -->
+            <div class="collapse navbar-collapse" id="navbarNavDropdown">
+                <div class="navbar-absolute-top-scroller">
+                    <ul class="navbar-nav">
+
+                        <!-- 其他产品 -->
+                        <li th:if="${!openAgent}" class="hs-has-mega-menu nav-item">
+                            <a id="serviceMenu" class="hs-mega-menu-invoker nav-link dropdown-toggle"
+                               aria-current="page" href="#" role="button" aria-expanded="false">更多内容</a>
+
+                            <!-- Mega Menu -->
+                            <div class="hs-mega-menu dropdown-menu w-100" aria-labelledby="serviceMenu"
+                                 style="min-width: 30rem;">
+                                <div class="row">
+                                    <div class="col-lg-3 mb-3 mb-lg-0" th:each="m: ${mainLevel2Menus}">
+                                        <a class="dropdown-item" th:href="${m.url}" th:text="${m.name}"
+                                           target="_blank"></a>
+                                    </div>
+                                </div>
+                                <!-- End Row -->
+                            </div>
+                            <!-- End Mega Menu -->
+                        </li>
+                        <!-- End 其他产品 -->
+
+                        <li th:if="${!openAgent}" class="nav-item" th:each="m: ${mainLevel1Menus}">
+                            <a class="nav-link"
+                               th:href="${m.url}" th:text="${m.name}" target="_blank"></a>
+                        </li>
+
+                        <li th:if="${openAgent}" class="nav-item" th:each="m: ${proxyLevel2Menus}">
+                            <a class="nav-link"
+                               th:href="${m.url}" th:text="${m.name}" target="_blank"></a>
+                        </li>
+
+                        <!-- Button -->
+                        <li class="nav-item">
+                            <a th:if="${session.loginUser == null}" class="btn btn-light btn-transition"
+                               href="user-login">登录 / 注册</a>
+                            <a th:if="${session.loginUser != null}" class="btn btn-light btn-transition"
+                               href="dashboard">前往控制台</a>
+                        </li>
+                        <!-- End Button -->
+                    </ul>
+                </div>
+            </div>
+            <!-- End 折叠 -->
+        </nav>
+    </div>
+</header>
+
+<footer id="footer" th:class="${customFooterEnabled and !openAgent} ? '' : 'bg-dark'">
+    <th:block th:if="${customFooterEnabled and !openAgent}">
+        <style th:if="${websiteFooterCodeConfig != null and !#strings.isEmpty(websiteFooterCodeConfig.cssCode)}"
+               th:utext="${websiteFooterCodeConfig.cssCode}"></style>
+        <th:block th:utext="${websiteFooterHtmlCode}"></th:block>
+        <script th:if="${websiteFooterCodeConfig != null and !#strings.isEmpty(websiteFooterCodeConfig.jsCode)}"
+                th:utext="${websiteFooterCodeConfig.jsCode}"></script>
+    </th:block>
+
+    <div class="container pb-1 pb-lg-5" th:if="${!customFooterEnabled or openAgent}">
+        <div class="row content-space-t-2">
+            <div class="col-lg-3 mb-7 mb-lg-0">
+                <!-- Logo -->
+                <div class="mb-5">
+                    <a class="navbar-brand" href="#" aria-label="Space">
+                        <img th:if="${!openAgent}" class="navbar-brand-logo"
+                             th:src="${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : @{front/assets/svg/logos/logo-white.svg}"
+                             alt="Logo">
+                        <img style="max-width: 150px;max-height: 60px;" th:if="${openAgent}" class="navbar-brand-logo"
+                             th:src="${agentConfig.logo}" alt="Logo">
+                    </a>
+                </div>
+                <!-- End Logo -->
+
+                <!-- List -->
+                <ul class="list-unstyled list-py-1">
+                    <li><a class="link-sm link-light" href="#"><i class="bi-geo-alt-fill me-1"></i>
+                        <span th:if="${!openAgent}">黑龙江省大庆市高新区新科南路3号人才大厦</span>
+                        <span th:if="${openAgent}" th:text="${agentConfig.address}"></span>
+                    </a></li>
+                    <li><a class="link-sm link-light" href="tel:0459-6662886"><i
+                            class="bi-telephone-inbound-fill me-1"></i>
+                        <span th:if="${!openAgent}">0459-6662886</span>
+                        <span th:if="${openAgent}" th:text="${agentConfig.phone}"></span>
+                    </a></li>
+                </ul>
+                <!-- End List -->
+                <div class="col-sm-auto" hidden="hidden">
+                    <!-- Socials -->
+                    <ul class="list-inline mb-0">
+                        <li class="list-inline-item">
+                            <a class="btn btn-soft-light btn-xs btn-icon" href="#">
+                                <i class="bi-facebook"></i>
+                            </a>
+                        </li>
+
+                        <li class="list-inline-item">
+                            <a class="btn btn-soft-light btn-xs btn-icon" href="#">
+                                <i class="bi-google"></i>
+                            </a>
+                        </li>
+
+                        <li class="list-inline-item">
+                            <a class="btn btn-soft-light btn-xs btn-icon" href="#">
+                                <i class="bi-twitter"></i>
+                            </a>
+                        </li>
+
+                        <li class="list-inline-item">
+                            <a class="btn btn-soft-light btn-xs btn-icon" href="#">
+                                <i class="bi-github"></i>
+                            </a>
+                        </li>
+
+                    </ul>
+                    <!-- End Socials -->
+                </div>
+            </div>
+            <!-- End Col -->
+
+            <div class="col-sm mb-7 mb-sm-0">
+                <h5 class="text-white mb-3">快速入口</h5>
+
+                <!-- List -->
+                <ul class="list-unstyled list-py-1 mb-0">
+                    <li><a class="link-sm link-light" href="register">用户注册</a></li>
+                    <li><a class="link-sm link-light" href="user-login">用户登录</a></li>
+                    <li><a class="link-sm link-light" href="dashboard">控制台 <i
+                            class="bi-box-arrow-up-right small ms-1"></i></a></li>
+                </ul>
+                <!-- End List -->
+            </div>
+            <!-- End Col -->
+
+            <div class="col-sm mb-7 mb-sm-0">
+                <h5 class="text-white mb-3">服务与支持</h5>
+
+                <!-- List -->
+                <ul class="list-unstyled list-py-1 mb-0">
+                    <li><a class="link-sm link-light" href="order-create">工单系统</a></li>
+                    <li><a class="link-sm link-light" href="operation-logs">操作日志</a></li>
+                    <li><a class="link-sm link-light" href="contact">联系我们</a></li>
+                </ul>
+                <!-- End List -->
+            </div>
+            <!-- End Col -->
+            <div class="col-sm mb-7 mb-sm-0" hidden="hidden">
+                <h5 class="text-white mb-3">友情链接</h5>
+
+                <!-- List -->
+                <ul class="list-unstyled list-py-1 mb-0">
+                    <li><a class="link-sm link-light" href="https://www.aiboce.com/" target="_blank">在线TCPING</a></li>
+                    <li><a class="link-sm link-light" href="https://tance.cc/" target="_blank">IT探测网</a></li>
+                    <li><a class="link-sm link-light" href="https://6ke.li/whois/" target="_blank">WHOIS查询</a></li>
+                </ul>
+                <!-- End List -->
+            </div>
+            <!-- End Col -->
+
+            <div class="col-sm" th:if="${!openAgent}">
+<!--                <h5 class="text-white mb-3">更多内容</h5>-->
+
+                <!-- List -->
+<!--                <ul class="list-unstyled list-py-1 mb-5">-->
+<!--                    <li><a class="link-sm link-light" href="#"><i class="bi-question-circle-fill me-1"></i>-->
+<!--                        实名认证后每月可获得免费[[${websiteBaseConfig.monthGiftGb}]]G流量</a>-->
+<!--                    </li>-->
+<!--                </ul>-->
+                <!-- End List -->
+                <div class="row">
+                    <div class="col-6 text-center">
+                        <div style="max-width: 180px;">
+                            <img th:src="${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.wechatQrCodeImg)} ? ${websiteBaseConfig.wechatQrCodeImg} : @{common/images/59872277_1707142593.jpeg}"
+                                 alt="公众号二维码" class="img-fluid" loading="lazy">
+                        </div>
+                        <h6 class="text-white mt-3">公众号</h6>
+                    </div>
+                    <div class="col-6 text-center">
+                        <div style="max-width: 180px;">
+                            <img th:src="${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.qqGroupQrCodeImg)} ? ${websiteBaseConfig.qqGroupQrCodeImg} : @{common/images/4583752_1709117981.jpeg}"
+                                 alt="QQ群二维码" class="img-fluid" loading="lazy">
+                        </div>
+                        <h6 class="text-white mt-3">QQ 群</h6>
+                    </div>
+                </div>
+            </div>
+            <!-- End Col -->
+        </div>
+        <!-- End Row -->
+        <div class="border-top border-white-10 my-7" th:if="${!openAgent}"></div>
+        <div class="row" th:if="${!openAgent}">
+            <div class="col">
+                <p class="text-white mb-0">
+                    <span>友情链接：</span>
+                    <a href="https://www.aiboce.com/" title="AI拨测" target="_blank">AI拨测</a>
+                    <span>&emsp;</span>
+                    <a href="https://tance.cc/" title="探测网" target="_blank">探测网</a>
+                    <span>&emsp;</span>
+                    <a href="https://6ke.li/whois/" title="WHOIS查询" target="_blank">WHOIS查询</a>
+                    <span>&emsp;</span>
+                    <a href="https://6ke.li/" title="6KE站长论坛" target="_blank">6KE站长论坛</a>
+                    <span>&emsp;</span>
+                    <a href="https://www.kuocaidun.com/" title="括彩盾SCDN" target="_blank">括彩盾SCDN</a>
+                    <span>&emsp;</span>
+                    <a href="https://www.jitucdn.com/" title="JITUCDN" target="_blank">JITUCDN</a>
+                    <span>&emsp;</span>
+                    <a href="https://www.baixiong.cloud/" title="白熊云CDN" target="_blank">白熊云CDN</a>
+                    <span>&emsp;</span>
+                    <a href="https://www.yrdown.com/" title="优软下载" target="_blank">优软下载</a>
+                    <span>&emsp;</span>
+                    <a href="https://cdn.iocdn.cc/" title="一为前端公共库" target="_blank">一为前端公共库</a>
+                    <span>&emsp;</span>
+                    <a href="https://tuan.chinaz.com/" title="站长团购" target="_blank">站长团购</a>
+                </p>
+            </div>
+        </div>
+        <div class="border-top border-white-10 my-7"></div>
+
+        <!-- Copyright -->
+        <div class="w-md-85 text-lg-center mx-lg-auto">
+            <p class="text-white-50 small">
+                Copyright © 2025. 版权所有
+                <span th:if="${!openAgent}">黑龙江括彩科技有限公司</span>
+                <span th:if="${openAgent}" th:text="${agentConfig.company}"></span>
+                <br>
+                <br>
+
+
+                <span th:if="${!openAgent}">
+                    《ICP备案号》
+                    <a href="https://beian.miit.gov.cn/" th:text="${websiteBaseConfig.icpNumber}"></a>
+                    《增值电信业务经营许可证》
+                    <a href="https://dxzhgl.miit.gov.cn/dxxzsp/xkz/xkzgl/resource/qiyesearch.jsp?num=%E4%B8%8A%E6%B5%B7%E6%8B%AC%E5%BD%A9%E7%A7%91%E6%8A%80%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8&type=xuke">B1-20220812/沪B2-20220232</a>
+                </span>
+
+                <span th:if="${openAgent}">
+                    《ICP备案号》
+                    <a href="https://beian.miit.gov.cn/" th:text="${agentConfig.icp}"></a>
+                    《增值电信业务经营许可证》
+                    <a th:href="${agentConfig.licenceUrl}" th:text="${agentConfig.licence}"></a>
+                </span>
+
+
+            </p>
+            <p th:if="${!openAgent}" class="text-white-50 small">24
+                小时违法和不良信息举报热线：0459-6662886，举报邮箱：baixiong@88.com</p>
+            <p th:if="${openAgent}" class="text-white-50 small">24
+                小时违法和不良信息举报热线：[[${agentConfig.phone}]]，举报邮箱：[[${agentConfig.email}]]</p>
+        </div>
+        <!-- End Copyright -->
+    </div>
+</footer>
+</body>
+</html>

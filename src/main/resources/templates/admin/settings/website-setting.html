@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title>[[${websiteBaseConfig.websiteName}]] 网站配置</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/quill/dist/quill.snow.css}" as="style">
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {"switcherSupport": true},
+                "header": {"layoutMode": "default", "containerMode": "container-fluid"},
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {"100": "#f9fafc", "900": "#1e2022"}
+                    }, "font": "Inter"
+                }
+            },
+            "languageDirection": {"lang": "en"},
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {"*assets/js/theme-custom.js": ""},
+                "build": {"*assets/js/theme-custom.js": "", "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"}
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {"src": "./src", "dist": "./dist", "build": "./build"},
+            "fileNames": {
+                "dist": {"js": "theme.min.js", "css": "theme.min.css"},
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl   footer-offset">
+
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+<!-- ========== HEADER ========== -->
+
+<div th:replace="common/common-dashboard::header(curPage='website-setting', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<!-- Navbar Vertical -->
+
+<div th:replace="common/common-dashboard::aside(curPage='website-setting', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<main id="content" role="main" class="main">
+    <!-- Content -->
+    <div class="content container-fluid">
+        <!-- Page Header -->
+        <div class="page-header" style="padding-bottom: 5px;margin-bottom: 10px">
+            <div class="row align-items-end">
+                <div class="col-sm mb-2 mb-sm-0">
+
+
+                    <h1 class="page-header-title">网站配置 <i class="bi-gear nav-icon"></i></h1>
+                </div>
+                <!-- End Col -->
+            </div>
+            <!-- End Row -->
+        </div>
+        <!-- End Page Header -->
+
+        <div class="row">
+            <div class="col-lg-3">
+                <!-- Navbar -->
+                <div class="navbar-expand-lg navbar-vertical mb-3 mb-lg-5">
+                    <!-- Navbar Toggle -->
+                    <!-- Navbar Toggle -->
+                    <div class="d-grid">
+                        <button type="button" class="navbar-toggler btn btn-white mb-3" data-bs-toggle="collapse"
+                                data-bs-target="#navbarVerticalNavMenu" aria-label="Toggle navigation"
+                                aria-expanded="false" aria-controls="navbarVerticalNavMenu">
+                <span class="d-flex justify-content-between align-items-center">
+                  <span class="text-dark">菜单</span>
+
+                  <span class="navbar-toggler-default">
+                    <i class="bi-list"></i>
+                  </span>
+
+                  <span class="navbar-toggler-toggled">
+                    <i class="bi-x"></i>
+                  </span>
+                </span>
+                        </button>
+                    </div>
+                    <!-- End Navbar Toggle -->
+                    <!-- End Navbar Toggle -->
+
+                    <!-- Navbar 折叠 -->
+                    <div id="navbarVerticalNavMenu" class="collapse navbar-collapse">
+                        <ul id="navbarSettings"
+                            class="js-sticky-block js-scrollspy card card-navbar-nav nav nav-tabs nav-lg nav-vertical"
+                            data-hs-sticky-block-options='{
+                     "parentSelector": "#navbarVerticalNavMenu",
+                     "targetSelector": "#header",
+                     "breakpoint": "lg",
+                     "startPoint": "#navbarVerticalNavMenu",
+                     "endPoint": "#stickyBlockEndPoint",
+                     "stickyOffsetTop": 20
+                   }'>
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#basicPart">
+                                    <i class="bi-person nav-icon"></i> 基本配置
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#seoPart">
+                                    <i class="bi-search nav-icon"></i> SEO配置
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#homeCodePart">
+                                    <i class="bi-code-slash nav-icon"></i> 首页代码
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#footerCodePart">
+                                    <i class="bi-layout-text-window-reverse nav-icon"></i> 底部代码
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#protocolPart">
+                                    <i class="bi-phone nav-icon"></i> 同意协议
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <!-- End Navbar 折叠 -->
+                </div>
+                <!-- End Navbar -->
+            </div>
+
+            <div class="col-lg-9">
+                <div class="d-grid gap-3 gap-lg-5">
+                    <!-- Card -->
+                    <div id="basicPart" class="card">
+                        <div class="card-header">
+                            <h2 class="card-title h4">基本配置</h2>
+                        </div>
+
+                        <!-- Body -->
+                        <div class="card-body">
+                            <!-- Form -->
+                            <form>
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="websiteIconImg" class="col-sm-3 col-form-label form-label">网站图标
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="上传网站图标"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <label class="avatar avatar-xl avatar-circle avatar-uploader"
+                                               for="updateWebsiteIconFile">
+                                            <img id="websiteIconImg" class="avatar-img"
+                                                 th:src="${websiteBaseConfig} eq null ? '' : ${websiteBaseConfig.websiteIconImg}"
+                                                 alt="请上传网站图标">
+
+                                            <input type="file" class="js-file-attach avatar-uploader-input"
+                                                   id="updateWebsiteIconFile" data-hs-file-attach-options='{
+                            "textTarget": "#websiteIconImg",
+                            "mode": "image",
+                            "targetAttr": "src",
+                            "allowTypes": [".png", ".jpeg", ".jpg"]
+                         }' onchange="">
+
+                                            <span class="avatar-uploader-trigger">
+                                              <i class="bi-pencil-fill avatar-uploader-icon shadow-sm"></i>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="websiteLogoImg" class="col-sm-3 col-form-label form-label">网站Logo
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="上传前台和后台顶部显示的Logo"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <label class="avatar avatar-xl avatar-uploader"
+                                               for="updateWebsiteLogoFile">
+                                            <img id="websiteLogoImg" class="avatar-img"
+                                                 th:src="${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : @{front/assets/svg/logos/logo-white.svg}"
+                                                 alt="请上传网站Logo">
+
+                                            <input type="file" class="js-file-attach avatar-uploader-input"
+                                                   id="updateWebsiteLogoFile" data-hs-file-attach-options='{
+                            "textTarget": "#websiteLogoImg",
+                            "mode": "image",
+                            "targetAttr": "src",
+                            "allowTypes": [".png", ".jpeg", ".jpg", ".svg"]
+                         }' onchange="">
+
+                                            <span class="avatar-uploader-trigger">
+                                              <i class="bi-pencil-fill avatar-uploader-icon shadow-sm"></i>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="wechatQrCodeImg" class="col-sm-3 col-form-label form-label">公众号二维码
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="上传前台页尾显示的公众号二维码"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <label class="avatar avatar-xl avatar-uploader"
+                                               for="updateWechatQrCodeFile">
+                                            <img id="wechatQrCodeImg" class="avatar-img"
+                                                 th:src="${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.wechatQrCodeImg)} ? ${websiteBaseConfig.wechatQrCodeImg} : @{common/images/59872277_1707142593.jpeg}"
+                                                 alt="请上传公众号二维码">
+
+                                            <input type="file" class="js-file-attach avatar-uploader-input"
+                                                   id="updateWechatQrCodeFile" data-hs-file-attach-options='{
+                            "textTarget": "#wechatQrCodeImg",
+                            "mode": "image",
+                            "targetAttr": "src",
+                            "allowTypes": [".png", ".jpeg", ".jpg", ".webp"]
+                         }' onchange="">
+
+                                            <span class="avatar-uploader-trigger">
+                                              <i class="bi-pencil-fill avatar-uploader-icon shadow-sm"></i>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="qqGroupQrCodeImg" class="col-sm-3 col-form-label form-label">QQ群二维码
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="上传前台页尾显示的QQ群二维码"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <label class="avatar avatar-xl avatar-uploader"
+                                               for="updateQqGroupQrCodeFile">
+                                            <img id="qqGroupQrCodeImg" class="avatar-img"
+                                                 th:src="${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.qqGroupQrCodeImg)} ? ${websiteBaseConfig.qqGroupQrCodeImg} : @{common/images/4583752_1709117981.jpeg}"
+                                                 alt="请上传QQ群二维码">
+
+                                            <input type="file" class="js-file-attach avatar-uploader-input"
+                                                   id="updateQqGroupQrCodeFile" data-hs-file-attach-options='{
+                            "textTarget": "#qqGroupQrCodeImg",
+                            "mode": "image",
+                            "targetAttr": "src",
+                            "allowTypes": [".png", ".jpeg", ".jpg", ".webp"]
+                         }' onchange="">
+
+                                            <span class="avatar-uploader-trigger">
+                                              <i class="bi-pencil-fill avatar-uploader-icon shadow-sm"></i>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="websiteName" class="col-sm-3 col-form-label form-label">网站名称
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="可以动态设置网站名称文本，建议不超过8个字符"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${websiteBaseConfig} eq null ? '' : ${websiteBaseConfig.websiteName}"
+                                               type="text" class="form-control" id="websiteName"
+                                               maxlength="30"
+                                               placeholder="请输入网站名称">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="websiteAnnouncement" class="col-sm-3 col-form-label form-label">网站介绍
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="发布站内介绍"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <textarea
+                                                th:value="${websiteBaseConfig} eq null ? '' : ${websiteBaseConfig.websiteAnnouncement}"
+                                                id="websiteAnnouncement" class="form-control"
+                                                placeholder="请输入站内介绍" rows="4">[[${websiteBaseConfig} eq null ? '' : ${websiteBaseConfig.websiteAnnouncement}]]</textarea>
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="defaultFlowPrice" class="col-sm-3 col-form-label form-label">默认流量单价（元）
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="注册用户的默认流量单价"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${websiteBaseConfig} eq null ? '' : ${websiteBaseConfig.defaultFlowPrice}"
+                                               type="number" class="form-control" id="defaultFlowPrice"
+                                               placeholder="请输入流量单价">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="maxDomainCount" class="col-sm-3 col-form-label form-label">默认域名数量
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="注册用户的默认可创建域名数量"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${websiteBaseConfig} eq null ? '' : ${websiteBaseConfig.maxDomainCount}"
+                                               type="number" class="form-control" id="maxDomainCount"
+                                               placeholder="请输入域名数量">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="maxDomainCountProxy" class="col-sm-3 col-form-label form-label">默认域名数量（代理）
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="代理用户的默认可创建域名数量"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${websiteBaseConfig} eq null ? '' : ${websiteBaseConfig.maxDomainCountProxy}"
+                                               type="number" class="form-control" id="maxDomainCountProxy"
+                                               placeholder="请输入域名数量">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="expireTime" class="col-sm-3 col-form-label form-label">订单过期时长（分）
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="订单过期时长"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${websiteBaseConfig} eq null ? '' : ${websiteBaseConfig.expireTime}"
+                                               type="number" class="form-control" id="expireTime"
+                                               placeholder="请输入订单过期时长">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="expireTime" class="col-sm-3 col-form-label form-label">邀请注册奖励（GB）
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="邀请注册奖励，单位GB，一个月有效期"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${websiteBaseConfig} eq null ? '' : ${websiteBaseConfig.inviteRewardGb}"
+                                               type="number" class="form-control" id="inviteRewardGb"
+                                               placeholder="请输入邀请注册奖励 GB。">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="expireTime" class="col-sm-3 col-form-label form-label">受邀请注册奖励（GB）
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="受邀请注册奖励，单位GB，一个月有效期"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${websiteBaseConfig} eq null ? '' : ${websiteBaseConfig.invitedRewardGb}"
+                                               type="number" class="form-control" id="invitedRewardGb"
+                                               placeholder="请输入受邀请注册奖励 GB。">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="expireTime" class="col-sm-3 col-form-label form-label">每月赠送流量（GB）
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="每月赠送流量，单位GB，一个月有效期"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${websiteBaseConfig} eq null ? '' : ${websiteBaseConfig.monthGiftGb}"
+                                               type="number" class="form-control" id="monthGiftGb"
+                                               placeholder="请输入每月赠送流量 GB。">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="icpNumber" class="col-sm-3 col-form-label form-label">ICP备案号
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="自定义备案号，请务必填写已申请通过的备案号"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${websiteBaseConfig} eq null ? '' : ${websiteBaseConfig.icpNumber}"
+                                               type="text" class="form-control" id="icpNumber"
+                                               maxlength="30"
+                                               placeholder="请输入ICP备案号">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label class="col-sm-3 col-form-label form-label">更新时间</label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${websiteBaseConfig} eq null ? '' : ${websiteBaseConfig.updateTime}"
+                                               type="text" class="form-control" disabled>
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="edgeoneDomainQuotaEnabled" class="col-sm-3 col-form-label form-label">EdgeOne根域名收费</label>
+                                    <div class="col-sm-9">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="edgeoneDomainQuotaEnabled"
+                                                   th:checked="${websiteBaseConfig == null or websiteBaseConfig.edgeoneDomainQuotaEnabled == null or websiteBaseConfig.edgeoneDomainQuotaEnabled}">
+                                            <label class="form-check-label" for="edgeoneDomainQuotaEnabled">启用EdgeOne根域名额度收费</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-4">
+                                    <label for="edgeoneFreeDomainQuota" class="col-sm-3 col-form-label form-label">免费根域名数量</label>
+                                    <div class="col-sm-9">
+                                        <input th:value="${websiteBaseConfig == null or websiteBaseConfig.edgeoneFreeDomainQuota == null ? 1 : websiteBaseConfig.edgeoneFreeDomainQuota}"
+                                               type="number" class="form-control" id="edgeoneFreeDomainQuota" min="0">
+                                    </div>
+                                </div>
+
+                                <div class="row mb-4">
+                                    <label for="edgeoneDomainQuotaPrice" class="col-sm-3 col-form-label form-label">单个额度价格（元）</label>
+                                    <div class="col-sm-9">
+                                        <input th:value="${websiteBaseConfig == null or websiteBaseConfig.edgeoneDomainQuotaPrice == null ? 30 : websiteBaseConfig.edgeoneDomainQuotaPrice}"
+                                               type="number" class="form-control" id="edgeoneDomainQuotaPrice" min="0" step="0.01">
+                                    </div>
+                                </div>
+
+                                <div class="row mb-4">
+                                    <label for="edgeoneDomainQuotaValidDays" class="col-sm-3 col-form-label form-label">付费额度有效期（天）</label>
+                                    <div class="col-sm-9">
+                                        <input th:value="${websiteBaseConfig == null or websiteBaseConfig.edgeoneDomainQuotaValidDays == null ? 30 : websiteBaseConfig.edgeoneDomainQuotaValidDays}"
+                                               type="number" class="form-control" id="edgeoneDomainQuotaValidDays" min="1">
+                                    </div>
+                                </div>
+
+                                <!-- End Form -->
+
+                            </form>
+                            <div class="d-flex justify-content-end">
+                                <button type="button" onclick="saveWebsiteBaseConfig()" class="btn btn-primary">保存更改
+                                </button>
+                            </div>
+                        </div>
+                        <!-- End Body -->
+                    </div>
+                    <!-- End Card -->
+
+                    <!-- Card -->
+                    <div id="seoPart" class="card">
+                        <div class="card-header">
+                            <h4 class="card-title">SEO配置</h4>
+                        </div>
+
+                        <div class="card-body">
+                            <div class="row mb-4">
+                                <label for="homeTitle" class="col-sm-3 col-form-label form-label">首页标题
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="浏览器标题栏与搜索结果标题，建议不超过80个字符"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <input th:value="${websiteSeoConfig != null and !#strings.isEmpty(websiteSeoConfig.homeTitle)} ? ${websiteSeoConfig.homeTitle} : (${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteName)} ? ${websiteBaseConfig.websiteName + '-企业级智能CDN服务商,专业的国内外内容分发加速服务平台'} : '')"
+                                           type="text" class="form-control" id="homeTitle"
+                                           maxlength="120"
+                                           placeholder="请输入首页标题">
+                                </div>
+                            </div>
+
+                            <div class="row mb-4">
+                                <label for="searchKeyword" class="col-sm-3 col-form-label form-label">关键词
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="多个关键词用英文逗号分隔，建议不超过100个字符"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <textarea id="searchKeyword" class="form-control" rows="3"
+                                              maxlength="300"
+                                              placeholder="请输入关键词，多个关键词用英文逗号分隔">[[${websiteSeoConfig != null and !#strings.isEmpty(websiteSeoConfig.searchKeyword)} ? ${websiteSeoConfig.searchKeyword} : '括彩云,括彩云CDN,智能AI调度,极兔云,CDN,高防CDN,内容分发系统,不限速,不限流量,高防CDN,不限防御,无限防御,CDN服务商,免费CDN,免备案CDN']]</textarea>
+                                </div>
+                            </div>
+
+                            <div class="row mb-4">
+                                <label for="websiteInfo" class="col-sm-3 col-form-label form-label">描述
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="搜索结果描述，建议不超过200个字符"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <textarea id="websiteInfo" class="form-control" rows="4"
+                                              maxlength="500"
+                                              placeholder="请输入网站描述">[[${websiteSeoConfig != null and !#strings.isEmpty(websiteSeoConfig.websiteInfo)} ? ${websiteSeoConfig.websiteInfo} : '括彩云是一家企业级智能CDN专业服务商，全球内容分发加速服务平台，助力于站长加速孵化内容，获得山东互联网创新奖，立志成为国内优质的CDN服务商。']]</textarea>
+                                </div>
+                            </div>
+
+                            <div>
+                                <button onclick="saveWebsiteSeoConfig()" class="btn btn-primary">保存更改
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- End Card -->
+
+                    <!-- Card -->
+                    <div id="homeCodePart" class="card">
+                        <div class="card-header">
+                            <h4 class="card-title">首页代码</h4>
+                        </div>
+
+                        <div class="card-body">
+                            <textarea id="defaultHomeHtmlCode" class="d-none"
+                                      th:text="${defaultHomeCodeConfig.htmlCode}"></textarea>
+                            <textarea id="defaultHomeCssCode" class="d-none"
+                                      th:text="${defaultHomeCodeConfig.cssCode}"></textarea>
+                            <textarea id="defaultHomeJsCode" class="d-none"
+                                      th:text="${defaultHomeCodeConfig.jsCode}"></textarea>
+
+                            <div class="form-check form-switch mb-4">
+                                <input class="form-check-input" type="checkbox" id="homeCodeEnabled"
+                                       th:checked="${websiteHomeCodeConfig != null and websiteHomeCodeConfig.enabled}">
+                                <label class="form-check-label" for="homeCodeEnabled">启用自定义首页</label>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="homeHtmlCode" class="form-label">HTML 内容</label>
+                                <textarea id="homeHtmlCode" class="form-control font-monospace" rows="14"
+                                          placeholder="输入首页主体 HTML 代码"
+                                          th:text="${websiteHomeCodeConfig != null and !#strings.isEmpty(websiteHomeCodeConfig.htmlCode)} ? ${websiteHomeCodeConfig.htmlCode} : ${defaultHomeCodeConfig.htmlCode}"></textarea>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="homeCssCode" class="form-label">CSS 样式</label>
+                                <textarea id="homeCssCode" class="form-control font-monospace" rows="8"
+                                          placeholder="输入 CSS，不需要包含 style 标签"
+                                          th:text="${websiteHomeCodeConfig != null and !#strings.isEmpty(websiteHomeCodeConfig.cssCode)} ? ${websiteHomeCodeConfig.cssCode} : ${defaultHomeCodeConfig.cssCode}"></textarea>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="homeJsCode" class="form-label">JavaScript 脚本</label>
+                                <textarea id="homeJsCode" class="form-control font-monospace" rows="8"
+                                          placeholder="输入 JavaScript，不需要包含 script 标签"
+                                          th:text="${websiteHomeCodeConfig != null and !#strings.isEmpty(websiteHomeCodeConfig.jsCode)} ? ${websiteHomeCodeConfig.jsCode} : ${defaultHomeCodeConfig.jsCode}"></textarea>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" onclick="loadDefaultWebsiteHomeCode()" class="btn btn-white">
+                                    恢复默认代码
+                                </button>
+                                <a class="btn btn-white" href="/" target="_blank">打开首页</a>
+                                <button onclick="saveWebsiteHomeCodeConfig()" class="btn btn-primary">保存更改
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- End Card -->
+
+                    <!-- Card -->
+                    <div id="footerCodePart" class="card">
+                        <div class="card-header">
+                            <h4 class="card-title">底部代码</h4>
+                        </div>
+
+                        <div class="card-body">
+                            <textarea id="defaultFooterHtmlCode" class="d-none"
+                                      th:text="${defaultFooterCodeConfig.htmlCode}"></textarea>
+                            <textarea id="defaultFooterCssCode" class="d-none"
+                                      th:text="${defaultFooterCodeConfig.cssCode}"></textarea>
+                            <textarea id="defaultFooterJsCode" class="d-none"
+                                      th:text="${defaultFooterCodeConfig.jsCode}"></textarea>
+
+                            <div class="form-check form-switch mb-4">
+                                <input class="form-check-input" type="checkbox" id="footerCodeEnabled"
+                                       th:checked="${websiteFooterCodeConfig != null and websiteFooterCodeConfig.enabled}">
+                                <label class="form-check-label" for="footerCodeEnabled">启用自定义底部</label>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="footerHtmlCode" class="form-label">HTML 内容</label>
+                                <textarea id="footerHtmlCode" class="form-control font-monospace" rows="14"
+                                          placeholder="输入底部 HTML 代码"
+                                          th:text="${websiteFooterCodeConfig != null and !#strings.isEmpty(websiteFooterCodeConfig.htmlCode)} ? ${websiteFooterCodeConfig.htmlCode} : ${defaultFooterCodeConfig.htmlCode}"></textarea>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="footerCssCode" class="form-label">CSS 样式</label>
+                                <textarea id="footerCssCode" class="form-control font-monospace" rows="8"
+                                          placeholder="输入 CSS，不需要包含 style 标签"
+                                          th:text="${websiteFooterCodeConfig != null and !#strings.isEmpty(websiteFooterCodeConfig.cssCode)} ? ${websiteFooterCodeConfig.cssCode} : ${defaultFooterCodeConfig.cssCode}"></textarea>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="footerJsCode" class="form-label">JavaScript 脚本</label>
+                                <textarea id="footerJsCode" class="form-control font-monospace" rows="8"
+                                          placeholder="输入 JavaScript，不需要包含 script 标签"
+                                          th:text="${websiteFooterCodeConfig != null and !#strings.isEmpty(websiteFooterCodeConfig.jsCode)} ? ${websiteFooterCodeConfig.jsCode} : ${defaultFooterCodeConfig.jsCode}"></textarea>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" onclick="loadDefaultWebsiteFooterCode()" class="btn btn-white">
+                                    恢复默认底部代码
+                                </button>
+                                <a class="btn btn-white" href="/" target="_blank">打开首页</a>
+                                <button onclick="saveWebsiteFooterCodeConfig()" class="btn btn-primary">保存更改
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- End Card -->
+
+                    <!-- Card -->
+                    <div id="protocolPart" class="card">
+                        <div class="card-header">
+                            <h4 class="card-title">同意协议</h4>
+                        </div>
+
+                        <!-- Body -->
+                        <div class="card-body">
+                            <p class="card-text">编写系统协议，用户注册时需进行阅读并勾选</p>
+
+                            <!-- Quill -->
+                            <div class="quill-custom mb-3">
+                                <div id="user-protocol" class="js-quill" style="height: 15rem;" data-hs-quill-options='{
+                             "placeholder": "编写用户协议...",
+                              "modules": {
+                                "toolbar": [
+                                  ["bold", "italic", "underline", "strike", "link", "image", "blockquote", "code", {"list": "bullet"}]
+                                ]
+                              }
+                             }'>
+                                </div>
+                            </div>
+                            <!-- End Quill -->
+                            <input th:value="${websiteAgreementConfig} eq null ? '' : ${websiteAgreementConfig.agreementInfo}"
+                                   id="getValue" hidden="hidden">
+                            <div class="d-flex justify-content-end">
+                                <button class="btn btn-primary" onclick="saveWebsiteAgreementConfig()">保存更改
+                                </button>
+                            </div>
+                        </div>
+                        <!-- End Body -->
+
+
+                    </div>
+                    <!-- End Card -->
+                </div>
+
+                <!-- Sticky Block End Point -->
+                <div id="stickyBlockEndPoint"></div>
+            </div>
+        </div>
+        <!-- End Row -->
+    </div>
+    <!-- End Content -->
+
+    <!-- Footer -->
+
+    <div th:replace="common/common-dashboard::#footer(curPage='website-setting')"></div>
+
+    <!-- End Footer -->
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- Activity -->
+<div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='website-setting')"></div>
+<!-- End Activity -->
+
+<!-- ========== END SECONDARY CONTENTS ========== -->
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+<!-- JS Implementing Plugins -->
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-file-attach/dist/hs-file-attach.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-sticky-block/dist/hs-sticky-block.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-scrollspy/dist/hs-scrollspy.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/imask/dist/imask.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/quill/dist/quill.min.js}"></script>
+
+<!-- JS Front -->
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/util/reg.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom_ceo.js}"></script>
+<script th:src="@{common/custom_cmo.js(v='20260624-footer-qrcode')}"></script>
+<script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+<!-- JS Plugins Init. -->
+<script>
+    (function () {
+        window.onload = function () {
+
+            // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+            // =======================================================
+            new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+            // INITIALIZATION OF FORM SEARCH
+            // =======================================================
+            new HSFormSearch('.js-form-search')
+
+
+            // INITIALIZATION OF BOOTSTRAP DROPDOWN
+            // =======================================================
+            HSBsDropdown.init()
+
+
+            // INITIALIZATION OF SELECT
+            // =======================================================
+            HSCore.components.HSTomSelect.init('.js-select')
+
+            // INITIALIZATION OF QUILLJS EDITOR
+            // =======================================================
+            HSCore.components.HSQuill.init('.js-quill')
+
+
+            // INITIALIZATION OF INPUT MASK
+            // =======================================================
+            HSCore.components.HSMask.init('.js-input-mask')
+
+            // INITIALIZATION OF FILE ATTACHMENT
+            // =======================================================
+            new HSFileAttach('.js-file-attach')
+
+
+            // INITIALIZATION OF STICKY BLOCKS
+            // =======================================================
+            new HSStickyBlock('.js-sticky-block', {
+                targetSelector: document.getElementById('header').classList.contains('navbar-fixed') ? '#header' : null
+            })
+
+            // SCROLLSPY
+            // =======================================================
+            new bootstrap.ScrollSpy(document.body, {
+                target: '#navbarSettings',
+                offset: 100
+            })
+
+            new HSScrollspy('#navbarVerticalNavMenu', {
+                breakpoint: 'lg',
+                scrollOffset: -20
+            })
+            // 赋值
+            let quill = HSCore.components.HSQuill.getItem('user-protocol');
+            let value = document.getElementById("getValue").value;
+            if (value) {
+                document.querySelector('#user-protocol').children[0].innerHTML = value
+            }
+        }
+    })()
+</script>
+
+<!-- Style Switcher JS -->
+
+<script>
+    (function () {
+        // STYLE SWITCHER
+        // =======================================================
+        const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+        const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+        // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+        const setActiveStyle = function () {
+            $variants.forEach($item => {
+                if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                    $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                    return $item.classList.add('active')
+                }
+
+                $item.classList.remove('active')
+            })
+        }
+
+        // Add a click event to all items of the dropdown to set the style
+        $variants.forEach(function ($item) {
+            $item.addEventListener('click', function () {
+                HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+            })
+        })
+
+        // Call the setActiveStyle on load page
+        setActiveStyle()
+
+        // Add event listener on change style to call the setActiveStyle function
+        window.addEventListener('on-hs-appearance-change', function () {
+            setActiveStyle()
+        })
+    })()
+</script>
+
+<!-- End Style Switcher JS -->
+</body>
+</html>
+

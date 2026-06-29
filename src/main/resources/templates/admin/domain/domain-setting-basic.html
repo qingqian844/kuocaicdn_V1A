@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title th:if="${!openAgent}">[[${websiteBaseConfig.websiteName}]] 域名基本配置</title>
+    <title th:if="${openAgent}">[[${agentConfig.websiteName}]] 域名基本配置</title>
+
+    <!-- Favicon -->
+    <link th:if="${!openAgent}" rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:if="${openAgent}" rel="shortcut icon" th:href="${agentConfig.icon}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+        
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {
+                    "switcherSupport": true
+                },
+                "header": {
+                    "layoutMode": "default",
+                    "containerMode": "container-fluid"
+                },
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {
+                            "100": "#f9fafc",
+                            "900": "#1e2022"
+                        }
+                    },
+                    "font": "Inter"
+                }
+            },
+            "languageDirection": {
+                "lang": "en"
+            },
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {
+                    "*assets/js/theme-custom.js": ""
+                },
+                "build": {
+                    "*assets/js/theme-custom.js": "",
+                    "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"
+                }
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {
+                "src": "./src",
+                "dist": "./dist",
+                "build": "./build"
+            },
+            "fileNames": {
+                "dist": {
+                    "js": "theme.min.js",
+                    "css": "theme.min.css"
+                },
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl   footer-offset">
+
+    <script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+    <script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+    <!-- ========== HEADER ========== -->
+
+    <div th:replace="common/common-dashboard::header(curPage='domain-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+    <!-- ========== END HEADER ========== -->
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <!-- Navbar Vertical -->
+
+    <div th:replace="common/common-dashboard::aside(curPage='domain-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+    <!-- End Navbar Vertical -->
+    <main id="content" role="main" class="main">
+        <!-- Content -->
+        <div class="content container-fluid">
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="row align-items-center">
+                    <div class="col-sm mb-sm-0">
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb breadcrumb-no-gutter">
+                                <li class="breadcrumb-item"><a class="breadcrumb-link" href="domain-list">域名管理</a>
+                                </li>
+                                <li class="breadcrumb-item active" aria-current="page">域名配置</li>
+                            </ol>
+                        </nav>
+                    </div>
+                    <!-- End Col -->
+                </div>
+
+                <!-- Nav -->
+                <ul class="nav nav-tabs page-header-tabs" id="pageHeaderTab" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" th:href="@{domain-setting-basic(id=${domain.id})}">基本配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-origin(id=${domain.id})}" tabindex="-1" aria-disabled="true">回源配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-https(id=${domain.id})}" tabindex="-1" aria-disabled="true">HTTPS配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-cache(id=${domain.id})}" tabindex="-1" aria-disabled="true">缓存配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-access(id=${domain.id})}" tabindex="-1" aria-disabled="true">访问配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-higher(id=${domain.id})}" tabindex="-1" aria-disabled="true">高级配置</a>
+                    </li>
+                </ul>
+                <!-- End Nav -->
+                <!-- End Row -->
+            </div>
+            <!-- End Page Header -->
+
+            <!-- Card -->
+            <div class="card mb-3 mb-lg-5">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">基本信息</h3>
+                </div>
+                <input type="hidden" id="currentOriginProtocol"
+                       th:value="${domainConfig.get('domainBackSourceInfo').get('origin_protocol')}">
+                <input type="hidden" id="domainRouteType" th:value="${domain.route}">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-3">
+                            <!-- Form -->
+                            <div class="mb-4">
+                                <label class="form-label">加速域名</label>
+                                <input th:value="${domain.domainName}" type="text" class="form-control" readonly>
+                            </div>
+                            <!-- End Form -->
+                        </div>
+                        <!-- End Col -->
+
+                        <div class="col-sm-3">
+                            <!-- Form -->
+                            <div class="mb-4">
+                                <label class="form-label">当前状态</label>
+                                <input th:if="${domain.domainStatus == 'configuring'}" value="配置中" type="text" class="form-control" readonly>
+                                <input th:if="${domain.domainStatus == 'configure_failed'}" value="配置失败" type="text" class="form-control" readonly>
+                                <input th:if="${domain.domainStatus == 'online'}" value="已开启" type="text" class="form-control" readonly>
+                                <input th:if="${domain.domainStatus == 'deleting'}" value="删除中" type="text" class="form-control" readonly>
+                                <input th:if="${domain.domainStatus == 'offline'}" value="已停用" type="text" class="form-control" readonly>
+                                <input th:if="${domain.domainStatus == 'checking'}" value="审核中" type="text" class="form-control" readonly>
+                                <input th:if="${domain.domainStatus == 'check_failed'}" value="审核未通过" type="text" class="form-control" readonly>
+                            </div>
+                            <!-- End Form -->
+                        </div>
+                        <!-- End Col -->
+
+                        <div class="col-sm-3">
+                            <!-- Form -->
+                            <div class="mb-4">
+                                <label class="form-label">HTTPS</label>
+                                <input th:if="${domainConfig.domainBasicInfo.httpsStatus == '0'}" value="未开启" type="text" class="form-control" readonly>
+                                <input th:if="${domainConfig.domainBasicInfo.httpsStatus == '1'}" value="已开启" type="text" class="form-control" readonly>
+                            </div>
+                            <!-- End Form -->
+                        </div>
+                        <!-- End Col -->
+
+                        <div class="col-sm-3">
+                            <!-- Form -->
+                            <div class="mb-4">
+                                <label class="form-label">创建时间
+                            </label>
+                                <input th:value="${#dates.format(domain.createTime, 'yyyy-MM-dd HH:mm:ss')}" type="text" class="form-control" readonly>
+                            </div>
+                            <!-- End Form -->
+                        </div>
+                        <!-- End Col -->
+                    </div>
+
+                    <div class="row">
+                        <div class="col-sm-3">
+                            <!-- Form -->
+                            <div class="mb-4">
+                                <label class="form-label">CNAME</label>
+                                <div class="input-group input-group-merge" style="min-width: 250px">
+                                    <input type="text" id="tooltipExample" class="form-control" th:value="${domain.cname}" readonly>
+
+                                    <a class="js-clipboard input-group-append input-group-text" href="javascript:copy('tooltipExample');" data-bs-toggle="tooltip" title="复制到剪切板" data-hs-clipboard-options='{
+                                                                                           "type": "tooltip",
+                                                                                           "successText": "复制成功！",
+                                                                                           "contentTarget": "#tooltipExample"
+                                                                                         }'>
+                                        <i class="bi-clipboard"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            <!-- End Form -->
+                        </div>
+                        <!-- End Col -->
+
+                        <div class="col-sm-3">
+                            <!-- Form -->
+                            <div class="mb-4">
+                                <label class="form-label">业务类型</label>
+                                <input th:if="${domain.businessType == 'web'}" value="网站加速" type="text" class="form-control" readonly>
+                                <input th:if="${domain.businessType == 'download'}" value="下载加速" type="text" class="form-control" readonly>
+                                <input th:if="${domain.businessType == 'video'}" value="点播加速" type="text" class="form-control" readonly>
+                            </div>
+                            <!-- End Form -->
+                        </div>
+                        <!-- End Col -->
+
+                        <div class="col-sm-3">
+                            <!-- Form -->
+                            <div class="mb-4">
+                                <label class="form-label">服务范围</label>
+                                <input th:value="${domain.serviceAreaName}" type="text" class="form-control" readonly>
+                            </div>
+                            <!-- End Form -->
+                        </div>
+                        <!-- End Col -->
+
+                        <div class="col-sm-3">
+                            <!-- Form -->
+                            <div class="mb-4">
+                                <label class="form-label">更新时间
+                            </label>
+                                <input th:value="${#dates.format(domain.updateTime, 'yyyy-MM-dd HH:mm:ss')}" type="text" class="form-control" readonly>
+                            </div>
+                            <!-- End Form -->
+                        </div>
+                        <!-- End Col -->
+                    </div>
+                </div>
+                <div class="card-footer" hidden="hidden">
+                    <div class="d-flex justify-content-end gap-3">
+                        <button class="btn btn-primary" th:onclick="saveDomain([[${domain.id.toString()}]])" disabled="disabled">
+                        <i class="bi bi-check-circle-fill"></i> 保存
+                    </button>
+                    </div>
+                </div>
+            </div>
+            <!-- End Card -->
+
+            <!-- Card -->
+            <div class="card mb-3 mb-lg-5" th:if="${domain.route !=  'baishan'}">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">源站配置</h3>
+
+                </div>
+                <div class="card-body">
+                    <!-- Tips -->
+                    <div class="row" th:if="${domain.route == 'tencent'}">
+                        <div class="col-sm-6">
+                            <div class="alert alert-soft-primary" role="alert">
+                                主源站指定为 IP 源站时，可配置端口（1~65535），可配置权重（1~100），格式为 IP:端口:权重
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="alert alert-soft-primary" role="alert">
+                                热备源站指定为 IP 源站时，可配置端口（1~65535），暂不支持权重配置，格式为 IP:端口
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row" th:if="${domain.route == 'cdnetworks'}">
+                        <div class="col-sm-6">
+                            <div class="alert alert-soft-primary" role="alert">
+                                <p>源站需配置为域名源站时，只能填入一个域名；若配置为 IP 源站，多个源站 IP 之间用分号隔开</p>
+                                <b>回源端口</b>：请同步修改回源端口和回源协议类型（回源配置 - 回源方式），避免导致 500 影响业务，HTTPS - 443 HTTP - 80 协议跟随 - 0
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row" th:if="${domain.route eq 'aliyun'}">
+                        <div class="col-sm-6">
+                            <div class="alert alert-soft-primary" role="alert">
+                                <p>源站信息可配置源站域名 - DN、源站 IP - IP 或者 oss 域名 - OSS，可配置端口（HTTP - 80 或 HTTPS - 443），可配置权重（1~100），可配置优先级（主 - A 备 - B）</p>
+                                <p>格式为 源站类型:源站信息:端口:权重:优先级，多个源站之间用分号隔开</p>
+                                <b>注意：</b>HTTP 端口是 80，HTTPS 端口是 443，请同步修改回源端口和回源协议类型（回源配置 - 回源方式）！<br>OSS 域名必须以 aliyuncs.com 或 aliyun-inc.com 结尾，<b><a target="_blank" href="https://docs.kuocaicdn.com/v34xaj">操作参考文档</a></b><i class="bi-box-arrow-up-right small ms-1"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- End Tips -->
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <!-- Card -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-header-title">主源站</h3>
+                                </div>
+                                <div class="card-body">
+
+                                    <div class="row mb-4">
+                                        <label class="form-label">源站配置</label>
+
+                                        <div class="input-group input-group-sm-vertical" th:classappend="${domain.route == 'cdnetworks' or domain.route == 'aliyun' ? 'd-none' : ''}">
+                                            <!-- Radio Check -->
+                                            <label class="form-control" for="originTypeIpaddr">
+                                            <span class="form-check">
+                                                <input type="radio" class="form-check-input" name="originType"
+                                                       id="originTypeIpaddr" checked
+                                                       th:if="${'ipaddr' == domainConfig.get('domainBasicInfo').get('sourceStationPrimaryInfo').get('sourceStationType')}"
+                                                       value="ipaddr">
+                                                <input type="radio" class="form-check-input" name="originType"
+                                                       id="originTypeIpaddr"
+                                                       th:if="${'ipaddr' != domainConfig.get('domainBasicInfo').get('sourceStationPrimaryInfo').get('sourceStationType')}"
+                                                       value="ipaddr">
+                                                <span class="form-check-label">IP源站</span>
+                                            </span>
+                                        </label>
+
+                                            <label class="form-control" for="originTypeDomain">
+                                            <span class="form-check">
+                                                <input type="radio" class="form-check-input" name="originType"
+                                                       id="originTypeDomain" checked
+                                                       th:if="${'domain' == domainConfig.get('domainBasicInfo').get('sourceStationPrimaryInfo').get('sourceStationType')}"
+                                                       value="domain">
+                                                <input type="radio" class="form-check-input" name="originType"
+                                                       id="originTypeDomain"
+                                                       th:if="${'domain' != domainConfig.get('domainBasicInfo').get('sourceStationPrimaryInfo').get('sourceStationType')}"
+                                                       value="domain">
+                                                <span class="form-check-label">域名源站</span>
+                                            </span>
+                                        </label>
+                                            <!-- End Radio Check -->
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <textarea id="originAddr" class="form-control" placeholder="若选择源站IP，请输入IPV4格式的IP地址，最多支持15个源站IP，使用分号隔开，不能有空格；若选择源站域名，请输入域名信息" rows="6">[[${domainConfig.get('domainBasicInfo').get('sourceStationPrimaryInfo').get('ipOrDomain')}]]</textarea>
+                                    </div>
+
+                                    <!-- 统一的回源端口配置 -->
+                                    <div class="mb-4">
+                                        <label class="form-label">回源端口</label>
+
+                                        <!-- CDNetworks 特殊配置 -->
+                                        <div th:if="${domain.route eq 'cdnetworks'}">
+                                            <div class="alert alert-soft-primary mb-3" role="alert">
+                                                <strong>CDNetworks提示：</strong>请同步修改回源端口和回源协议类型，避免导致500影响业务。HTTPS端口443，HTTP端口80，协议跟随端口0。
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-sm-6">
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">端口</span>
+                                                        <input id="httpPort" th:value="${domainConfig.get('domainBasicInfo').get('sourceStationPrimaryInfo').get('httpPort')}" maxlength="6" type="number" class="form-control" placeholder="默认 80">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- 金山云特殊配置 -->
+                                        <div th:if="${domain.route eq 'kingsoft'}">
+                                            <p class="form-text small mb-3">根据回源协议类型，端口配置规则有所不同</p>
+                                            <div id="portConfigArea">
+                                                <div class="row" id="protocolFollowPorts">
+                                                    <div class="col-sm-6">
+                                                        <div class="input-group">
+                                                            <span class="input-group-text">HTTP</span>
+                                                            <input id="httpPort" th:value="${domainConfig.get('domainBasicInfo').get('sourceStationPrimaryInfo').get('httpPort')}" maxlength="6" type="number" class="form-control" placeholder="HTTP端口（默认80）">
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-6">
+                                                        <div class="input-group">
+                                                            <span class="input-group-text">HTTPS</span>
+                                                            <input id="httpsPort" th:value="${domainConfig.get('domainBasicInfo').get('sourceStationPrimaryInfo').get('httpsPort')}" maxlength="6" type="number" class="form-control" placeholder="HTTPS端口（默认443）">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row d-none" id="httpOnlyPort">
+                                                    <div class="col-sm-6">
+                                                        <div class="input-group">
+                                                            <span class="input-group-text">HTTP</span>
+                                                            <input id="httpPortOnly" maxlength="6" type="number" class="form-control" placeholder="HTTP端口（默认80）">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row d-none" id="httpsOnlyPort">
+                                                    <div class="col-sm-6">
+                                                        <div class="input-group">
+                                                            <span class="input-group-text">HTTPS</span>
+                                                            <input id="httpsPortOnly" maxlength="6" type="number" class="form-control" placeholder="HTTPS端口（默认443）">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- 其他厂商的标准配置 -->
+                                        <div th:if="${domain.route ne 'cdnetworks' and domain.route ne 'kingsoft' and domain.route ne 'tencent' and domain.route ne 'aliyun' and domain.route ne 'baishan'}">
+                                            <div class="row">
+                                                <div class="col-sm-6">
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">HTTP</span>
+                                                        <input id="httpPort" th:value="${domainConfig.get('domainBasicInfo').get('sourceStationPrimaryInfo').get('httpPort')}" maxlength="6" type="number" class="form-control" placeholder="HTTP端口（默认80）">
+                                                    </div>
+                                                </div>
+                                                <div class="col-sm-6">
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">HTTPS</span>
+                                                        <input id="httpsPort" th:value="${domainConfig.get('domainBasicInfo').get('sourceStationPrimaryInfo').get('httpsPort')}" maxlength="6" type="number" class="form-control" placeholder="HTTPS端口（默认443）">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- 腾讯云和阿里云的提示信息 -->
+                                        <div th:if="${domain.route eq 'tencent' or domain.route eq 'aliyun'}">
+                                            <div class="alert alert-soft-info" role="alert">
+                                                <i class="bi-info-circle me-2"></i>
+                                                <span th:if="${domain.route eq 'tencent'}">腾讯云</span>
+                                                <span th:if="${domain.route eq 'aliyun'}">阿里云</span> 平台的端口配置已集成在源站信息中，请在上方的源站配置中进行设置。
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="form-label">回源Host</label>
+                                        <input id="hostName" th:value="${domainConfig.get('domainBasicInfo').get('sourceStationPrimaryInfo').get('sourceHost')}" type="text" maxlength="300" class="form-control" placeholder="回源Host">
+                                    </div>
+
+                                    <!-- 回源协议配置 -->
+                                    <div class="mb-4" th:if="${domain.route eq 'kingsoft'}">
+                                        <label class="form-label">回源协议</label>
+                                        <p class="form-text">设置CDN回源的请求方式，选择"协议跟随"时，回源协议遵循客户端的请求方式。配置此项时请同时注意回源端口的设置。</p>
+                                        <div class="input-group input-group-sm-vertical">
+                                            <!-- Radio Check -->
+                                            <label class="form-control" for="originProtocol1">
+                                            <span class="form-check">
+                                                <input value="http" type="radio" class="form-check-input" name="originProtocol"
+                                                       id="originProtocol1" onchange="changeOriginProtocol()"
+                                                       th:checked="${domainConfig.get('domainBackSourceInfo').get('origin_protocol') != null ? domainConfig.get('domainBackSourceInfo').get('origin_protocol') == 'http' : false}">
+                                                <span class="form-check-label">HTTP
+
+                                                </span>
+                                            </span>
+                                        </label>
+                                            <!-- End Radio Check -->
+
+                                            <!-- Radio Check -->
+                                            <label class="form-control" for="originProtocol2">
+                                            <span class="form-check">
+                                                <input value="https" type="radio" class="form-check-input" name="originProtocol"
+                                                       id="originProtocol2" onchange="changeOriginProtocol()"
+                                                       th:checked="${domainConfig.get('domainBackSourceInfo').get('origin_protocol') != null ? domainConfig.get('domainBackSourceInfo').get('origin_protocol') == 'https' : false}">
+                                                <span class="form-check-label">HTTPS
+                                                    <i class="bi-question-circle text-body"
+                                                       data-bs-toggle="tooltip"
+                                                       data-bs-placement="top"
+                                                       title="如果选择HTTP回源，请先确认源站（非加速域名）是否开启HTTPS强制跳转，若开启会造成回源失败。"></i>
+                                                </span>
+                                            </span>
+                                        </label>
+                                            <!-- End Radio Check -->
+
+                                            <!-- Radio Check -->
+                                            <label class="form-control" for="originProtocol3">
+                                            <span class="form-check">
+                                                <input value="follow" type="radio" class="form-check-input" name="originProtocol"
+                                                       id="originProtocol3" onchange="changeOriginProtocol()" 
+                                                       th:checked="${domainConfig.get('domainBackSourceInfo').get('origin_protocol') != null ? domainConfig.get('domainBackSourceInfo').get('origin_protocol') == 'follow' : true}">
+                                                <span class="form-check-label">协议跟随
+                                                    <i class="bi-question-circle text-body"
+                                                       data-bs-toggle="tooltip"
+                                                       data-bs-placement="top"
+                                                       title="不支持HTTP2.0和QUIC协议回源"></i>
+                                                </span>
+                                            </span>
+                                        </label>
+                                            <!-- End Radio Check -->
+                                        </div>
+                                    </div>
+                                    <!-- 回源协议配置结束 -->
+                                </div>
+                            </div>
+                            <!-- End Card -->
+                        </div>
+                        <!-- End Col -->
+
+                        <div class="col-sm-6" th:if="${domain.route ne 'cdnetworks' and domain.route ne 'aliyun' and domain.route ne 'baidu'}">
+                            <!-- Card -->
+                            <div class="card">
+                                <div class="card-header card-header-content-md-between">
+                                    <h3 class="card-header-title">备源站</h3>
+                                    <!-- 金山云限制提示 -->
+                                    <div th:if="${domain.route == 'kingsoft'}" class="alert alert-warning alert-dismissible d-flex align-items-center mb-3" role="alert">
+                                        <div class="flex-shrink-0">
+                                            <i class="bi-exclamation-triangle"></i>
+                                        </div>
+                                        <div class="flex-grow-1 ms-3">
+                                            <div class="alert-heading h6 mb-1">服务商主备源站配置限制</div>
+                                            <div class="alert-body">
+                                                由于服务商限制，主备源站将使用<strong>统一的回源端口和Host配置</strong>（以主源站配置为准）。如需不同端口/Host，请使用单源站模式。
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                    <div class="d-grid d-sm-flex gap-2">
+                                        <a id="showBackSourceDivBtn" class="link-primary" href="javascript:showBackSourceDiv(1)" th:style="${(domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain') != null and domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain') != '') ? 'display: none;' : ''}">
+                                            <i class="bi bi-plus-circle-fill"></i> 添加
+                                        </a>
+                                        <a id="hideBackSourceDivBtn" class="link-danger" href="javascript:confirmDeleteBackSource()" th:style="${(domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain') == null or domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain') == '') ? 'display: none;' : ''}">
+                                            <i class="bi bi-trash-fill"></i> 删除
+                                        </a>
+                                        <input type="number" id="backFlag" style="display:none;" th:value="${(domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain') != null and domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain') != '') ? 1 : 0}">
+                                        <input type="hidden" id="cdnRouteType" th:value="${domain.route}">
+                                    </div>
+                                    <script>
+                                        function confirmDeleteBackSource() {
+                                            if ($('#backFlag').val() == '1') {
+                                                var isKingsoftRoute = $('#cdnRouteType').val() === 'kingsoft';
+                                                if (isKingsoftRoute) {
+                                                    layer.confirm('删除备源站后，您需要重新保存主源站配置以确保变更生效。是否继续删除备源站？', {
+                                                        btn: ['确认删除', '取消']
+                                                    }, function() {
+                                                        showBackSourceDiv(0);
+                                                        layer.msg('已删除备源站，请记得重新保存主源站配置');
+                                                    });
+                                                } else {
+                                                    layer.confirm('确定要删除备源站吗？', {
+                                                        btn: ['确认删除', '取消']
+                                                    }, function() {
+                                                        showBackSourceDiv(0);
+                                                        layer.msg('已删除备源站');
+                                                    });
+                                                }
+                                            } else {
+                                                showBackSourceDiv(0);
+                                            }
+                                        }
+
+                                        function showBackSourceDiv(id) {
+                                            if (id == 1) {
+                                                $('#backSourceDiv').show();
+                                                $('#hideBackSourceDivBtn').show();
+                                                $('#emptySourceDiv').hide();
+                                                $('#showBackSourceDivBtn').hide();
+                                                $('#backFlag').val(1);
+                                            } else {
+                                                $('#backSourceDiv').hide();
+                                                $('#hideBackSourceDivBtn').hide();
+                                                $('#emptySourceDiv').show();
+                                                $('#showBackSourceDivBtn').show();
+                                                $('#backFlag').val(0);
+
+                                                $('#originAddrBack').val('');
+                                                $('#httpPortBack').val('80');
+                                                $('#httpsPortBack').val('443');
+                                                $('#hostNameBack').val('');
+                                                $('#originTypeBackIpaddr').prop('checked', true);
+                                                $('#originTypeBackDomain').prop('checked', false);
+                                            }
+                                        }
+                                    </script>
+                                </div>
+                                <div id="emptySourceDiv" class="card-body" th:style="${(domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain') != null and domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain') != '') ? 'display: none;' : ''}">
+                                    <p class="card-text">尚未配置备源站，点击右上角添加按钮进行配置。</p>
+                                    <img th:src="@{dashboard/assets/svg/illustrations-light/oc-error.svg}" style="width: 30rem;" />
+                                </div>
+                                <div id="backSourceDiv" class="card-body" th:style="${(domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain') == null or domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain') == '') ? 'display: none;' : ''}">
+                                    <div class="row mb-4">
+                                        <label class="form-label">源站配置</label>
+                                        <div class="input-group input-group-sm-vertical">
+                                            <label class="form-control" for="originTypeBackIpaddr">
+                                                <span class="form-check">
+                                                    <input type="radio" class="form-check-input" name="originTypeBack" id="originTypeBackIpaddr" value="ipaddr" th:checked="${domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('sourceStationType') ne 'domain'}">
+                                                    <span class="form-check-label">IP源站</span>
+                                                </span>
+                                            </label>
+                                            <label class="form-control" for="originTypeBackDomain">
+                                                <span class="form-check">
+                                                    <input type="radio" class="form-check-input" name="originTypeBack" id="originTypeBackDomain" value="domain" th:checked="${domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('sourceStationType') eq 'domain'}">
+                                                    <span class="form-check-label">域名源站</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-4">
+                                        <textarea id="originAddrBack" class="form-control" placeholder="若选择源站IP，请输入IPV4格式的IP地址，最多支持15个源站IP，使用分号隔开，不能有空格；若选择源站域名，请输入域名信息" rows="4" th:text="${domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain')}"></textarea>
+                                    </div>
+                                    <div class="mb-4" th:classappend="${domain.route == 'tencent' ? 'd-none' : ''}">
+                                        <label class="form-label">回源端口</label>
+                                        <div th:if="${domain.route == 'kingsoft'}" class="text-warning small mb-2">
+                                            <i class="bi-info-circle"></i> 服务商限制：备源站将使用与主源站相同的端口配置
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-6">
+                                                <div class="input-group">
+                                                    <span class="input-group-text">HTTP</span>
+                                                    <input id="httpPortBack" type="number" class="form-control" maxlength="6" placeholder="HTTP端口（默认80）" th:value="${domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('httpPort') ?: '80'}">
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <div class="input-group">
+                                                    <span class="input-group-text">HTTPS</span>
+                                                    <input id="httpsPortBack" type="number" class="form-control" maxlength="6" placeholder="HTTP端口（默认443）" th:value="${domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('httpsPort') ?: '443'}">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="form-label">回源Host</label>
+                                        <div th:if="${domain.route == 'kingsoft'}" class="text-warning small mb-2">
+                                            <i class="bi-info-circle"></i> 服务商限制：备源站将使用与主源站相同的回源Host配置
+                                        </div>
+                                        <input id="hostNameBack" type="text" maxlength="300" class="form-control" placeholder="回源Host" th:value="${domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('sourceHost')}">
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- End Card -->
+                        </div>
+                        <!-- End Col -->
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-end gap-3">
+                        <button class="btn btn-primary" th:onclick="saveSources([[${domain.id.toString()}]])">
+                        <i class="bi bi-check-circle-fill"></i> 保存
+                    </button>
+                        <button class="btn btn-primary" th:if="${domain.route ne 'cdnetworks' and domain.route ne 'aliyun' and domain.route ne 'baidu'}" th:onclick="changeMainBackSource([[${domain.id.toString()}]])">
+                        <i class="bi bi-arrow-left-right"></i> 主备切换
+                    </button>
+                    </div>
+                </div>
+            </div>
+            <!-- End Card -->
+
+            <!-- Card -->
+            <div class="card mb-3 mb-lg-5" th:if="${domain.route ==  'baishan'}">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">源站配置</h3>
+
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <!-- Card -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-header-title">主源站</h3>
+                                </div>
+                                <div class="card-body">
+
+                                    <div class="row mb-4">
+                                        <label class="form-label">源站配置</label>
+
+                                        <div class="input-group input-group-sm-vertical">
+                                            <!-- Radio Check -->
+                                            <label class="form-control" for="originTypeIpaddr">
+                                            <span class="form-check">
+                                                <input type="radio" class="form-check-input" name="originType"
+                                                       id="originTypeIpaddr" checked
+                                                       th:if="${'ipaddr' == domainConfig.get('domainBasicInfo').get('sourceStationPrimaryInfo').get('sourceStationType')}"
+                                                       value="ipaddr">
+                                                <input type="radio" class="form-check-input" name="originType"
+                                                       id="originTypeIpaddr"
+                                                       th:if="${'ipaddr' != domainConfig.get('domainBasicInfo').get('sourceStationPrimaryInfo').get('sourceStationType')}"
+                                                       value="ipaddr">
+                                                <span class="form-check-label">IP源站</span>
+                                            </span>
+                                        </label>
+
+                                            <label class="form-control" for="originTypeDomain">
+                                            <span class="form-check">
+                                                <input type="radio" class="form-check-input" name="originType"
+                                                       id="originTypeDomain" checked
+                                                       th:if="${'domain' == domainConfig.get('domainBasicInfo').get('sourceStationPrimaryInfo').get('sourceStationType')}"
+                                                       value="domain">
+                                                <input type="radio" class="form-check-input" name="originType"
+                                                       id="originTypeDomain"
+                                                       th:if="${'domain' != domainConfig.get('domainBasicInfo').get('sourceStationPrimaryInfo').get('sourceStationType')}"
+                                                       value="domain">
+                                                <span class="form-check-label">域名源站</span>
+                                            </span>
+                                        </label>
+                                            <!-- End Radio Check -->
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <textarea id="originAddr" class="form-control" placeholder="若选择源站IP，请输入IPV4格式的IP地址，最多支持15个源站IP，使用分号隔开，不能有空格；若选择源站域名，请输入域名信息,最多支持1个域名" rows="4">[[${domainConfig.get('domainBasicInfo').get('sourceStationPrimaryInfo').get('ipOrDomain')}]]</textarea>
+                                    </div>
+                                    <div class="row mb-4">
+                                        <div class="col-sm-12">
+                                            <label class="form-label">协议类型</label>
+                                            <div class="input-group input-group-sm-vertical">
+                                                <!-- Radio Check -->
+                                                <label class="form-control" for="originProtocol1">
+                                                <span class="form-check">
+                                                  <input value="http" type="radio" class="form-check-input"
+                                                         name="originProtocol"
+                                                         th:checked="${domainConfig.get('domainBackSourceInfo').get('origin_protocol')!=null}?${domainConfig.get('domainBackSourceInfo').get('origin_protocol')=='http'}"
+                                                         id="originProtocol1" onchange="changeInput()">
+                                                  <span class="form-check-label">HTTP
+                                                      <i class="bi-question-circle text-body" data-bs-toggle="tooltip"
+                                                         data-bs-placement="top"
+                                                         title="如果选择HTTP回源，请先确认源站（非加速域名）是否开启HTTPS强制跳转，若开启会造成回源失败。"></i>
+                                                  </span>
+                                                </span>
+                                            </label>
+                                                <!-- End Radio Check -->
+
+                                                <!-- Radio Check -->
+                                                <label class="form-control" for="originProtocol2">
+                                                <span class="form-check">
+                                                  <input value="https" type="radio" class="form-check-input"
+                                                         name="originProtocol"
+                                                         th:checked="${domainConfig.get('domainBackSourceInfo').get('origin_protocol')!=null}?${domainConfig.get('domainBackSourceInfo').get('origin_protocol')=='https'}"
+                                                         id="originProtocol2" onchange="changeInput()">
+                                                  <span class="form-check-label">HTTPS</span>
+                                                </span>
+                                            </label>
+                                                <!-- End Radio Check -->
+
+                                                <!-- Radio Check -->
+                                                <label class="form-control" for="originProtocol3">
+                                                <span class="form-check">
+                                                      <input value="follow" type="radio" class="form-check-input"
+                                                             name="originProtocol"
+                                                             th:checked="${domainConfig.get('domainBackSourceInfo').get('origin_protocol')!=null}?${domainConfig.get('domainBackSourceInfo').get('origin_protocol')=='follow'}"
+                                                             id="originProtocol3" onchange="changeInput()">
+                                                      <span class="form-check-label">协议跟随
+                                                            <i class="bi-question-circle text-body"
+                                                               data-bs-toggle="tooltip"
+                                                               data-bs-placement="top"
+                                                               title="以用户请求的协议和端口回源"></i>
+                                                      </span>
+                                                </span>
+                                            </label>
+
+                                                <!-- End Radio Check -->
+                                            </div>
+                                            <div class="mb-4" id="sourcePortId">
+                                                <label class="form-label"></label>
+                                                <div class="row">
+                                                    <div class="col-sm-4">
+                                                        <label class="form-label">回源端口</label>
+                                                        <div class="input-group">
+                                                            <!--                                                        <span class="input-group-text">回源端口</span>-->
+                                                            <input id="portId" th:if="!${domainConfig.get('domainBackSourceInfo').get('port')}" maxlength="6" type="number" class="form-control" placeholder="HTTP端口（默认80）,HTTPS端口（默认443）" value="80">
+                                                            <input id="portId" th:if="${domainConfig.get('domainBackSourceInfo').get('port')}" maxlength="6" type="number" class="form-control" placeholder="HTTP端口（默认80）,HTTPS端口（默认443）" th:value="${domainConfig.get('domainBackSourceInfo').get('port')}">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- End Card -->
+                        </div>
+                        <!-- End Col -->
+
+                        <div class="col-sm-6">
+                            <!-- Card -->
+                            <div class="card">
+                                <div class="card-header card-header-content-md-between">
+                                    <h3 class="card-header-title">备源站</h3>
+                                    <div class="d-grid d-sm-flex gap-2">
+                                        <a id="showBackSourceDivBtn" class="link-primary" href="javascript:showBackSourceDiv(1)" th:if="${domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain') == ''}">
+                                            <i class="bi bi-plus-circle-fill"></i> 添加
+                                        </a>
+                                        <a id="showBackSourceDivBtn" class="link-primary" href="javascript:showBackSourceDiv(1)" th:if="${domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain') != ''}" style="display: none">
+                                            <i class="bi bi-plus-circle-fill"></i> 添加
+                                        </a>
+                                        <a id="hideBackSourceDivBtn" class="link-danger" href="javascript:confirmDeleteBackSource()" th:if="${domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain') == ''}" style="display: none">
+                                            <i class="bi bi-trash-fill"></i> 删除
+                                        </a>
+                                        <a id="hideBackSourceDivBtn" class="link-danger" href="javascript:confirmDeleteBackSource()" th:if="${domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain') != ''}">
+                                            <i class="bi bi-trash-fill"></i> 删除
+                                        </a>
+                                        <input type="number" id="backFlag" style="display:none;" th:if="${domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain') == ''}" value="0">
+                                        <input type="number" id="backFlag" style="display:none;" th:if="${domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain') != ''}" value="1">
+                                        <input type="hidden" id="cdnRouteType" th:value="${domain.route}">
+                                    </div>
+                                    <script>
+                                        function confirmDeleteBackSource() {
+                                            // 特别对金山云进行提示
+                                            if ($('#backFlag').val() == '1') {
+                                                // 检查是否为金山云CDN
+                                                var isKingsoftRoute = $('#cdnRouteType').val() === 'kingsoft';
+                                                if (isKingsoftRoute) {
+                                                    layer.confirm('删除备源站后，您需要重新保存主源站配置以确保变更生效。是否继续删除备源站？', {
+                                                        btn: ['确认删除', '取消']
+                                                    }, function() {
+                                                        showBackSourceDiv(0);
+                                                        layer.msg('已删除备源站，请记得重新保存主源站配置');
+                                                    });
+                                                } else {
+                                                    layer.confirm('确定要删除备源站吗？', {
+                                                        btn: ['确认删除', '取消']
+                                                    }, function() {
+                                                        showBackSourceDiv(0);
+                                                        layer.msg('已删除备源站');
+                                                    });
+                                                }
+                                            } else {
+                                                // 如果backFlag不是1，直接调用showBackSourceDiv(0)
+                                                showBackSourceDiv(0);
+                                            }
+                                        }
+
+                                        function showBackSourceDiv(id) {
+                                            console.log("showBackSourceDiv called with id:", id);
+                                            if (id == 1) {
+                                                console.log("显示备源站表单");
+                                                $('#backSourceDiv').show();
+                                                $('#hideBackSourceDivBtn').show();
+                                                $('#emptySourceDiv').hide();
+                                                $('#showBackSourceDivBtn').hide();
+                                                $('#backFlag').val(1);
+                                            } else {
+                                                console.log("隐藏并清空备源站表单");
+                                                $('#backSourceDiv').hide();
+                                                $('#hideBackSourceDivBtn').hide();
+                                                $('#emptySourceDiv').show();
+                                                $('#showBackSourceDivBtn').show();
+                                                $('#backFlag').val(0);
+
+                                                // 清空备源站输入值，避免影响后续保存
+                                                console.log("正在清空备源站输入框...");
+                                                $('#originAddrBack').val('');
+                                                $('#httpPortBack').val('80');
+                                                $('#httpsPortBack').val('443');
+                                                $('#hostNameBack').val('');
+                                                $('#originTypeBackIpaddr').prop('checked', true);
+                                                $('#originTypeBackDomain').prop('checked', false);
+                                                console.log("备源站输入框已清空");
+                                            }
+                                            console.log("backFlag value is now:", $('#backFlag').val());
+                                        }
+                                    </script>
+                                </div>
+                                <div id="emptySourceDiv" class="card-body" th:if="${domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain') == ''}">
+                                    <p class="card-text">尚未配置备源站，点击右上角添加按钮进行配置。</p>
+                                    <img th:src="@{dashboard/assets/svg/illustrations-light/oc-error.svg}" style="width: 30rem;height: 18rem" />
+                                </div>
+                                <div id="emptySourceDiv" class="card-body" th:if="${domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain') != ''}" style="display:none;">
+                                    <p class="card-text">尚未配置备源站，点击右上角添加按钮进行配置。</p>
+                                    <img th:src="@{dashboard/assets/svg/illustrations-light/oc-error.svg}" style="width: 30rem;height: 18rem" />
+                                </div>
+                                <div id="backSourceDiv" class="card-body" th:if="${domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain') == ''}" style="display: none">
+                                    <div class="row mb-4">
+                                        <label class="form-label">源站配置</label>
+
+                                        <div class="input-group input-group-sm-vertical">
+                                            <!-- Radio Check -->
+                                            <label class="form-control" for="originTypeBackIpaddr">
+                                            <span class="form-check">
+                                                <input type="radio" class="form-check-input" name="originTypeBack"
+                                                       id="originTypeBackIpaddr" checked
+                                                       value="ipaddr">
+                                                <span class="form-check-label">IP源站</span>
+                                            </span>
+                                        </label>
+
+                                            <label class="form-control" for="originTypeBackDomain">
+                                            <span class="form-check">
+                                                <input type="radio" class="form-check-input" name="originTypeBack"
+                                                       id="originTypeBackDomain"
+                                                       value="domain">
+                                                <span class="form-check-label">域名源站</span>
+                                            </span>
+                                        </label>
+                                            <!-- End Radio Check -->
+                                        </div>
+
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <textarea id="originAddrBack" class="form-control" placeholder="若选择源站IP，请输入IPV4格式的IP地址，最多支持15个源站IP，使用分号隔开，不能有空格；若选择源站域名，请输入域名信息,最多支持1个域名" rows="4"></textarea>
+                                    </div>
+                                </div>
+
+                                <div id="backSourceDiv" class="card-body" th:if="${domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain') != ''}">
+                                    <div class="row mb-4">
+                                        <label class="form-label">源站配置</label>
+
+                                        <div class="input-group input-group-sm-vertical">
+                                            <!-- Radio Check -->
+                                            <label class="form-control" for="originTypeBackIpaddr">
+                                            <span class="form-check">
+                                                <input type="radio" class="form-check-input" name="originTypeBack"
+                                                       id="originTypeBackIpaddr" checked
+                                                       th:if="${'ipaddr' == domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('sourceStationType')}"
+                                                       value="ipaddr">
+                                                <input type="radio" class="form-check-input" name="originTypeBack"
+                                                       id="originTypeBackIpaddr"
+                                                       th:if="${'ipaddr' != domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('sourceStationType')}"
+                                                       value="ipaddr">
+                                                <span class="form-check-label">IP源站</span>
+                                            </span>
+                                        </label>
+
+                                            <label class="form-control" for="originTypeBackDomain">
+                                            <span class="form-check">
+                                                <input type="radio" class="form-check-input" name="originTypeBack"
+                                                       id="originTypeBackDomain" checked
+                                                       th:if="${'domain' == domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('sourceStationType')}"
+                                                       value="domain">
+                                                <input type="radio" class="form-check-input" name="originTypeBack"
+                                                       id="originTypeBackDomain"
+                                                       th:if="${'domain' != domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('sourceStationType')}"
+                                                       value="domain">
+                                                <span class="form-check-label">域名源站</span>
+                                            </span>
+                                        </label>
+                                            <!-- End Radio Check -->
+                                        </div>
+
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <textarea id="originAddrBack" class="form-control" placeholder="若选择源站IP，请输入IPV4格式的IP地址，最多支持15个源站IP，使用分号隔开，不能有空格；若选择源站域名，请输入域名信息" rows="4">[[${domainConfig.get('domainBasicInfo').get('sourceStationStandbyInfo').get('ipOrDomain')}]]</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- End Card -->
+                        </div>
+                        <!-- End Col -->
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-end gap-3">
+                        <button class="btn btn-primary" th:onclick="saveSourcesBaiShan([[${domain.id.toString()}]])">
+                        <i class="bi bi-check-circle-fill"></i> 保存
+                    </button>
+                        <!--                    <button class="btn btn-primary" th:onclick="changeMainBackSource([[${domain.id.toString()}]])">-->
+                        <!--                        <i class="bi bi-arrow-left-right"></i> 主备切换-->
+                        <!--                    </button>-->
+                    </div>
+                </div>
+            </div>
+            <!-- End Card -->
+
+            <!-- Card -->
+            <div class="card mb-3 mb-lg-5" th:if="${domain.route != 'baishan' && domain.route != 'cdnetworks'}">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">IPv6开关</h3>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        开启后，IPv6的客户端请求将支持以IPv6协议访问CDN，CDN也将携带IPv6的客户端IP信息访问您的源站。
+                    </p>
+                    <!-- Checkbox Switch -->
+                    <div class="form-check form-switch mb-4">
+                        <input id="ipv6" type="checkbox" class="form-check-input" checked th:if="${domainConfig.get('domainBasicInfo').get('isIpv6') == '1'}" th:onchange="changeIpv6([[${domain.id.toString()}]])">
+                        <input id="ipv6" type="checkbox" class="form-check-input" th:if="${domainConfig.get('domainBasicInfo').get('isIpv6') == '0'}" th:onchange="changeIpv6([[${domain.id.toString()}]])">
+                        <label class="form-check-label" for="ipv6" th:if="${domainConfig.get('domainBasicInfo').get('isIpv6') == '1'}">已开启</label>
+                        <label class="form-check-label" for="ipv6" th:if="${domainConfig.get('domainBasicInfo').get('isIpv6') == '0'}">已关闭</label>
+                    </div>
+                    <!-- End Checkbox Switch -->
+                </div>
+
+            </div>
+            <!-- End Card -->
+        </div>
+        <!-- End Content -->
+
+        <!-- Footer -->
+        <div th:replace="common/common-dashboard::#footer(curPage='domain-list')"></div>
+        <!-- End Footer -->
+    </main>
+    <!-- ========== END MAIN CONTENT ========== -->
+
+    <!-- ========== SECONDARY CONTENTS ========== -->
+
+    <div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='domain-list')"></div>
+
+    <!-- End Import Products Modal -->
+
+    <!-- ========== END SECONDARY CONTENTS ========== -->
+
+    <!-- JS Global Compulsory  -->
+    <script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+    <!-- JS Implementing Plugins -->
+    <script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+    <script th:src="@{dashboard/assets/vendor/hs-nav-scroller/dist/hs-nav-scroller.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/clipboard/dist/clipboard.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/datatables/media/js/jquery.dataTables.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/datatables.net.extensions/select/select.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/dropzone/dist/min/dropzone.min.js}"></script>
+
+    <!-- JS Front -->
+    <script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+    <script th:src="@{common/layer/layer.js}"></script>
+    <script th:src="@{common/util/reg.js}"></script>
+    <script th:src="@{common/custom.js}"></script>
+    <script th:src="@{common/custom_ceo.js(v='20260624-origin-protocol-default')}"></script>
+    <script th:src="@{common/custom_cmo.js}"></script>
+    <script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+
+    <!-- JS Plugins Init. -->
+    <script>
+        $(document).on('ready', function() {
+
+            $('#toggleColumn_product').change(function(e) {
+                datatable.columns(1).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_type').change(function(e) {
+                datatable.columns(2).visible(e.target.checked)
+            })
+
+
+            $('#toggleColumn_vendor').change(function(e) {
+                datatable.columns(3).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_stocks').change(function(e) {
+                datatable.columns(4).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_sku').change(function(e) {
+                datatable.columns(5).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_price').change(function(e) {
+                datatable.columns(6).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_quantity').change(function(e) {
+                datatable.columns(7).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_variants').change(function(e) {
+                datatable.columns(8).visible(e.target.checked)
+            })
+        });
+    </script>
+
+    <!-- JS Plugins Init. -->
+    <script>
+        // 设置全局变量供JavaScript使用
+        window.currentDomainRoute = '[[${domain.route}]]';
+        
+        (function() {
+            window.onload = function() {
+
+
+                // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+                // =======================================================
+                new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+                // INITIALIZATION OF FORM SEARCH
+                // =======================================================
+                new HSFormSearch('.js-form-search')
+
+
+                // INITIALIZATION OF BOOTSTRAP DROPDOWN
+                // =======================================================
+                HSBsDropdown.init()
+
+
+                // INITIALIZATION OF SELECT
+                // =======================================================
+                HSCore.components.HSTomSelect.init('.js-select')
+
+
+                // INITIALIZATION OF NAV SCROLLER
+                // =======================================================
+                new HsNavScroller('.js-nav-scroller')
+
+
+                // INITIALIZATION OF DROPZONE
+                // =======================================================
+                HSCore.components.HSDropzone.init('.js-dropzone')
+
+                HSCore.components.HSClipboard.init('.js-clipboard')
+            }
+        })()
+    </script>
+
+    <!-- Style Switcher JS -->
+
+    <script>
+        (function() {
+            // STYLE SWITCHER
+            // =======================================================
+            const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+            const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+            // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+            const setActiveStyle = function() {
+                $variants.forEach($item => {
+                    if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                        $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                        return $item.classList.add('active')
+                    }
+
+                    $item.classList.remove('active')
+                })
+            }
+
+            // Add a click event to all items of the dropdown to set the style
+            $variants.forEach(function($item) {
+                $item.addEventListener('click', function() {
+                    HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+                })
+            })
+
+            // Call the setActiveStyle on load page
+            setActiveStyle()
+
+            // Add event listener on change style to call the setActiveStyle function
+            window.addEventListener('on-hs-appearance-change', function() {
+                setActiveStyle()
+            })
+
+        })()
+    </script>
+
+
+    <script>
+        // 用于存储用户输入的端口值
+        var userPorts = {
+            http: null,
+            https: null
+        };
+
+        // 页面加载时初始化端口值
+        var isPageLoaded = false;
+
+        function changeInput() {
+            var radios = document.getElementsByName('originProtocol');
+            var selectedId;
+
+            for (var i = 0; i < radios.length; i++) {
+                if (radios[i].checked) {
+                    selectedId = radios[i].id;
+                    break;
+                }
+            }
+
+            let originProtocol = "[[${domainConfig.get('domainBackSourceInfo').get('origin_protocol')}]]"
+            let port = "[[${domainConfig.get('domainBackSourceInfo').get('port')}]]"
+
+            // 页面首次加载时，初始化用户端口值
+            if (!isPageLoaded) {
+                if (originProtocol == "http" && port) {
+                    userPorts.http = port;
+                } else if (originProtocol == "https" && port) {
+                    userPorts.https = port;
+                }
+                isPageLoaded = true;
+            }
+
+            console.log('Selected protocol:', selectedId, 'User ports:', userPorts);
+
+            if (selectedId == "originProtocol1") { // HTTP
+                $('#sourcePortId').show();
+                // 如果用户之前输入过HTTP端口，使用用户输入的值；否则使用默认值或服务器返回的值
+                if (userPorts.http) {
+                    $('#portId').val(userPorts.http);
+                } else if (originProtocol == "http" && port) {
+                    $('#portId').val(port);
+                } else {
+                    $('#portId').val("80");
+                }
+            } else if (selectedId == "originProtocol2") { // HTTPS
+                $('#sourcePortId').show();
+                // 如果用户之前输入过HTTPS端口，使用用户输入的值；否则使用默认值或服务器返回的值
+                if (userPorts.https) {
+                    $('#portId').val(userPorts.https);
+                } else if (originProtocol == "https" && port) {
+                    $('#portId').val(port);
+                } else {
+                    $('#portId').val("443");
+                }
+            } else if (selectedId == "originProtocol3") { // 协议跟随
+                $('#sourcePortId').hide();
+            }
+        }
+
+        // 新的协议切换函数，适用于基础配置页面
+        function changeOriginProtocol() {
+            var selectedProtocol = $('input[name="originProtocol"]:checked').val();
+            console.log('Protocol changed to:', selectedProtocol);
+
+            // 只对金山云进行特殊处理
+            if ($('#portConfigArea').length > 0) {
+                // 保存当前输入的端口值
+                var currentHttpPort = $('#httpPort').val() || $('#httpPortOnly').val();
+                var currentHttpsPort = $('#httpsPort').val() || $('#httpsPortOnly').val();
+
+                if (currentHttpPort) {
+                    userPorts.http = currentHttpPort;
+                }
+                if (currentHttpsPort) {
+                    userPorts.https = currentHttpsPort;
+                }
+
+                // 隐藏所有端口配置区域
+                $('#protocolFollowPorts').addClass('d-none');
+                $('#httpOnlyPort').addClass('d-none');
+                $('#httpsOnlyPort').addClass('d-none');
+
+                // 根据协议类型显示相应的端口配置
+                if (selectedProtocol === 'http') {
+                    $('#httpOnlyPort').removeClass('d-none');
+                    // 恢复或设置HTTP端口值
+                    var httpPort = userPorts.http || 80;
+                    $('#httpPortOnly').val(httpPort);
+                } else if (selectedProtocol === 'https') {
+                    $('#httpsOnlyPort').removeClass('d-none');
+                    // 恢复或设置HTTPS端口值
+                    var httpsPort = userPorts.https || 443;
+                    $('#httpsPortOnly').val(httpsPort);
+                } else {
+                    // 协议跟随：显示两个端口
+                    $('#protocolFollowPorts').removeClass('d-none');
+                    // 恢复或设置端口值
+                    var httpPort = userPorts.http || 80;
+                    var httpsPort = userPorts.https || 443;
+                    $('#httpPort').val(httpPort);
+                    $('#httpsPort').val(httpsPort);
+                }
+            }
+        }
+
+        // 监听端口输入框的变化，保存用户输入的值
+        $(document).ready(function() {
+            // 监听所有端口输入框的变化
+            $(document).on('input blur', '#httpPort, #httpsPort, #httpPortOnly, #httpsPortOnly', function() {
+                var currentProtocol = $('input[name="originProtocol"]:checked').val();
+                var fieldId = $(this).attr('id');
+                var portValue = $(this).val();
+
+                if (fieldId === 'httpPort' || fieldId === 'httpPortOnly') {
+                    userPorts.http = portValue;
+                } else if (fieldId === 'httpsPort' || fieldId === 'httpsPortOnly') {
+                    userPorts.https = portValue;
+                }
+
+                console.log('Port updated:', fieldId, '=', portValue, 'User ports:', userPorts);
+            });
+
+            // 页面加载完成后初始化协议配置
+            changeOriginProtocol();
+        });
+
+        // 兼容旧版本的changeInput函数（用于白山云等其他平台）
+        if (typeof window.onload === 'function') {
+            var originalOnload = window.onload;
+            window.onload = function() {
+                originalOnload();
+                changeInput();
+            }
+        } else {
+            window.onload = changeInput;
+        }
+    </script>
+
+
+    <!-- End Style Switcher JS -->
+</body>
+
+</html>
+<div th:replace="common/common-dashboard::#agent"></div>
+

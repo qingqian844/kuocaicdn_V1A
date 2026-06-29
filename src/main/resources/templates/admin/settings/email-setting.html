@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title>[[${websiteBaseConfig.websiteName}]] 邮箱配置</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/quill/dist/quill.snow.css}" as="style">
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {"switcherSupport": true},
+                "header": {"layoutMode": "default", "containerMode": "container-fluid"},
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {"100": "#f9fafc", "900": "#1e2022"}
+                    }, "font": "Inter"
+                }
+            },
+            "languageDirection": {"lang": "en"},
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {"*assets/js/theme-custom.js": ""},
+                "build": {"*assets/js/theme-custom.js": "", "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"}
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {"src": "./src", "dist": "./dist", "build": "./build"},
+            "fileNames": {
+                "dist": {"js": "theme.min.js", "css": "theme.min.css"},
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl   footer-offset">
+
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+<!-- ========== HEADER ========== -->
+
+<div th:replace="common/common-dashboard::header(curPage='email-setting', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<!-- Navbar Vertical -->
+
+<div th:replace="common/common-dashboard::aside(curPage='email-setting', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<main id="content" role="main" class="main">
+    <!-- Content -->
+    <div class="content container-fluid">
+        <!-- Page Header -->
+        <div class="page-header" style="padding-bottom: 5px;margin-bottom: 10px">
+            <div class="row align-items-end">
+                <div class="col-sm mb-2 mb-sm-0">
+
+
+                    <h1 class="page-header-title">邮件配置 <i class="bi-gear nav-icon"></i></h1>
+                </div>
+                <!-- End Col -->
+            </div>
+            <!-- End Row -->
+        </div>
+        <!-- End Page Header -->
+
+        <div class="row">
+            <div class="col-lg-3">
+                <!-- Navbar -->
+                <div class="navbar-expand-lg navbar-vertical mb-3 mb-lg-5">
+                    <!-- Navbar Toggle -->
+                    <!-- Navbar Toggle -->
+                    <div class="d-grid">
+                        <button type="button" class="navbar-toggler btn btn-white mb-3" data-bs-toggle="collapse"
+                                data-bs-target="#navbarVerticalNavMenu" aria-label="Toggle navigation"
+                                aria-expanded="false" aria-controls="navbarVerticalNavMenu">
+                <span class="d-flex justify-content-between align-items-center">
+                  <span class="text-dark">菜单</span>
+
+                  <span class="navbar-toggler-default">
+                    <i class="bi-list"></i>
+                  </span>
+
+                  <span class="navbar-toggler-toggled">
+                    <i class="bi-x"></i>
+                  </span>
+                </span>
+                        </button>
+                    </div>
+                    <!-- End Navbar Toggle -->
+                    <!-- End Navbar Toggle -->
+
+                    <!-- Navbar 折叠 -->
+                    <div id="navbarVerticalNavMenu" class="collapse navbar-collapse">
+                        <ul id="navbarSettings"
+                            class="js-sticky-block js-scrollspy card card-navbar-nav nav nav-tabs nav-lg nav-vertical"
+                            data-hs-sticky-block-options='{
+                     "parentSelector": "#navbarVerticalNavMenu",
+                     "targetSelector": "#header",
+                     "breakpoint": "lg",
+                     "startPoint": "#navbarVerticalNavMenu",
+                     "endPoint": "#stickyBlockEndPoint",
+                     "stickyOffsetTop": 20
+                   }'>
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#servicePart">
+                                    <i class="bi-person nav-icon"></i> 服务器配置
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#templatePart">
+                                    <i class="bi-at nav-icon"></i> 邮件模板
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <!-- End Navbar 折叠 -->
+                </div>
+                <!-- End Navbar -->
+            </div>
+
+            <div class="col-lg-9">
+                <div class="d-grid gap-3 gap-lg-5">
+
+                    <!-- Card -->
+                    <div id="servicePart" class="card">
+                        <div class="card-header">
+                            <h2 class="card-title h4">服务器配置</h2>
+                        </div>
+                        <!-- Body -->
+                        <div class="card-body">
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="smtpServer" class="col-sm-3 col-form-label form-label">SMTP服务器
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="所属邮箱服务器"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <input th:value="${emailServiceConfig} eq null ? '' : ${emailServiceConfig.smtpServer}"
+                                           type="text" class="form-control" id="smtpServer"
+                                           maxlength="30"
+                                           placeholder="请输入SMTP服务器">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="senderMailbox" class="col-sm-3 col-form-label form-label">发件人邮箱
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="发件人邮箱"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <input th:value="${emailServiceConfig} eq null ? '' : ${emailServiceConfig.senderMailbox}"
+                                           type="text" class="form-control" id="senderMailbox"
+                                           maxlength="30"
+                                           placeholder="请输入发件人邮箱">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="senderTitle" class="col-sm-3 col-form-label form-label">发件人标题
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="发件人标题"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <input th:value="${emailServiceConfig} eq null ? '' : ${emailServiceConfig.senderTitle}"
+                                           type="text" class="form-control" id="senderTitle"
+                                           maxlength="30"
+                                           placeholder="请输入发件人标题">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="authorizationPassword" class="col-sm-3 col-form-label form-label">授权密码
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="在邮箱服务器中获取"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <input th:value="${emailServiceConfig} eq null ? '' : ${emailServiceConfig.authorizationPassword}"
+                                           type="text" class="form-control" id="authorizationPassword"
+                                           maxlength="50"
+                                           placeholder="请输入授权密码">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="serverPort" class="col-sm-3 col-form-label form-label">端口
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="端口"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <input th:value="${emailServiceConfig} eq null ? '' : ${emailServiceConfig.serverPort}"
+                                           type="number" class="form-control" id="serverPort"
+                                           placeholder="请输入端口">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <div class="d-flex justify-content-end">
+                                <button onclick="saveEmailServiceConfig()" class="btn btn-primary">保存更改
+                                </button>
+                            </div>
+                        </div>
+                        <!-- End Body -->
+                    </div>
+                    <!-- End Card -->
+
+                    <!-- Card -->
+                    <div id="templatePart" class="card">
+                        <div class="card-header">
+                            <h4 class="card-title">邮件模板</h4>
+                        </div>
+                        <!-- Body -->
+                        <div class="card-body">
+                            <h5 class="card-title">用于安全验证</h5>
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="notifyTemplateContent" class="col-sm-3 col-form-label form-label">模板内容
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="模板内容，占位符使用%s"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                        <textarea
+                                                th:value="${emailTemplateConfig} eq null ? '' : ${emailTemplateConfig.notifyTemplateContent}"
+                                                id="notifyTemplateContent" class="form-control"
+                                                placeholder="请输入模板内容" rows="4">[[${emailTemplateConfig} eq null ? '' : ${emailTemplateConfig.notifyTemplateContent}]]</textarea>
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <hr>
+
+                            <h5 class="card-title">用于忘记密码</h5>
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="forgetPasswordTemplateContent" class="col-sm-3 col-form-label form-label">模板内容
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="模板内容，占位符使用%s"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                        <textarea
+                                                th:value="${emailTemplateConfig} eq null ? '' : ${emailTemplateConfig.forgetPasswordTemplateContent}"
+                                                id="forgetPasswordTemplateContent" class="form-control"
+                                                placeholder="请输入模板内容" rows="4">[[${emailTemplateConfig} eq null ? '' : ${emailTemplateConfig.forgetPasswordTemplateContent}]]</textarea>
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <hr>
+
+                            <h5 class="card-title">用于套餐已过期提醒</h5>
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="packetExpirationTemplateContent" class="col-sm-3 col-form-label form-label">模板内容
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="模板内容，占位符使用%s"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                        <textarea
+                                                th:value="${emailTemplateConfig} eq null ? '' : ${emailTemplateConfig.packetExpirationTemplateContent}"
+                                                id="packetExpirationTemplateContent" class="form-control"
+                                                placeholder="请输入模板内容" rows="4">[[${emailTemplateConfig} eq null ? '' : ${emailTemplateConfig.packetExpirationTemplateContent}]]</textarea>
+                                </div>
+                            </div>
+                            <!-- End Form -->
+                            <hr>
+
+                            <h5 class="card-title">用于套餐即将过期提醒</h5>
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="packetWillExpirationTemplateContent"
+                                       class="col-sm-3 col-form-label form-label">模板内容
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="模板内容，占位符使用%s"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                        <textarea
+                                                th:value="${emailTemplateConfig} eq null ? '' : ${emailTemplateConfig.packetWillExpirationTemplateContent}"
+                                                id="packetWillExpirationTemplateContent" class="form-control"
+                                                placeholder="请输入模板内容" rows="4">[[${emailTemplateConfig} eq null ? '' : ${emailTemplateConfig.packetWillExpirationTemplateContent}]]</textarea>
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <h5 class="card-title">用于套餐已用尽提醒</h5>
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="packetGiveOutTemplateContent" class="col-sm-3 col-form-label form-label">模板内容
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="模板内容，占位符使用%s"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                        <textarea
+                                                th:value="${emailTemplateConfig} eq null ? '' : ${emailTemplateConfig.packetGiveOutTemplateContent}"
+                                                id="packetGiveOutTemplateContent" class="form-control"
+                                                placeholder="请输入模板内容" rows="4">[[${emailTemplateConfig} eq null ? '' : ${emailTemplateConfig.packetGiveOutTemplateContent}]]</textarea>
+                                </div>
+                            </div>
+                            <!-- End Form -->
+                            <h5 class="card-title">用于套餐即将用尽提醒</h5>
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="packetWillGiveOutTemplateContent"
+                                       class="col-sm-3 col-form-label form-label">模板内容
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="模板内容，占位符使用%s"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                        <textarea
+                                                th:value="${emailTemplateConfig} eq null ? '' : ${emailTemplateConfig.packetWillGiveOutTemplateContent}"
+                                                id="packetWillGiveOutTemplateContent" class="form-control"
+                                                placeholder="请输入模板内容" rows="4">[[${emailTemplateConfig} eq null ? '' : ${emailTemplateConfig.packetWillGiveOutTemplateContent}]]</textarea>
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <h5 class="card-title">用于工单消息提醒</h5>
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="workOrderMessageTemplateContent"
+                                       class="col-sm-3 col-form-label form-label">模板内容
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="模板内容，占位符使用%s"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                        <textarea
+                                                th:value="${emailTemplateConfig} eq null ? '' : ${emailTemplateConfig.workOrderMessageTemplateContent}"
+                                                id="workOrderMessageTemplateContent" class="form-control"
+                                                placeholder="请输入模板内容" rows="4">[[${emailTemplateConfig} eq null ? '' : ${emailTemplateConfig.workOrderMessageTemplateContent}]]</textarea>
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <div class="d-flex justify-content-end">
+                                <button onclick="saveEmailTemplateConfig()" class="btn btn-primary">保存更改
+                                </button>
+                            </div>
+                        </div>
+                        <!-- End Body -->
+                    </div>
+                    <!-- End Card -->
+                </div>
+
+                <!-- Sticky Block End Point -->
+                <div id="stickyBlockEndPoint"></div>
+            </div>
+        </div>
+        <!-- End Row -->
+    </div>
+    <!-- End Content -->
+
+    <!-- Footer -->
+
+    <div th:replace="common/common-dashboard::#footer(curPage='email-setting')"></div>
+
+    <!-- End Footer -->
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- Activity -->
+<div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='email-setting')"></div>
+<!-- End Activity -->
+
+<!-- ========== END SECONDARY CONTENTS ========== -->
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+<!-- JS Implementing Plugins -->
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-file-attach/dist/hs-file-attach.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-sticky-block/dist/hs-sticky-block.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-scrollspy/dist/hs-scrollspy.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/imask/dist/imask.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/quill/dist/quill.min.js}"></script>
+
+<!-- JS Front -->
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/util/reg.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom_ceo.js}"></script>
+<script th:src="@{common/custom_cmo.js}"></script>
+<script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+<!-- JS Plugins Init. -->
+<script>
+    (function () {
+        window.onload = function () {
+
+            // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+            // =======================================================
+            new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+            // INITIALIZATION OF FORM SEARCH
+            // =======================================================
+            new HSFormSearch('.js-form-search')
+
+
+            // INITIALIZATION OF BOOTSTRAP DROPDOWN
+            // =======================================================
+            HSBsDropdown.init()
+
+
+            // INITIALIZATION OF SELECT
+            // =======================================================
+            HSCore.components.HSTomSelect.init('.js-select')
+
+            // INITIALIZATION OF QUILLJS EDITOR
+            // =======================================================
+            HSCore.components.HSQuill.init('.js-quill')
+
+
+            // INITIALIZATION OF INPUT MASK
+            // =======================================================
+            HSCore.components.HSMask.init('.js-input-mask')
+
+            // INITIALIZATION OF FILE ATTACHMENT
+            // =======================================================
+            new HSFileAttach('.js-file-attach')
+
+
+            // INITIALIZATION OF STICKY BLOCKS
+            // =======================================================
+            new HSStickyBlock('.js-sticky-block', {
+                targetSelector: document.getElementById('header').classList.contains('navbar-fixed') ? '#header' : null
+            })
+
+            // SCROLLSPY
+            // =======================================================
+            new bootstrap.ScrollSpy(document.body, {
+                target: '#navbarSettings',
+                offset: 100
+            })
+
+            new HSScrollspy('#navbarVerticalNavMenu', {
+                breakpoint: 'lg',
+                scrollOffset: -20
+            })
+        }
+    })()
+</script>
+
+<!-- Style Switcher JS -->
+
+<script>
+    (function () {
+        // STYLE SWITCHER
+        // =======================================================
+        const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+        const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+        // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+        const setActiveStyle = function () {
+            $variants.forEach($item => {
+                if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                    $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                    return $item.classList.add('active')
+                }
+
+                $item.classList.remove('active')
+            })
+        }
+
+        // Add a click event to all items of the dropdown to set the style
+        $variants.forEach(function ($item) {
+            $item.addEventListener('click', function () {
+                HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+            })
+        })
+
+        // Call the setActiveStyle on load page
+        setActiveStyle()
+
+        // Add event listener on change style to call the setActiveStyle function
+        window.addEventListener('on-hs-appearance-change', function () {
+            setActiveStyle()
+        })
+    })()
+</script>
+
+<!-- End Style Switcher JS -->
+</body>
+</html>

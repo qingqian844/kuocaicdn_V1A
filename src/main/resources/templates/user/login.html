@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title th:if="${!openAgent}">[[${websiteBaseConfig.websiteName}]] 用户登录</title>
+    <title th:if="${openAgent}">[[${agentConfig.websiteName}]] 用户登录</title>
+
+    <!-- Favicon -->
+    <link th:if="${!openAgent}" rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:if="${openAgent}" rel="shortcut icon" th:href="${agentConfig.icon}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {"switcherSupport": true},
+                "header": {"layoutMode": "default", "containerMode": "container-fluid"},
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {"100": "#f9fafc", "900": "#1e2022"}
+                    }, "font": "Inter"
+                }
+            },
+            "languageDirection": {"lang": "en"},
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {"*assets/js/theme-custom.js": ""},
+                "build": {"*assets/js/theme-custom.js": "", "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"}
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {"src": "./src", "dist": "./dist", "build": "./build"},
+            "fileNames": {
+                "dist": {"js": "theme.min.js", "css": "theme.min.css"},
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="d-flex align-items-center min-h-100">
+
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+<!-- ========== HEADER ========== -->
+<header class="position-absolute top-0 start-0 end-0 mt-3 mx-3">
+    <div class="d-flex d-lg-none justify-content-between">
+        <a href="index">
+            <img th:if="${!openAgent}" class="w-100" th:src="${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : @{dashboard/assets/svg/logos/logo.svg}" data-hs-theme-appearance="default" style="min-width: 7rem; max-width: 7rem;">
+            <img th:if="${!openAgent}" class="w-100" th:src="${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : @{dashboard/assets/svg/logos-light/logo.svg}" data-hs-theme-appearance="dark" style="min-width: 7rem; max-width: 7rem;">
+            <img th:if="${openAgent}" class="w-100" th:src="${agentConfig.logoDashboard}" data-hs-theme-appearance="default" style="min-width: 7rem; max-width: 7rem;">
+            <img th:if="${openAgent}" class="w-100" th:src="${agentConfig.logoDashboard}" data-hs-theme-appearance="dark" style="min-width: 7rem; max-width: 7rem;">
+        </a>
+
+    </div>
+</header>
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<main id="content" role="main" class="main pt-0">
+    <!-- Modal -->
+    <button style="display: none" type="button" class="btn btn-primary" data-bs-toggle="modal"
+            data-bs-target="#exampleModalCenteredScrollable" id="testButton">
+        Vertically centered scrollable modal
+    </button>
+    <div id="exampleModalCenteredScrollable" class="modal fade" tabindex="-1" role="dialog"
+         aria-labelledby="exampleModalCenteredScrollableTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered" role="document">
+            <div class="modal-content" style="height: 300px;width: 250px;margin-left: 100px">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalCenteredScrollableTitle" style="text-align: center">
+                        请使用微信扫码登录</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
+                            onclick="closeWechatQrcode()"></button>
+                </div>
+                <!--                <div class="modal-body" style="text-align: center" id="qrCode"></div>-->
+                <img class="modal-body" style="text-align: center" id="qrcodes" src=""/>
+                <!--<div class="modal-footer" style="padding: calc(var(&#45;&#45;bs-modal-padding) - var(&#45;&#45;bs-modal-footer-gap) * 3)">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+&lt;!&ndash;                    <button type="button" class="btn btn-primary">Save changes</button>&ndash;&gt;
+                </div>-->
+            </div>
+        </div>
+    </div>
+    <!-- Content -->
+    <div class="container-fluid px-3">
+        <div class="row">
+            <div class="col-lg-6 d-none d-lg-flex justify-content-center align-items-center min-vh-lg-100 position-relative bg-light px-0">
+                <!-- Logo & Language -->
+                <div class="position-absolute top-0 start-0 end-0 mt-3 mx-3">
+                    <div class="d-none d-lg-flex justify-content-between">
+                        <a href=".">
+                            <img th:if="${!openAgent}" class="w-100" th:src="${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : @{dashboard/assets/svg/logos/logo.svg}" data-hs-theme-appearance="default" style="min-width: 7rem; max-width: 7rem;">
+                            <img th:if="${!openAgent}" class="w-100" th:src="${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : @{dashboard/assets/svg/logos-light/logo.svg}" data-hs-theme-appearance="dark" style="min-width: 7rem; max-width: 7rem;">
+                            <img th:if="${openAgent}" class="w-100" th:src="${agentConfig.logoDashboard}" data-hs-theme-appearance="default" style="min-width: 7rem; max-width: 7rem;">
+                            <img th:if="${openAgent}" class="w-100" th:src="${agentConfig.logoDashboard}" data-hs-theme-appearance="dark" style="min-width: 7rem; max-width: 7rem;">
+                        </a>
+
+                    </div>
+                </div>
+                <!-- End Logo & Language -->
+
+                <div style="max-width: 23rem;">
+                    <div class="text-center mb-5">
+                        <img class="img-fluid" th:src="@{dashboard/assets/svg/illustrations/oc-chatting.svg}"
+                             alt="Image Description" style="width: 12rem;" data-hs-theme-appearance="default">
+                        <img class="img-fluid" th:src="@{dashboard/assets/svg/illustrations-light/oc-chatting.svg}"
+                             alt="Image Description" style="width: 12rem;" data-hs-theme-appearance="dark">
+                    </div>
+
+                    <div class="mb-5">
+                        <h2 class="display-5">福利活动</h2>
+                    </div>
+
+                    <!-- List Checked -->
+                    <ul class="list-checked list-checked-lg list-checked-primary list-py-2">
+                        <li class="list-checked-item">
+                            <span class="d-block fw-semibold mb-1"> 邀请人获得[[${websiteBaseConfig.inviteRewardGb}]]G流量奖励，被邀请人获得[[${websiteBaseConfig.invitedRewardGb}]]G流量奖励</span>
+
+                        </li>
+
+                        <li class="list-checked-item">
+                            <span class="d-block fw-semibold mb-1">实名认证后每月可获得免费[[${websiteBaseConfig.monthGiftGb}]]G流量</span>
+
+                        </li>
+                    </ul>
+                    <!-- End List Checked -->
+
+                </div>
+            </div>
+            <!-- End Col -->
+
+            <div class="col-lg-6 d-flex justify-content-center align-items-center min-vh-lg-100">
+                <div class="w-100 content-space-t-4 content-space-t-lg-2 content-space-b-1" style="max-width: 25rem;">
+                    <!-- Form -->
+                    <div class="text-center">
+                        <div class="mb-5">
+                            <h1 th:if="${!openAgent}" class="display-5" th:text="${websiteBaseConfig.websiteName + ' 用户登录'}"></h1>
+                            <h1 th:if="${openAgent}" class="display-5" th:text="${agentConfig.websiteName + ' 用户登录'}"></h1>
+                        </div>
+
+                        <div th:if="${!openAgent and weChatLoginEnabled}" class="d-grid mb-4">
+                            <button class="btn btn-white btn-lg" onclick="getWechatQrCode(true)">
+                                                <span class="d-flex justify-content-center align-items-center">
+                                                  <img class="avatar avatar-xss me-2"
+                                                       th:src="@{dashboard/assets/svg/brands/wechat-icon.svg}"
+                                                       alt="Image Description">
+                                                  通过微信登录
+                                                </span>
+                            </button>
+                        </div>
+
+                        <span class="divider-center text-muted mb-4">还没有账号？ <a class="link"
+                                                                                    href="register">点击注册</a></span>
+                    </div>
+
+                    <!-- Form -->
+                    <div class="mb-4">
+                        <label class="form-label" for="userAccount">账户</label>
+                        <input type="email" class="form-control form-control-lg" name="email" maxlength="30"
+                               id="userAccount" tabindex="1" placeholder="请输入手机号/邮箱"
+                               aria-label="email@address.com" required>
+                    </div>
+                    <!-- End Form -->
+
+                    <!-- Form -->
+                    <div class="mb-4">
+                        <label class="form-label w-100" for="userPassword" tabindex="0">
+                  <span class="d-flex justify-content-between align-items-center">
+                    <span>密码</span>
+                  <a class="form-label-link mb-0" href="forget">忘记密码?</a>
+                  </span>
+                        </label>
+
+                        <div class="input-group input-group-merge" data-hs-validation-validate-class>
+                            <input type="password" maxlength="16"
+                                   class="js-toggle-password form-control form-control-lg" name="password"
+                                   id="userPassword" placeholder="请输入密码" aria-label="8+ characters required"
+                                   required minlength="8" data-hs-toggle-password-options='{
+                           "target": "#changePassTarget",
+                           "defaultClass": "bi-eye-slash",
+                           "showClass": "bi-eye",
+                           "classChangeTarget": "#changePassIcon"
+                         }'>
+                        </div>
+                    </div>
+                    <!-- End Form -->
+
+                    <!-- Form Check -->
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" value="" id="readme">
+                        <label class="form-check-label" for="readme">
+                            我已阅读并同意 <a href="#" data-bs-toggle="modal" data-bs-target="#exampleModalScrollable">《用户协议》</a>
+                        </label>
+                    </div>
+                    <!-- End Form Check -->
+
+                    <!-- Form Check -->
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" value="" id="remember">
+                        <label class="form-check-label" for="remember">
+                            保持登录
+                        </label>
+                    </div>
+
+                    <!-- End Form Check -->
+
+                    <div class="d-grid">
+                        <button id="loginBtn" type="button" th:onclick="loginUser([[${callback}]])"
+                                class="btn btn-primary btn-lg" disabled>
+                            登录
+                        </button>
+                    </div>
+                    <!-- End Form -->
+                </div>
+            </div>
+            <!-- End Col -->
+        </div>
+        <!-- End Row -->
+    </div>
+    <!-- End Content -->
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModalScrollable" tabindex="-1" role="dialog" aria-labelledby="exampleModalScrollableTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalScrollableTitle">《服务用户协议》</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" th:utext="${websiteAgreementConfig.getAgreementInfo()}">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-white" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End Modal -->
+
+<form>
+    <input type="hidden" id="hash-token" name="hash" value="" />
+</form>
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery/dist/utf.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.qrcode.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+<!-- JS Implementing Plugins -->
+<script th:src="@{dashboard/assets/vendor/hs-toggle-password/dist/js/hs-toggle-password.js}"></script>
+<script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+
+<!-- JS Front -->
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/util/reg.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom_ceo.js}"></script>
+<script th:src="@{common/custom_cmo.js}"></script>
+<script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+<script th:src="@{common/gt4.js}"></script>
+<script th:src="@{common/node-forge/forge.min.js}"></script>
+
+<!-- JS Plugins Init. -->
+<script>
+    (function () {
+        window.onload = function () {
+            // INITIALIZATION OF BOOTSTRAP VALIDATION
+            // =======================================================
+            HSBsValidation.init('.js-validate', {
+                onSubmit: data => {
+                    data.event.preventDefault()
+                }
+            })
+            let url = new URL(window.location)
+            if (url.searchParams.has("code")) {
+                let code = url.searchParams.get("code");
+                console.log(code)
+                wechatLogin(code)
+            }
+
+
+            // INITIALIZATION OF TOGGLE PASSWORD
+            // =======================================================
+            new HSTogglePassword('.js-toggle-password')
+
+
+            // INITIALIZATION OF SELECT
+            // =======================================================
+            HSCore.components.HSTomSelect.init('.js-select')
+        }
+    })()
+</script>
+
+<script>
+'use strict';
+
+function checkSession() {
+    $.ajax({
+        type: 'GET',
+        url: 'https://api.kuocaicdn.com/auth/session',
+    }).done(function () {
+        layerSuccess('已登录，正在跳转...');
+        window.open('/dashboard', '_self');
+    });
+}
+
+window.addEventListener('DOMContentLoaded', checkSession, false);
+</script>
+<script>
+'use strict';
+
+function loginInit() {
+    const x = '949c66977e30cb2d8dd5643cf0bc6451', o = document.getElementById('userAccount'),
+        s = document.getElementById('hash-token'), z = '_', r = document.getElementById('remember');
+    function callback() {
+        if ([void 0, null].includes(window.callback)) {
+            window.open('/dashboard', '_self');
+        } else { safeRedirect(window.callback, '/dashboard'); }
+    }
+    initGeetest4({ captchaId: x, product: 'bind', hideSuccess: true }, function (captcha) {
+        captcha.onReady(function () {
+            window.showCaptcha = captcha.showCaptcha.bind(captcha);
+        }).onSuccess(function () {
+            const x = captcha.getValidate();
+            sendRequest('POST', 'https://api.kuocaicdn.com/user/login', JSON.stringify({
+                username: o.value, password: s.value, remember: r.checked,
+                token: x.pass_token + z + x.lot_number + z + x.gen_time + z + x.captcha_output,
+            }), 'application/json; charset=utf-8').then(function (res) {
+                layerSuccess('登录成功，正在跳转...');
+                setTimeout(callback, 1e3);
+            });
+        });
+    });
+}
+
+window.addEventListener('DOMContentLoaded', loginInit, false);
+
+function loginUserPrimary(callback) {
+    const n = document.getElementById('loginBtn'), o = document.getElementById('userAccount'),
+        s = document.getElementById('userPassword'), t = document.getElementById('hash-token'),
+        r = document.getElementById('readme');
+    if (!o.value) { return layerWarn('账户不能为空'); }
+    if (o.value.search('@') !== -1) {
+        if (!emailReg(o.value)) { return layerWarn('请输入正确的邮箱地址'); }
+    } else {
+        if (!phoneReg(o.value)) { return layerWarn('请输入正确的手机号'); }
+    }
+    if (!userPasswordReg(s.value)) {
+        return layerWarn('密码格式错误！8-16字符，支持字母、数字以及特殊符号');
+    }
+    if (!r.checked) {
+        return layerWarn('请阅读并同意《用户协议》');
+    }
+    window.callback = callback; n.setAttribute('disabled', '');
+    $.ajax({
+        type: 'GET', url: 'https://api.kuocaicdn.com/auth/sign',
+    }).done(function (data) {
+        if (void 0 === window.encrypt) {
+            window.encrypt = forge.pki.publicKeyFromPem(data.key);
+        }
+        t.value = encrypt.encrypt(data.hash + s.value, 'RSA-OAEP');
+        t.value = forge.util.encode64(t.value); window.showCaptcha();
+    }).always(function () { n.removeAttribute('disabled'); });
+}
+</script>
+<script>
+'use strict';(function() {
+    const r = document.getElementById('readme'),
+        l = document.getElementById('loginBtn');
+
+    function toggle() {
+        if (this.checked) {
+            l.removeAttribute('disabled');
+        } else {
+            l.setAttribute('disabled', '');
+        }
+    }
+
+    r.addEventListener('change', toggle, false);
+})();
+</script>
+</body>
+</html>
+
+<div th:replace="common/common-dashboard::#agent"></div>
+

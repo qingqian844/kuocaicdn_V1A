@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title>[[${websiteBaseConfig.websiteName}]] 缓存配置</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {"switcherSupport": true},
+                "header": {"layoutMode": "default", "containerMode": "container-fluid"},
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {"100": "#f9fafc", "900": "#1e2022"}
+                    }, "font": "Inter"
+                }
+            },
+            "languageDirection": {"lang": "en"},
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {"*assets/js/theme-custom.js": ""},
+                "build": {"*assets/js/theme-custom.js": "", "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"}
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {"src": "./src", "dist": "./dist", "build": "./build"},
+            "fileNames": {
+                "dist": {"js": "theme.min.js", "css": "theme.min.css"},
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl   footer-offset">
+
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+<!-- ========== HEADER ========== -->
+
+<div th:replace="common/common-dashboard::header(curPage='domain-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<!-- Navbar Vertical -->
+
+<div th:replace="common/common-dashboard::aside(curPage='domain-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- End Navbar Vertical -->
+<main id="content" role="main" class="main">
+    <!-- Content -->
+    <div class="content container-fluid">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col-sm mb-sm-0">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb breadcrumb-no-gutter">
+                            <li class="breadcrumb-item"><a class="breadcrumb-link" href="domain-list">域名管理</a>
+                            </li>
+                            <li class="breadcrumb-item active" aria-current="page">域名配置</li>
+                        </ol>
+                    </nav>
+                </div>
+                <!-- End Col -->
+            </div>
+
+            <!-- Nav -->
+            <ul class="nav nav-tabs page-header-tabs" id="pageHeaderTab" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{domain-setting-basic(id=${domain.id})}">基本配置</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{domain-setting-origin(id=${domain.id})}" tabindex="-1"
+                       aria-disabled="true">回源配置</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{domain-setting-https(id=${domain.id})}" tabindex="-1"
+                       aria-disabled="true">HTTPS配置</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" th:href="@{domain-setting-cache(id=${domain.id})}" tabindex="-1"
+                       aria-disabled="true">缓存配置</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{domain-setting-access(id=${domain.id})}" tabindex="-1"
+                       aria-disabled="true">访问配置</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{domain-setting-higher(id=${domain.id})}" tabindex="-1"
+                       aria-disabled="true">高级配置</a>
+                </li>
+            </ul>
+            <!-- End Nav -->
+            <!-- End Row -->
+        </div>
+        <!-- End Page Header -->
+
+        <!-- Card -->
+        <div class="card mb-3 mb-lg-5">
+            <div class="card-header card-header-content-md-between">
+                <h3 class="card-header-title">缓存规则</h3>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-soft-primary" role="alert">
+                    自定义CDN节点指定缓存资源的缓存过期时间规则。支持按照“首页”、“所有文件”、“目录路径”、“文件名后缀”、“全路径”方式指定资源范围。<a
+                        href="javascript:void(0)" class="link-success" data-bs-toggle="modal"
+                        data-bs-target="#addCacheRulesModal">点击添加</a>。
+                </div>
+
+                <!-- Table -->
+                <div class="div table-responsive">
+                    <table class="table table-nowrap table-text-center">
+                        <thead class="thead-light">
+                        <tr>
+                            <th class="text-dark fw-bold" scope="col">类型</th>
+                            <th class="text-dark fw-bold" scope="col">内容</th>
+                            <th class="text-dark fw-bold" scope="col">优先级</th>
+                            <th class="text-dark fw-bold" scope="col">缓存过期时间</th>
+<!--                            <th class="text-dark fw-bold" scope="col">URL参数</th>-->
+<!--                            <th class="text-dark fw-bold" scope="col">URL参数值</th>-->
+                            <th class="text-dark fw-bold" scope="col">操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="rule, index: ${domainConfig.get('cache_rules')}">
+                            <th scope="row" th:if="${rule.match_type == 'all'}" th:text="所有文件"></th>
+                            <th scope="row" th:if="${rule.match_type == 'home_page'}" th:text="首页"></th>
+                            <th scope="row" th:if="${rule.match_type == 'full_path'}" th:text="全路径"></th>
+                            <th scope="row" th:if="${rule.match_type == 'catalog'}" th:text="目录路径"></th>
+                            <th scope="row" th:if="${rule.match_type == 'file_extension'}" th:text="文件名后缀"></th>
+
+                                <td th:if="${rule.get('match_value') != null}" th:text="${rule.match_value}"></td>
+                                <td th:if="${rule.get('match_value') == null}"></td>
+                                <td th:text="${rule.priority}"></td>
+                                <td>
+                                    <th:block>
+                                        <th:block th:if="${rule.get('ttl_unit') == 's'} ">
+                                            [[${rule.ttl}]]秒
+                                        </th:block>
+                                        <th:block th:if="${rule.get('ttl_unit') == 'm'} ">
+                                            [[${rule.ttl}]]分钟
+                                        </th:block>
+                                        <th:block th:if="${rule.get('ttl_unit') == 'h'} ">
+                                            [[${rule.ttl}]]小时
+                                        </th:block>
+                                        <th:block th:if="${rule.get('ttl_unit') == 'd'} ">
+                                            [[${rule.ttl}]]天
+                                        </th:block>
+                                    </th:block>
+                                </td>
+                                <td>
+                                    <a href="javascript:void(0)"
+                                       th:onclick="updateCacheRulesModal('[[${rule}]]', '[[${index.index}]]')">
+                                <span class="icon icon-xs icon-primary">
+                                  <i class="bi bi-pencil-square"></i>
+                                </span>
+                                    </a>
+                                    <a href="javascript:void(0)"
+                                       th:onclick="saveCacheRulesModal('[[${domain.id}]]','[[${domainConfig.get(\'cache_rules\')}]]', 3, '[[${index.index}]]')">
+                                <span class="icon icon-xs icon-danger">
+                                    <i class="bi bi-trash"></i>
+                                </span>
+                                    </a>
+                                </td>
+                            </tr>
+                        </div>
+
+                        </tbody>
+                    </table>
+                </div>
+                <!-- End Table -->
+                <!-- <td>
+                                <th:block th:if="${rule.get('url_parameter_type') == 'full_url'} ">
+                                    不忽略参数
+                                </th:block>
+                                <th:block th:if="${rule.get('url_parameter_type') == 'reserve_params'} ">
+                                    保留指定参数
+                                </th:block>
+                                <th:block th:if="${rule.get('url_parameter_type') == 'del_params'} ">
+                                    忽略指定参数
+                                </th:block>
+                                <th:block th:if="${rule.get('url_parameter_type') == 'ignore_url_params'} ">
+                                    忽略参数
+                                </th:block>
+                            </td>
+                            <td th:if="${rule.get('url_parameter_value') != null}">[[${rule.url_parameter_value}]]</td>
+                            <td th:if="${rule.get('url_parameter_value') == null}"></td>-->
+            </div>
+        </div>
+        <!-- End Card -->
+
+        <!-- Modal -->
+        <div id="addCacheRulesModal" class="modal fade" tabindex="-1" role="dialog"
+             aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalCenterTitle">缓存规则新增</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-soft-primary" role="alert">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <i class="bi bi-exclamation-circle-fill"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-2">
+                                    <p>
+                                        新规则仅对后续资源缓存生效，如希望对节点已缓存资源立即生效，请在修改缓存规则后对该部分资源执行刷新操作。</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Input Group -->
+                        <div class="mb-3">
+                            <label for="inputRuleTypes" class="form-label">类型</label>
+                            <div class="input-group input-group-merge">
+                                <select id="inputRuleTypes" class="form-select" onchange="dynamic()">
+                                    <option value="file_extension">文件名后缀</option>
+                                    <option value="catalog">目录路径</option>
+                                    <option value="full_path">全路径</option>
+                                    <option value="home_page">首页</option>
+                                </select>
+                            </div>
+                        </div>
+                        <!-- End Input Group -->
+
+                        <!-- Input Group -->
+                        <div class="mb-3">
+                            <label for="ruleContext" class="form-label">内容</label>
+                            <div class="input-group input-group-merge">
+                                <input type="text" class="form-control" id="ruleContext" maxlength="300"
+                                       placeholder="">
+                            </div>
+                        </div>
+                        <!-- End Input Group -->
+
+                        <!-- Input Group -->
+                        <div class="mb-3">
+                            <label for="priority" class="form-label">优先级 </label>
+
+                            <div class="input-group input-group-merge">
+                                <input type="number" class="form-control" id="priority"
+                                       placeholder="1-100整数">
+                            </div>
+                        </div>
+                        <!-- End Input Group -->
+
+                        <!-- Input Group -->
+                        <div class="mb-3">
+                            <label for="expiseTime" class="form-label">缓存过期时间</label>
+                            <div class="row">
+                                <div class="col-sm-6"><input type="number" class="form-control" id="expiseTimeNumber"
+                                                             placeholder=""></div>
+                                <div class="col-sm-6">
+                                    <div class="input-group input-group-merge">
+                                        <select id="expiseTime" class="form-select">
+                                            <option value="s">秒</option>
+                                            <option value="m">分钟</option>
+                                            <option value="h">小时</option>
+                                            <option value="d">天</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                        </div>
+                        <!-- End Input Group -->
+
+                        <!-- Input Group -->
+<!--                        <div class="mb-3">-->
+<!--                            <label for="urlParam" class="form-label">URL参数</label>-->
+
+<!--                            <div class="input-group input-group-merge">-->
+<!--                                <select id="urlParam" class="form-select">-->
+<!--                                    <option value="full_url">不忽略参数</option>-->
+<!--                                    <option value="ignore_url_params">忽略参数</option>-->
+<!--                                    <option value="del_params">忽略指定参数</option>-->
+<!--                                    <option value="reserve_params">保留指定参数</option>-->
+<!--                                </select>-->
+<!--                            </div>-->
+<!--                        </div>-->
+                        <!-- End Input Group -->
+
+                        <!-- Input Group -->
+<!--                        <div class="mb-3">-->
+<!--                            <label for="urlParamValue" class="form-label">URL参数值</label>-->
+
+<!--                            <div class="input-group input-group-merge">-->
+<!--                                <input type="text" class="form-control" id="urlParamValue" maxlength="300"-->
+<!--                                       placeholder="目标回源URL">-->
+<!--                            </div>-->
+<!--                        </div>-->
+                        <!-- End Input Group -->
+
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary"
+                                th:onclick="saveCacheRulesModal('[[${domain.id}]]','[[${domainConfig.get(\'cache_rules\')}]]', 1, 0)">
+                            保存
+                        </button>
+                        <button type="button" class="btn btn-white" data-bs-dismiss="modal">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- End Modal -->
+        <!-- Modal -->
+        <div id="updateCacheRulesModal" class="modal fade" tabindex="-1" role="dialog"
+             aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalCenterTitle1">缓存规则编辑</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-soft-primary" role="alert">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <i class="bi bi-exclamation-circle-fill"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-2">
+                                    <p>
+                                        新规则仅对后续资源缓存生效，如希望对节点已缓存资源立即生效，请在修改缓存规则后对该部分资源执行刷新操作。</p>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="" id="hiddenIndex">
+
+                        <!-- Input Group -->
+                        <div class="mb-3">
+                            <label for="inputRuleTypes1" class="form-label">类型</label>
+
+                            <div class="input-group input-group-merge" onchange="dynamic()">
+                                <select id="inputRuleTypes1" class="form-select">
+                                    <option id="allType" value="all">所有文件</option>
+                                    <option value="file_extension">文件名后缀</option>
+                                    <option value="catalog">目录路径</option>
+                                    <option value="full_path">全路径</option>
+                                    <option value="home_page">首页</option>
+                                </select>
+                            </div>
+                        </div>
+                        <!-- End Input Group -->
+
+                        <!-- Input Group -->
+                        <div class="mb-3">
+                            <label for="ruleContext1" class="form-label">内容</label>
+                            <div class="input-group input-group-merge">
+                                <input type="text" class="form-control" id="ruleContext1" maxlength="300"
+                                       placeholder="">
+                            </div>
+                        </div>
+                        <!-- End Input Group -->
+
+                        <!-- Input Group -->
+                        <div class="mb-3">
+                            <label for="priority1" class="form-label">优先级 </label>
+
+                            <div class="input-group input-group-merge">
+                                <input type="number" class="form-control" id="priority1"
+                                       placeholder="">
+                            </div>
+                        </div>
+                        <!-- End Input Group -->
+
+                        <!-- Input Group -->
+                        <div class="mb-3">
+                            <label for="expiseTime1" class="form-label">缓存过期时间</label>
+                            <div class="row">
+                                <div class="col-sm-6"><input type="number" class="form-control" id="expiseTimeNumber1"
+                                                             placeholder=""></div>
+                                <div class="col-sm-6">
+                                    <div class="input-group input-group-merge">
+                                        <select id="expiseTime1" class="form-select">
+                                            <option value="s">秒</option>
+                                            <option value="m">分钟</option>
+                                            <option value="h">小时</option>
+                                            <option value="d">天</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                        </div>
+                        <!-- End Input Group -->
+
+                        <!-- Input Group -->
+<!--                        <div class="mb-3">-->
+<!--                            <label for="urlParam1" class="form-label">URL参数</label>-->
+
+<!--                            <div class="input-group input-group-merge">-->
+<!--                                <select id="urlParam1" class="form-select">-->
+<!--                                    <option value="full_url">不忽略参数</option>-->
+<!--                                    <option value="ignore_url_params">忽略参数</option>-->
+<!--                                    <option value="del_params">忽略指定参数</option>-->
+<!--                                    <option value="reserve_params">保留指定参数</option>-->
+<!--                                </select>-->
+<!--                            </div>-->
+<!--                        </div>-->
+                        <!-- End Input Group -->
+
+                        <!-- Input Group -->
+<!--                        <div class="mb-3">-->
+<!--                            <label for="urlParamValue1" class="form-label">URL参数值</label>-->
+
+<!--                            <div class="input-group input-group-merge">-->
+<!--                                <input type="text" class="form-control" id="urlParamValue1" maxlength="300"-->
+<!--                                       placeholder="">-->
+<!--                            </div>-->
+<!--                        </div>-->
+                        <!-- End Input Group -->
+
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary"
+                                th:onclick="saveCacheRulesModal('[[${domain.id}]]','[[${domainConfig.get(\'cache_rules\')}]]', 2, 0)">
+                            保存
+                        </button>
+                        <button type="button" class="btn btn-white" data-bs-dismiss="modal">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- End Modal -->
+        <script>
+
+            function dynamic() {
+                let match_type = $("#inputRuleTypes option:selected:checked").val()
+                if (match_type === 'home_page') {
+                    $('#ruleContext').attr("disabled", "disabled");
+                    $('#ruleContext').attr("placeholder", "");
+                }
+                if (match_type === 'file_extension') {
+                    $('#ruleContext').removeAttr("disabled");
+                    $('#ruleContext').attr("placeholder", "如：.zip;.jpg");
+                }
+                if (match_type === 'catalog') {
+                    $('#ruleContext').removeAttr("disabled");
+                    $('#ruleContext').attr("placeholder", "如：/test/a");
+                }
+                if (match_type === 'full_path') {
+                    $('#ruleContext').removeAttr("disabled");
+                    $('#ruleContext').attr("placeholder", "如：/test/index.html");
+                }
+
+                let match_type1 = $("#inputRuleTypes1 option:selected:checked").val()
+                if (match_type1 === 'all') {
+                    $('#ruleContext1').attr("disabled", "disabled");
+                    $('#ruleContext1').attr("placeholder", "");
+                }
+                if (match_type1 === 'home_page') {
+                    $('#ruleContext1').attr("disabled", "disabled");
+                    $('#ruleContext1').attr("placeholder", "");
+                }
+                if (match_type1 === 'file_extension') {
+                    $('#ruleContext1').removeAttr("disabled");
+                    $('#ruleContext1').attr("placeholder", "如：.zip;.jpg");
+                }
+                if (match_type1 === 'catalog') {
+                    $('#ruleContext1').removeAttr("disabled");
+                    $('#ruleContext1').attr("placeholder", "如：/test/a");
+                }
+                if (match_type1 === 'full_path') {
+                    $('#ruleContext1').removeAttr("disabled");
+                    $('#ruleContext1').attr("placeholder", "如：/test/index.html");
+                }
+
+            }
+
+            function updateCacheRulesModal(source, index) {
+                source = JSON.parse(source)
+                $("#inputRuleTypes1 option").each(function () {
+                    if (this.value === source.match_type) {
+                        $(this).attr("selected", true);
+                        dynamic();
+                        return 0;
+                    }
+                });
+                $("#ruleContext1").val(source.match_value)
+                $("#priority1").val(source.priority)
+                $("#expiseTimeNumber1").val(source.ttl)
+                $("#expiseTime1 option").each(function () {
+                    if (this.value === source.ttl_unit) {
+                        $(this).attr("selected", true);
+                        return 0;
+                    }
+                });
+                $("#hiddenIndex").val(index)
+                $("#urlParam1 option").each(function () {
+                    if (this.value === source.url_parameter_type) {
+                        $(this).attr("selected", true);
+                        return 0;
+                    }
+                });
+                $("#urlParamValue1").val(source.url_parameter_value)
+                $("#updateCacheRulesModal").modal("show");
+            }
+        </script>
+
+        <!-- Card -->
+<!--        <div class="card mb-3 mb-lg-5">-->
+<!--            <div class="card-header card-header-content-md-between">-->
+<!--                <h3 class="card-header-title">缓存遵循源站</h3>-->
+<!--            </div>-->
+<!--            <div class="card-body">-->
+<!--                <div class="alert alert-soft-primary" role="alert">-->
+<!--                    关闭时缓存过期时间将遵循自定义缓存规则。-->
+<!--                </div>-->
+<!--                &lt;!&ndash; Checkbox Switch &ndash;&gt;-->
+<!--                <div class="form-check form-switch mb-4">-->
+<!--                    <input id="cache_follow_origin_status" type="checkbox" class="form-check-input" checked-->
+<!--                           th:if="${domainConfig.get('cache_follow_origin_status') == 'on'}"-->
+<!--                           th:onclick="saveCacheFollowOriginStatusSwitch('[[${domain.id}]]', 'off')">-->
+<!--                    <input id="cache_follow_origin_status" type="checkbox" class="form-check-input"-->
+<!--                           th:if="${domainConfig.get('cache_follow_origin_status') == 'off'}"-->
+<!--                           th:onclick="saveCacheFollowOriginStatusSwitch('[[${domain.id}]]', 'on')">-->
+<!--                    <label class="form-check-label" for="cache_follow_origin_status"-->
+<!--                           th:if="${domainConfig.get('cache_follow_origin_status') == 'on'}">已开启</label>-->
+<!--                    <label class="form-check-label" for="cache_follow_origin_status"-->
+<!--                           th:if="${domainConfig.get('cache_follow_origin_status') == 'off'}">已关闭</label>-->
+<!--                </div>-->
+<!--                &lt;!&ndash; End Checkbox Switch &ndash;&gt;-->
+<!--            </div>-->
+<!--        </div>-->
+        <!-- End Card -->、
+
+        <!-- Card -->
+        <div class="card mb-3 mb-lg-5">
+            <div class="card-header card-header-content-md-between">
+                <h3 class="card-header-title">状态码缓存时间</h3>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-soft-primary" role="alert">
+                    自定义源站返回状态码在CDN节点的缓存时间，减少回源率，减轻源站压力。<a href="javascript:void(0)"
+                                                                                       class="link-success"
+                                                                                       data-bs-toggle="modal"
+                                                                                       data-bs-target="#addErrorCodeCacheModal">点击添加</a>。
+                </div>
+
+                <!-- Table -->
+                <div class="div table-responsive">
+                    <table class="table table-nowrap table-text-center">
+                        <thead class="thead-light">
+                        <tr>
+                            <th class="text-dark fw-bold" scope="col">状态码</th>
+                            <th class="text-dark fw-bold" scope="col">缓存时间</th>
+                            <th class="text-dark fw-bold" scope="col">操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="code, index: ${domainConfig.get('error_code_cache')}">
+                            <th scope="row" th:text="${code.code}"></th>
+                            <th>
+                                <th:block th:if="${code.ttl} % (60 * 60 * 24) == 0">
+                                    [[${code.ttl} /60/60/24]]天
+                                </th:block>
+                                <th:block th:if="${code.ttl % (60 * 60) == 0 and code.ttl % (60 * 60 * 24) != 0}">
+                                    [[${code.ttl} / 60 / 60 ]]小时
+                                </th:block>
+                                <th:block
+                                        th:if="${code.ttl % (60 ) == 0 and code.ttl % (60 * 60 * 24) != 0 and code.ttl % (60 * 60) != 0} ">
+                                    [[${code.ttl} / 60 ]]分钟
+                                </th:block>
+                                <th:block
+                                        th:unless="${code.ttl % (60 * 60 * 24) == 0 or code.ttl % (60 * 60 ) == 0 or code.ttl % (60) == 0} "
+                                >
+                                    [[${code.ttl} ]]秒
+                                </th:block>
+                            </th>
+                            <td>
+                                <a href="javascript:void(0)"
+                                   th:onclick="updateErrorCodeCacheModal('[[${code}]]', '[[${index.index}]]')">
+                                <span class="icon icon-xs icon-primary">
+                                  <i class="bi bi-pencil-square"></i>
+                                </span>
+                                </a>
+                                <a href="javascript:void(0)"
+                                   th:onclick="saveErrorCodeCache('[[${domain.id}]]','[[${domainConfig.get(\'error_code_cache\')}]]', 3, '[[${index.index}]]')">
+                                <span class="icon icon-xs icon-danger">
+                                    <i class="bi bi-trash"></i>
+                                </span>
+                                </a>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- End Table -->
+            </div>
+        </div>
+        <!-- End Card -->
+
+        <!-- Modal -->
+        <div id="addErrorCodeCacheModal" class="modal fade" tabindex="-1" role="dialog"
+             aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addErrorCodeCacheTitle">添加状态码缓存时间</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-soft-primary" role="alert">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <i class="bi bi-exclamation-circle-fill"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-2">
+                                    <p>
+                                        已在后台配置过的域名，配置会下发失败，请提交工单解决。</p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Input Group -->
+                        <div class="mb-3">
+                            <label for="statusCode" class="form-label">状态码 </label>
+                            <i
+                                    class="bi-question-circle text-body" data-bs-toggle="tooltip"
+                                    data-bs-placement="top"
+                                    title="仅支持状态码：400、 403、 404、 405、 414、 500、 501、 502、 503、 504。"></i>
+                            <div class="input-group input-group-merge">
+                                <input type="number" class="form-control is-invalid" id="statusCode"
+                                       placeholder="">
+
+                            </div>
+                        </div>
+                        <!-- End Input Group -->
+
+                        <!-- Input Group -->
+                        <div class="mb-3">
+                            <label for="errCodeExpireTime" class="form-label">缓存过期时间</label>
+                            <div class="row">
+                                <div class="col-sm-6"><input type="number" class="form-control"
+                                                             id="errCodeExpireTimeNumber"
+                                                             placeholder=""></div>
+                                <div class="col-sm-6">
+                                    <div class="input-group input-group-merge">
+                                        <select id="errCodeExpireTime" class="form-select">
+                                            <option value="s">秒</option>
+                                            <option value="m">分钟</option>
+                                            <option value="h">小时</option>
+                                            <option value="d">天</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                        </div>
+                        <!-- End Input Group -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary"
+                                th:onclick="saveErrorCodeCache('[[${domain.id}]]','[[${domainConfig.get(\'error_code_cache\')}]]', 1, 0)">
+                            保存
+                        </button>
+                        <button type="button" class="btn btn-white" data-bs-dismiss="modal">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- End Modal -->
+
+        <!-- Modal -->
+        <div id="updateErrorCodeCacheModal" class="modal fade" tabindex="-1" role="dialog"
+             aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addErrorCodeCacheTitle1">添加状态码缓存时间</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-soft-primary" role="alert">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <i class="bi bi-exclamation-circle-fill"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-2">
+                                    <p>
+                                        已在后台配置过的域名，配置会下发失败，请提交工单解决。</p>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="" id="hiddenIndex">
+                        <!-- Input Group -->
+                        <div class="mb-3">
+                            <label for="statusCode1" class="form-label">状态码 </label>
+                            <i
+                                    class="bi-question-circle text-body" data-bs-toggle="tooltip"
+                                    data-bs-placement="top"
+                                    title="仅支持状态码：400、 403、 404、 405、 414、 500、 501、 502、 503、 504。"></i>
+                            <div class="input-group input-group-merge">
+                                <input type="number" class="form-control is-invalid" id="statusCode1"
+                                       placeholder="">
+
+                            </div>
+                        </div>
+                        <!-- End Input Group -->
+
+                        <!-- Input Group -->
+                        <div class="mb-3">
+                            <label for="errCodeExpireTime1" class="form-label">缓存过期时间</label>
+                            <div class="row">
+                                <div class="col-sm-6"><input type="number" class="form-control"
+                                                             id="errCodeExpireTimeNumber1"
+                                                             placeholder=""></div>
+                                <div class="col-sm-6">
+                                    <div class="input-group input-group-merge">
+                                        <select id="errCodeExpireTime1" class="form-select">
+                                            <option value="s">秒</option>
+                                            <option value="m">分钟</option>
+                                            <option value="h">小时</option>
+                                            <option value="d">天</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                        </div>
+                        <!-- End Input Group -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary"
+                                th:onclick="saveErrorCodeCache('[[${domain.id}]]','[[${domainConfig.get(\'error_code_cache\')}]]', 2, 0)">
+                            保存
+                        </button>
+                        <button type="button" class="btn btn-white" data-bs-dismiss="modal">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- End Modal -->
+        <script>
+            function toBigUnit(num) {
+                if (num % (60 * 60 * 24) == 0) {
+                    let ttl = num / (60 * 60 * 24)
+                    return {"ttl": ttl, "unit": 'd'}
+                } else if (num % (60 * 60) == 0) {
+                    let ttl = num / (60 * 60)
+                    return {"ttl": ttl, "unit": 'h'}
+                } else if (num % (60) == 0) {
+                    let ttl = num / (60)
+                    return {"ttl": ttl, "unit": 'm'}
+                } else {
+                    return {"ttl": num, "unit": 's'}
+                }
+            }
+
+            function updateErrorCodeCacheModal(source, index) {
+                source = JSON.parse(source)
+                $("#statusCode1").val(source.code)
+                let ttlJson = toBigUnit(source.ttl)
+                $("#errCodeExpireTimeNumber1").val(ttlJson.ttl)
+                $("#errCodeExpireTime1 option").each(function () {
+                    if (this.value === ttlJson.unit) {
+                        $(this).attr("selected", true);
+                        return 0;
+                    }
+                });
+                $("#hiddenIndex").val(index)
+                $("#updateErrorCodeCacheModal").modal("show");
+            }
+        </script>
+
+
+    </div>
+    <!-- End Content -->
+
+    <!-- Footer -->
+    <div th:replace="common/common-dashboard::#footer(curPage='domain-list')"></div>
+    <!-- End Footer -->
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- ========== SECONDARY CONTENTS ========== -->
+
+<div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='domain-list')"></div>
+
+<!-- End Import Products Modal -->
+
+<!-- ========== END SECONDARY CONTENTS ========== -->
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+<!-- JS Implementing Plugins -->
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+<script src="../assets/vendor/sortablejs/Sortable.min.js"></script>
+<script th:src="@{dashboard/assets/vendor/hs-nav-scroller/dist/hs-nav-scroller.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/clipboard/dist/clipboard.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/datatables/media/js/jquery.dataTables.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/datatables.net.extensions/select/select.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/dropzone/dist/min/dropzone.min.js}"></script>
+
+<!-- JS Front -->
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/util/reg.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom_ceo.js}"></script>
+<script th:src="@{common/custom_cmo.js}"></script>
+<script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+
+<!-- JS Plugins Init. -->
+<script>
+    $(document).on('ready', function () {
+
+        $('#toggleColumn_product').change(function (e) {
+            datatable.columns(1).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_type').change(function (e) {
+            datatable.columns(2).visible(e.target.checked)
+        })
+
+
+        $('#toggleColumn_vendor').change(function (e) {
+            datatable.columns(3).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_stocks').change(function (e) {
+            datatable.columns(4).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_sku').change(function (e) {
+            datatable.columns(5).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_price').change(function (e) {
+            datatable.columns(6).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_quantity').change(function (e) {
+            datatable.columns(7).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_variants').change(function (e) {
+            datatable.columns(8).visible(e.target.checked)
+        })
+    });
+</script>
+
+<!-- JS Plugins Init. -->
+<script>
+    (function () {
+        window.onload = function () {
+
+
+            // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+            // =======================================================
+            new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+            // INITIALIZATION OF FORM SEARCH
+            // =======================================================
+            new HSFormSearch('.js-form-search')
+
+
+            // INITIALIZATION OF BOOTSTRAP DROPDOWN
+            // =======================================================
+            HSBsDropdown.init()
+
+
+            // INITIALIZATION OF SELECT
+            // =======================================================
+            HSCore.components.HSTomSelect.init('.js-select')
+
+
+            // INITIALIZATION OF NAV SCROLLER
+            // =======================================================
+            new HsNavScroller('.js-nav-scroller')
+
+
+            // INITIALIZATION OF DROPZONE
+            // =======================================================
+            HSCore.components.HSDropzone.init('.js-dropzone')
+
+            HSCore.components.HSClipboard.init('.js-clipboard')
+        }
+    })()
+</script>
+
+<!-- Style Switcher JS -->
+
+<script>
+    (function () {
+        // STYLE SWITCHER
+        // =======================================================
+        const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+        const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+        // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+        const setActiveStyle = function () {
+            $variants.forEach($item => {
+                if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                    $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                    return $item.classList.add('active')
+                }
+
+                $item.classList.remove('active')
+            })
+        }
+
+        // Add a click event to all items of the dropdown to set the style
+        $variants.forEach(function ($item) {
+            $item.addEventListener('click', function () {
+                HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+            })
+        })
+
+        // Call the setActiveStyle on load page
+        setActiveStyle()
+
+        // Add event listener on change style to call the setActiveStyle function
+        window.addEventListener('on-hs-appearance-change', function () {
+            setActiveStyle()
+        })
+
+    })()
+</script>
+
+<!-- End Style Switcher JS -->
+<script>
+    (function() {
+        // INITIALIZATION OF SORTABLE
+        // =======================================================
+        HSCore.components.HSSortable.init('.js-sortable')
+    })();
+</script>
+</body>
+</html>
+<div th:replace="common/common-dashboard::#agent"></div>

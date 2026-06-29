@@ -1,0 +1,96 @@
+<html>
+<head>
+	<title>Circles</title>
+	<style>
+		.canvas {
+			margin-top: 1em;
+			text-align: center;
+		}
+
+		.circle {
+			display: inline-block;
+			margin: 1em;
+		}
+
+		.circles-decimals {
+			font-size: .4em;
+		}
+
+		.buttons {
+			margin-top: 1em;
+		}
+
+		button {
+			font-size: .8em;
+			padding: .3em .8em;
+		}
+	</style>
+</head>
+<body>
+	<div class="canvas">
+		<div class="circle" id="circles-1"></div>
+		<div class="circle" id="circles-2"></div>
+		<div class="circle" id="circles-3"></div>
+		<div class="circle" id="circles-4"></div>
+		<div class="circle" id="circles-5"></div>
+		<div class="buttons">
+			<button id="change-value-button">Change values to 20</button>
+			<button id="add-width-button">Change width to 20</button>
+			<button id="substract-width-button">Change width to 10</button>
+			<button id="colors-button">Swap colors</button>
+		</div>
+	</div>
+
+	<script src="../circles.min.js"></script>
+	<script>
+		//@ http://jsfromhell.com/array/shuffle [v1.0]
+		function shuffle(o){ //v1.0
+			for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
+			return o;
+		}
+
+		var colors = [
+			['#D3B6C6', '#4B253A'], ['#FCE6A4', '#EFB917'], ['#BEE3F7', '#45AEEA'], ['#F8F9B6', '#D2D558'], ['#F4BCBF', '#D43A43']
+		], circles = [];
+
+		for (var i = 1; i <= 5; i++) {
+			var child = document.getElementById('circles-' + i),
+				percentage = 31.42 + (i * 9.84);
+
+			circles.push(Circles.create({
+				id:         child.id,
+				value:		percentage,
+				radius:     60,
+				width:      10,
+				colors:     colors[i - 1]
+			}));
+		}
+
+		document.getElementById('change-value-button').onclick = function()
+		{
+		    for(var i = 0, l = circles.length; i < l; i++)
+				circles[i].update(20, 250);
+		};
+
+		document.getElementById('add-width-button').onclick = function()
+		{
+			for(var i = 0, l = circles.length; i < l; i++) {
+				circles[i].updateWidth(20);
+			}
+		};
+
+		document.getElementById('substract-width-button').onclick = function()
+		{
+			for(var i = 0, l = circles.length; i < l; i++)
+				circles[i].updateWidth(10);
+		};
+
+		document.getElementById('colors-button').onclick = function()
+		{
+			colors = shuffle(colors);
+			for(var i = 0, l = circles.length; i < l; i++)
+				circles[i].updateColors(colors[i]);
+		};
+	</script>
+</body>
+</html>

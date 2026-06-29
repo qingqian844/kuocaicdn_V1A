@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title th:if="${!openAgent}">[[${websiteBaseConfig.websiteName}]] 回源配置</title>
+    <title th:if="${openAgent}">[[${agentConfig.websiteName}]] 回源配置</title>
+
+    <!-- Favicon -->
+    <link th:if="${!openAgent}" rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:if="${openAgent}" rel="shortcut icon" th:href="${agentConfig.icon}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+        
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {
+                    "switcherSupport": true
+                },
+                "header": {
+                    "layoutMode": "default",
+                    "containerMode": "container-fluid"
+                },
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {
+                            "100": "#f9fafc",
+                            "900": "#1e2022"
+                        }
+                    },
+                    "font": "Inter"
+                }
+            },
+            "languageDirection": {
+                "lang": "en"
+            },
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {
+                    "*assets/js/theme-custom.js": ""
+                },
+                "build": {
+                    "*assets/js/theme-custom.js": "",
+                    "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"
+                }
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {
+                "src": "./src",
+                "dist": "./dist",
+                "build": "./build"
+            },
+            "fileNames": {
+                "dist": {
+                    "js": "theme.min.js",
+                    "css": "theme.min.css"
+                },
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl   footer-offset">
+
+    <script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+    <script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+    <!-- ========== HEADER ========== -->
+
+    <div th:replace="common/common-dashboard::header(curPage='domain-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+    <!-- ========== END HEADER ========== -->
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <!-- Navbar Vertical -->
+
+    <div th:replace="common/common-dashboard::aside(curPage='domain-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+    <!-- End Navbar Vertical -->
+    <main id="content" role="main" class="main">
+        <!-- Content -->
+        <div class="content container-fluid">
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="row align-items-center">
+                    <div class="col-sm mb-sm-0">
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb breadcrumb-no-gutter">
+                                <li class="breadcrumb-item"><a class="breadcrumb-link" href="domain-list">域名管理</a>
+                                </li>
+                                <li class="breadcrumb-item active" aria-current="page">域名配置</li>
+                            </ol>
+                        </nav>
+                    </div>
+                    <!-- End Col -->
+                </div>
+
+                <!-- Nav -->
+                <ul class="nav nav-tabs page-header-tabs" id="pageHeaderTab" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-basic(id=${domain.id})}">基本配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" th:href="@{domain-setting-origin(id=${domain.id})}" tabindex="-1" aria-disabled="true">回源配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-https(id=${domain.id})}" tabindex="-1" aria-disabled="true">HTTPS配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-cache(id=${domain.id})}" tabindex="-1" aria-disabled="true">缓存配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-access(id=${domain.id})}" tabindex="-1" aria-disabled="true">访问配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-higher(id=${domain.id})}" tabindex="-1" aria-disabled="true">高级配置</a>
+                    </li>
+                </ul>
+                <!-- End Nav -->
+                <!-- End Row -->
+            </div>
+            <!-- End Page Header -->
+
+<!--            &lt;!&ndash; Card 回源配置说明 &ndash;&gt;-->
+<!--            <div class="card mb-3 mb-lg-5">-->
+<!--                <div class="card-header card-header-content-md-between">-->
+<!--                    <h3 class="card-header-title">回源配置说明</h3>-->
+<!--                </div>-->
+<!--                <div class="card-body">-->
+<!--                    <div class="alert alert-soft-info" role="alert">-->
+<!--                        <div class="d-flex">-->
+<!--                            <div class="flex-shrink-0">-->
+<!--                                <i class="bi-info-circle"></i>-->
+<!--                            </div>-->
+<!--                            <div class="flex-grow-1 ms-3">-->
+<!--                                <h5>回源协议和回源端口配置已移至"基础配置"页面</h5>-->
+<!--                                <p class="mb-0">为了更好地管理域名配置，回源协议和回源端口配置现在位于"基础配置"页面的源站配置区域中。请前往基础配置页面进行相关设置。</p>-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                    </div>-->
+
+<!--                    &lt;!&ndash; 新增金山云主备源站的限制说明 &ndash;&gt;-->
+<!--                    <div class="alert alert-soft-warning mt-3" role="alert" th:if="${domain.route == 'kingsoft'}">-->
+<!--                        <div class="d-flex">-->
+<!--                            <div class="flex-shrink-0">-->
+<!--                                <i class="bi-exclamation-triangle"></i>-->
+<!--                            </div>-->
+<!--                            <div class="flex-grow-1 ms-3">-->
+<!--                                <h5>服务商CDN主备源站功能限制说明</h5>-->
+<!--                                <p class="mb-0">-->
+<!--                                    <strong>1. 端口限制：</strong>服务商限制主备源站必须共用相同的HTTP/HTTPS端口配置。<br>-->
+<!--                                    <strong>2. 回源HOST限制：</strong>主备源站必须共用相同的回源HOST配置。<br>-->
+<!--                                    <strong>3. 删除备源站：</strong>删除备源站配置时，请确保先保存主源站更改，否则可能导致主源站修改不生效。-->
+<!--                                </p>-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            &lt;!&ndash; End Card &ndash;&gt;-->
+
+            <!-- Card 回源方式 -->
+            <div th:if="${domain.route != 'baishan' and domain.route != 'kingsoft'}" class="card mb-3 mb-lg-5">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">回源方式</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row" th:if="${domain.route == 'cdnetworks'}">
+                        <div class="col">
+                            <div class="alert alert-soft-danger" role="alert">
+                                请同步修改回源协议类型和回源端口（基本配置 - 源站配置），避免导致 500 影响业务，HTTPS - 443 HTTP - 80 协议跟随 - 0
+                            </div>
+                        </div>
+                    </div>
+                    <p class="card-text">
+                        设置CDN回源的请求方式，选择“协议跟随”时，回源协议遵循客户端的请求方式。
+                    </p>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <label class="form-label">协议类型</label>
+                            <div class="input-group input-group-sm-vertical">
+                                <!-- Radio Check -->
+                                <label class="form-control" for="originProtocol1">
+                    <span class="form-check">
+                      <input value="http" type="radio" class="form-check-input" name="originProtocol"
+                             id="originProtocol1"
+                             th:checked="${domainConfig.origin_protocol!=null}?${domainConfig.origin_protocol=='http'}">
+                      <span class="form-check-label">HTTP
+                          <i class="bi-question-circle text-body"
+                             data-bs-toggle="tooltip"
+                             data-bs-placement="top"
+                             title="如果选择HTTP回源，请先确认源站（非加速域名）是否开启HTTPS强制跳转，若开启会造成回源失败。"></i>
+                      </span>
+                    </span>
+                            </label>
+                                <!-- End Radio Check -->
+
+                                <!-- Radio Check -->
+                                <label class="form-control" for="originProtocol2">
+                    <span class="form-check">
+                      <input value="https" type="radio" class="form-check-input" name="originProtocol"
+                             id="originProtocol2"
+                             th:checked="${domainConfig.origin_protocol!=null}?${domainConfig.origin_protocol=='https'}">
+                      <span class="form-check-label">HTTPS</span>
+                    </span>
+                            </label>
+                                <!-- End Radio Check -->
+
+                                <!-- Radio Check -->
+                                <label class="form-control" for="originProtocol3">
+                    <span class="form-check">
+                      <input value="follow" type="radio" class="form-check-input" name="originProtocol"
+                             id="originProtocol3"
+                             th:checked="${domainConfig.origin_protocol!=null}?${domainConfig.origin_protocol=='follow'}">
+                      <span class="form-check-label">协议跟随
+                          <i class="bi-question-circle text-body"
+                             data-bs-toggle="tooltip"
+                             data-bs-placement="top"
+                             title="不支持HTTP2.0和QUIC协议回源"></i>
+                      </span>
+                    </span>
+                            </label>
+                                <!-- End Radio Check -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-end gap-3">
+                        <button class="btn btn-primary" th:onclick="updateOriginType('[[${domain.id}]]')">
+                        <i class="bi bi-check-circle-fill"></i> 保存
+                    </button>
+                    </div>
+                </div>
+            </div>
+            <!-- End Card -->
+
+            <!-- Card 回源URL改写 -->
+            <div class="card mb-3 mb-lg-5" hidden="hidden">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">回源URL改写</h3>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        改写回源URL，提高回源请求URL与源站的匹配度，提升回源命中率，<a href="javascript:void(0)" class="link-primary" data-bs-toggle="modal" data-bs-target="#addOriginRequestUrlRewrite">点击添加</a>。
+                    </p>
+                    <!-- Table -->
+                    <div class="div table-responsive">
+                        <table class="table table-nowrap table-text-center">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th class="text-dark fw-bold" scope="col">匹配方式</th>
+                                    <th class="text-dark fw-bold" scope="col">待改写回源URL</th>
+                                    <th class="text-dark fw-bold" scope="col">目标回源URL</th>
+                                    <th class="text-dark fw-bold" scope="col">优先级</th>
+                                    <th class="text-dark fw-bold" scope="col">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="rewrite, index: ${domainConfig.get('origin_request_url_rewrite')}">
+                                    <th scope="row" th:text="${rewrite.match_type}"></th>
+                                    <td th:text="${rewrite.source_url}"></td>
+                                    <td th:text="${rewrite.target_url}"></td>
+                                    <td th:text="${rewrite.priority}"></td>
+                                    <td>
+
+                                        <a href="javascript:void(0)" th:onclick="updateOriginRequestUrlRewrite('[[${rewrite}]]', '[[${index.index}]]')">
+                                            <span class="icon icon-xs icon-primary">
+                                  <i class="bi bi-pencil-square"></i>
+                                </span>
+                                        </a>
+                                        <a href="javascript:void(0)" th:onclick="saveOriginRequestUrlRewrite('[[${domain.id}]]','[[${domainConfig.get(\'origin_request_url_rewrite\')}]]', 3, '[[${index.index}]]')">
+                                            <span class="icon icon-xs icon-danger">
+                                    <i class="bi bi-trash"></i>
+                                </span>
+                                        </a>
+
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- End Table -->
+                </div>
+            </div>
+            <!-- End Card -->
+
+            <!-- Modal -->
+            <div id="addOriginRequestUrlRewrite" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="exampleModalCenterTitle">回源URL新增</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-soft-primary" role="alert">
+                                <div class="d-flex">
+                                    <div class="flex-shrink-0">
+                                        <i class="bi bi-exclamation-circle-fill"></i>
+                                    </div>
+                                    <div class="flex-grow-1 ms-2">
+                                        <p> 1、后台有特殊配置的域名暂不支持改写回源URL。<br> 2、通配符“*”可通过“$n”(n=1,2,3...,)捕获。
+                                            <br> 3、匹配方式为“URL路径”时，待改写回源URL为前缀匹配，且不支持配置参数。
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="inputGroupMergeGenderSelect" class="form-label">匹配方式</label>
+
+                                <div class="input-group input-group-merge">
+                                    <select id="inputGroupMergeGenderSelect" class="form-select">
+                                    <option value="all">所有文件</option>
+                                    <option value="file_path">URL路径</option>
+                                    <option value="wildcard">通配符</option>
+                                </select>
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="rewrittenBackToTheSourceUrl" class="form-label">待改写回源URL</label>
+                                <div class="input-group input-group-merge">
+                                    <input type="text" class="form-control" id="rewrittenBackToTheSourceUrl" maxlength="300" placeholder="待改写回源URL">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="targetReturnSourceURL" class="form-label">目标回源URL</label>
+
+                                <div class="input-group input-group-merge">
+                                    <input type="text" class="form-control" id="targetReturnSourceURL" maxlength="300" placeholder="目标回源URL">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="priority" class="form-label">优先级 </label>
+
+                                <div class="input-group input-group-merge">
+                                    <input type="number" class="form-control" id="priority" placeholder="1-100整数">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" th:onclick="saveOriginRequestUrlRewrite('[[${domain.id}]]','[[${domainConfig.get(\'origin_request_url_rewrite\')}]]', 1, 0)">
+                            保存
+                        </button>
+                            <button type="button" class="btn btn-white" data-bs-dismiss="modal">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Modal -->
+
+            <!-- Modal -->
+            <div id="updateOriginRequestUrlRewrite" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="exampleModalCenterTitle1">回源URL修改</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="hiddenIndex" />
+                            <div class="alert alert-soft-primary" role="alert">
+                                <div class="d-flex">
+                                    <div class="flex-shrink-0">
+                                        <i class="bi bi-exclamation-circle-fill"></i>
+                                    </div>
+                                    <div class="flex-grow-1 ms-2">
+                                        <p> 1、后台有特殊配置的域名暂不支持改写回源URL。<br> 2、通配符“*”可通过“$n”(n=1,2,3...,)捕获。
+                                            <br> 3、匹配方式为“URL路径”时，待改写回源URL为前缀匹配，且不支持配置参数。
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="inputGroupMergeGenderSelect" class="form-label">匹配方式</label>
+
+                                <div class="input-group input-group-merge">
+                                    <select id="inputGroupMergeGenderSelect1" class="form-select">
+                                    <option value="all">所有文件</option>
+                                    <option value="file_path">URL路径</option>
+                                    <option value="wildcard">通配符</option>
+                                </select>
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="rewrittenBackToTheSourceUrl1" class="form-label">待改写回源URL</label>
+                                <div class="input-group input-group-merge">
+                                    <input type="text" class="form-control" id="rewrittenBackToTheSourceUrl1" maxlength="300" placeholder="待改写回源URL">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="targetReturnSourceURL1" class="form-label">目标回源URL</label>
+
+                                <div class="input-group input-group-merge">
+                                    <input type="text" class="form-control" id="targetReturnSourceURL1" maxlength="300" placeholder="目标回源URL">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="priority1" class="form-label">优先级 </label>
+
+                                <div class="input-group input-group-merge">
+                                    <input type="number" class="form-control" id="priority1" placeholder="1-100整数">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" th:onclick="saveOriginRequestUrlRewrite('[[${domain.id}]]','[[${domainConfig.get(\'origin_request_url_rewrite\')}]]', 2, 0)">
+                            保存
+                        </button>
+                            <button type="button" class="btn btn-white" data-bs-dismiss="modal">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Modal -->
+
+            <script>
+                function updateOriginRequestUrlRewrite(source, index) {
+                    source = JSON.parse(source)
+                    $("#updateOriginRequestUrlRewrite #inputGroupMergeGenderSelect1 option").each(function() {
+                        if (this.value === source.match_type) {
+                            $(this).attr("selected", true);
+                            return 0;
+                        }
+                    });
+                    $("#hiddenIndex").val(index)
+                    $("#rewrittenBackToTheSourceUrl1").val(source.source_url)
+                    $("#targetReturnSourceURL1").val(source.target_url)
+                    $("#priority1").val(source.priority)
+                    $("#updateOriginRequestUrlRewrite").modal("show");
+                }
+            </script>
+
+            <!-- Card 高级回源 -->
+            <div class="card mb-3 mb-lg-5" hidden="hidden">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">高级回源</h3>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        支持根据不同URL路径回源到不同源站，<a href="javascript:void(0)" class="link-primary" data-bs-toggle="modal" data-bs-target="#addAdvancedReturnSource">点击添加</a>。
+                    </p>
+                    <!-- Table -->
+                    <div class="div table-responsive">
+                        <table class="table table-nowrap table-text-center">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th class="text-dark fw-bold" scope="col">URI匹配方式</th>
+                                    <th class="text-dark fw-bold" scope="col">URI匹配规则</th>
+                                    <th class="text-dark fw-bold" scope="col">源站类型</th>
+                                    <th class="text-dark fw-bold" scope="col">地址</th>
+                                    <th class="text-dark fw-bold" scope="col">优先级</th>
+                                    <th class="text-dark fw-bold" scope="col">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="fb, index: ${domainConfig.get('flexible_origin')}">
+                                    <th scope="row" th:text="${fb.match_type}"></th>
+                                    <td th:text="${fb.match_pattern}"></td>
+                                    <td th:text="${fb.back_sources.get(0).get('sources_type')}"></td>
+                                    <td th:text="${fb.back_sources.get(0).get('ip_or_domain')}"></td>
+                                    <td th:text="${fb.priority}"></td>
+                                    <td>
+                                        <a href="javascript:void(0)" th:onclick="updateAdvancedReturnSource('[[${fb}]]', '[[${index.index}]]')">
+                                            <span class="icon icon-xs icon-primary">
+                                  <i class="bi bi-pencil-square"></i>
+                                </span>
+                                        </a>
+                                        <a href="javascript:void(0)" th:onclick="saveAdvancedReturnSource('[[${domain.id}]]','[[${domainConfig.get(\'flexible_origin\')}]]', 3, '[[${index.index}]]')">
+                                            <span class="icon icon-xs icon-danger">
+                                    <i class="bi bi-trash"></i>
+                                </span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- End Table -->
+                </div>
+            </div>
+            <!-- End Card -->
+
+            <!-- Modal -->
+            <div id="addAdvancedReturnSource" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="exampleAdvancedReturnSourceTitle">高级回源配置新增</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="uriMatchingModeAdvancedSelect" class="form-label">URI匹配方式</label>
+
+                                <div class="input-group input-group-merge">
+                                    <select id="uriMatchingModeAdvancedSelect" class="form-select">
+                                    <option value="file_path">路径前缀</option>
+                                    <option value="file_extension">文件后缀</option>
+                                </select>
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="uriMatchingRuleAdvanced" class="form-label">URI匹配规则</label>
+                                <div class="input-group input-group-merge">
+                                    <input type="text" class="form-control" id="uriMatchingRuleAdvanced" maxlength="300" placeholder="URI匹配规则">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="sourceStationTypeAdvancedSelect" class="form-label">源站类型</label>
+
+                                <div class="input-group input-group-merge">
+                                    <select id="sourceStationTypeAdvancedSelect" class="form-select">
+                                    <option value="ipaddr">源站IP</option>
+                                    <option value="domain">源站域名</option>
+                                </select>
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="addressAdvanced" class="form-label">地址 </label>
+
+                                <div class="input-group input-group-merge">
+                                    <input type="text" class="form-control" id="addressAdvanced" maxlength="300" placeholder="按照源站类型填写对应的地址">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="priorityAdvanced" class="form-label">优先级 </label>
+
+                                <div class="input-group input-group-merge">
+                                    <input type="number" class="form-control" id="priorityAdvanced" placeholder="1-100整数">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" th:onclick="saveAdvancedReturnSource('[[${domain.id}]]','[[${domainConfig.get(\'flexible_origin\')}]]', 1, 0)">
+                            保存
+                        </button>
+                            <button type="button" class="btn btn-white" data-bs-dismiss="modal">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Modal -->
+
+            <!-- Modal -->
+            <div id="updateAdvancedReturnSource" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="exampleAdvancedReturnSourceTitle1">高级回源配置修改</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="hiddenIndexAdvanced" />
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="uriMatchingModeAdvancedSelect1" class="form-label">URI匹配方式</label>
+
+                                <div class="input-group input-group-merge">
+                                    <select id="uriMatchingModeAdvancedSelect1" class="form-select">
+                                    <option value="file_path">路径前缀</option>
+                                    <option value="file_extension">文件后缀</option>
+                                </select>
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="uriMatchingRuleAdvanced1" class="form-label">URI匹配规则</label>
+                                <div class="input-group input-group-merge">
+                                    <input type="text" class="form-control" id="uriMatchingRuleAdvanced1" maxlength="300" placeholder="URI匹配规则">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="sourceStationTypeAdvancedSelect1" class="form-label">源站类型</label>
+
+                                <div class="input-group input-group-merge">
+                                    <select id="sourceStationTypeAdvancedSelect1" class="form-select">
+                                    <option value="ipaddr">源站IP</option>
+                                    <option value="domain">源站域名</option>
+                                    <option value="obs_bucket">OBS桶域名</option>
+                                </select>
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="addressAdvanced1" class="form-label">地址 </label>
+
+                                <div class="input-group input-group-merge">
+                                    <input type="number" class="form-control" id="addressAdvanced1" placeholder="1-100整数">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="priorityAdvanced1" class="form-label">优先级 </label>
+
+                                <div class="input-group input-group-merge">
+                                    <input type="number" class="form-control" id="priorityAdvanced1" placeholder="1-100整数">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" th:onclick="saveAdvancedReturnSource('[[${domain.id}]]','[[${domainConfig.get(\'flexible_origin\')}]]', 2, 0)">
+                            保存
+                        </button>
+                            <button type="button" class="btn btn-white" data-bs-dismiss="modal">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Modal -->
+
+            <script>
+                function updateAdvancedReturnSource(source, index) {
+                    source = JSON.parse(source)
+                    $("#uriMatchingModeAdvancedSelect1  option").each(function() {
+                        if (this.value === source.match_type) {
+                            $(this).attr("selected", true);
+                            return 0;
+                        }
+                    });
+                    $("#sourceStationTypeAdvancedSelect1  option").each(function() {
+                        if (this.value === source.back_sources[0].sources_type) {
+                            $(this).attr("selected", true);
+                            return 0;
+                        }
+                    });
+                    $("#hiddenIndexAdvanced").val(index)
+                    $("#uriMatchingRuleAdvanced1").val(source.match_pattern)
+                    $("#addressAdvanced1").val(source.back_sources[0].ip_or_domain)
+                    $("#priorityAdvanced1").val(source.priority)
+                    $("#updateAdvancedReturnSource").modal("show");
+                }
+            </script>
+
+
+
+            <!-- Card 视频拖拽 -->
+            <div class="card mb-3 mb-lg-5" th:if="${domain.route == 'kingsoft'} ">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">视频拖拽</h3>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        开启后支持MP4、FLV格式的视频拖拽功能，用户可以自由调整视频播放进度，提升用户体验。
+                    </p>
+                    <!-- Checkbox Switch -->
+                    <div class="form-check form-switch mb-4">
+                        <input th:id="origin_range_status" type="checkbox" class="form-check-input" checked th:if="${domainConfig.get('origin_range_status') == 'on'}" th:onclick="saveRangeSwitch('[[${domain.id}]]', 'off')">
+                        <input th:id="origin_range_status" type="checkbox" class="form-check-input" th:if="${domainConfig.get('origin_range_status') == 'off'}" th:onclick="saveRangeSwitch('[[${domain.id}]]', 'on')">
+                        <label class="form-check-label" for="origin_range_status" th:if="${domainConfig.get('origin_range_status') == 'on'}">已开启</label>
+                        <label class="form-check-label" for="origin_range_status" th:if="${domainConfig.get('origin_range_status') == 'off'}">已关闭</label>
+                    </div>
+                    <!-- End Checkbox Switch -->
+                </div>
+            </div>
+            <!-- End Card -->
+            <!-- Card Range回源 -->
+            <div class="card mb-3 mb-lg-5" th:unless="${domain.route == 'kingsoft'}">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">Range回源</h3>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        开启后回源时只返回指定范围内的内容，能有效缩短大文件的分发时间。
+                    </p>
+                    <!-- Checkbox Switch -->
+                    <div class="form-check form-switch mb-4">
+                        <input th:id="origin_range_status" type="checkbox" class="form-check-input" checked th:if="${domainConfig.get('origin_range_status') == 'on'}" th:onclick="saveRangeSwitch('[[${domain.id}]]', 'off')">
+                        <input th:id="origin_range_status" type="checkbox" class="form-check-input" th:if="${domainConfig.get('origin_range_status') == 'off'}" th:onclick="saveRangeSwitch('[[${domain.id}]]', 'on')">
+                        <label class="form-check-label" for="origin_range_status" th:if="${domainConfig.get('origin_range_status') == 'on'}">已开启</label>
+                        <label class="form-check-label" for="origin_range_status" th:if="${domainConfig.get('origin_range_status') == 'off'}">已关闭</label>
+                    </div>
+                    <!-- End Checkbox Switch -->
+                </div>
+            </div>
+            <!-- End Card -->
+
+
+            <!-- Card Range回源 -->
+            <div class="card mb-3 mb-lg-5" th:if="${domain.route == 'kingsoft'} ">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">Range回源</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info" role="alert">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="bi-info-circle"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h5>需要提交工单配置</h5>
+                                <p class="mb-0">Range回源配置需提交工单由技术人员协助配置。如需配置，请联系您的客户经理或提交工单。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Card -->
+
+            <!-- Card 回源是否校验ETag -->
+            <div th:if="${domain.route != 'baishan'}" class="card mb-3 mb-lg-5" hidden="hidden">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">回源是否校验ETag</h3>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        开启此项配置后，当资源在CDN节点缓存过期，用户再次请求该资源时，如果ETag值没有变化，CDN将节点缓存的资源返回给用户，不会触发回源。
+                    </p>
+                    <!-- Checkbox Switch -->
+                    <div class="form-check form-switch mb-4">
+                        <input th:id="slice_etag_status" type="checkbox" class="form-check-input" checked th:if="${domainConfig.get('slice_etag_status') == 'on'}" th:onclick="saveRangeVerifyETag('[[${domain.id}]]', 'off')">
+                        <input th:id="slice_etag_status" type="checkbox" class="form-check-input" th:if="${domainConfig.get('slice_etag_status') == 'off'}" th:onclick="saveRangeVerifyETag('[[${domain.id}]]', 'on')">
+                        <label class="form-check-label" th:for="slice_etag_status" th:if="${domainConfig.get('slice_etag_status') == 'on'}">已开启</label>
+                        <label class="form-check-label" th:for="slice_etag_status" th:if="${domainConfig.get('slice_etag_status') == 'off'}">已关闭</label>
+                    </div>
+                    <!-- End Checkbox Switch -->
+                </div>
+            </div>
+            <!-- End Card -->
+
+<!--            &lt;!&ndash; Card 回源超时时间 &ndash;&gt;-->
+<!--            <div  th:if="${domain.route == 'kingsoft'} class="card mb-3 mb-lg-5" th:classappend="${domain.route == 'cdnetworks' ? 'd-none' : ''}">-->
+<!--                <div class="card-header card-header-content-md-between">-->
+<!--                    <h3 class="card-header-title">回源超时时间</h3>-->
+<!--                </div>-->
+<!--                <div class="card-body">-->
+<!--                    <p class="card-text">-->
+<!--                        根据源站业务特性及网络状态，自定义回源请求超时时间。-->
+<!--                    </p>-->
+<!--                    <div class="row">-->
+<!--                        <div class="col-sm-6">-->
+<!--                            <div class="mb-3">-->
+<!--                                <label class="form-label">回源超时时间(5-60s)</label>-->
+<!--                                <input max="60" type="number" id="exampleFormControlInput1" class="form-control" placeholder="默认30秒" th:value="${domainConfig.origin_receive_timeout != null && domainConfig.origin_receive_timeout != '0' ? domainConfig.origin_receive_timeout : '30'}">-->
+<!--                            </div>-->
+
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--                <div class="card-footer">-->
+<!--                    <div class="d-flex justify-content-end gap-3">-->
+<!--                        <button class="btn btn-primary" th:onclick="saveRangeTimeOut('[[${domain.id}]]')">-->
+<!--                        <i class="bi bi-check-circle-fill"></i> 保存-->
+<!--                    </button>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            &lt;!&ndash; Card 回源请求头 &ndash;&gt;-->
+<!--            <div class="card mb-3 mb-lg-5" th:if="${domain.route == 'kingsoft'} ">-->
+<!--                <div class="card-header card-header-content-md-between">-->
+<!--                    <h3 class="card-header-title">回源超时时间(5-60s)</h3>-->
+<!--                </div>-->
+<!--                <div class="card-body">-->
+<!--                    <div class="alert alert-info" role="alert">-->
+<!--                        <div class="d-flex">-->
+<!--                            <div class="flex-shrink-0">-->
+<!--                                <i class="bi-info-circle"></i>-->
+<!--                            </div>-->
+<!--                            <div class="flex-grow-1 ms-3">-->
+<!--                                <h5>需要提交工单配置</h5>-->
+<!--                                <p class="mb-0">回源请求头配置需提交工单由技术人员协助配置。如需配置，请联系您的客户经理或提交工单。</p>-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            &lt;!&ndash; End Card &ndash;&gt;-->
+
+            <!-- Card 回源请求头 -->
+            <div class="card mb-3 mb-lg-5" th:if="${domain.route == 'kingsoft'} ">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">回源请求头</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info" role="alert">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="bi-info-circle"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h5>需要提交工单配置</h5>
+                                <p class="mb-0">回源请求头配置需提交工单由技术人员协助配置。如需配置，请联系您的客户经理或提交工单。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Card -->
+            <!-- Card 回源请求头 -->
+            <div class="card mb-3 mb-lg-5" th:unless="${domain.route == 'kingsoft'} ">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">回源请求头</h3>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        修改用户回源请求URL中的头部信息，<a href="javascript:void(0)" class="link-primary" data-bs-toggle="modal" data-bs-target="#addOriginRequestHeader" onclick="clickRequestHeader()">点击添加</a>。
+                    </p>
+                    <!-- Table -->
+                    <div class="div table-responsive">
+                        <table class="table table-nowrap table-text-center">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th class="text-dark fw-bold" scope="col">请求头参数</th>
+                                    <th class="text-dark fw-bold" scope="col">请求头取值</th>
+                                    <th class="text-dark fw-bold" scope="col">请求头操作</th>
+                                    <th class="text-dark fw-bold" scope="col">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="header, index: ${domainConfig.get('origin_request_header')}">
+                                    <th scope="row" th:text="${header.name}"></th>
+                                    <td th:text="${header.value}"></td>
+                                    <td>
+                                        <span th:if="${header.action == 'delete'}" class="badge bg-soft-danger text-danger">删除</span>
+                                        <span th:if="${header.action == 'set'}" class="badge bg-soft-info text-info">设置</span>
+                                    </td>
+                                    <td>
+                                        <a href="javascript:void(0)" th:onclick="updateOriginRequestHeader('[[${header}]]', '[[${index.index}]]')">
+                                            <span class="icon icon-xs icon-primary">
+                                  <i class="bi bi-pencil-square"></i>
+                                </span>
+                                        </a>
+                                        <a href="javascript:void(0)" th:onclick="saveOriginRequestHeader('[[${domain.id}]]','[[${domainConfig.get(\'origin_request_header\')}]]', 3, '[[${index.index}]]')">
+                                            <span class="icon icon-xs icon-danger">
+                                    <i class="bi bi-trash"></i>
+                                </span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- End Table -->
+                </div>
+            </div>
+            <!-- Modal -->
+            <div id="addOriginRequestHeader" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="originRequestHeader">添加回源请求头</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="checkOptionalTypeAdd" class="form-label">请求头操作</label>
+                                <div class="input-group input-group-sm-vertical" id="checkOptionalTypeAdd">
+                                    <!-- Radio Check -->
+                                    <label class="form-control" for="editUserModalAccountTypeModalRadioEg1_1">
+                                    <span class="form-check">
+                                      <input type="radio" class="form-check-input"
+                                             name="editRadioAdd"
+                                             id="editUserModalAccountTypeModalRadioEg1_1" value="set" checked>
+                                      <span class="form-check-label">设置</span>
+                                    </span>
+                                </label>
+                                    <!-- End Radio Check -->
+
+                                    <!-- Radio Check -->
+                                    <label class="form-control" for="editUserModalAccountTypeModalRadioEg1_2">
+                                    <span class="form-check">
+                                      <input type="radio" class="form-check-input"
+                                             name="editRadioAdd"
+                                             id="editUserModalAccountTypeModalRadioEg1_2" value="delete">
+                                      <span class="form-check-label">删除</span>
+                                    </span>
+                                </label>
+                                    <!-- End Radio Check -->
+                                </div>
+
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="requestHeaderParameter" class="form-label">请求头参数</label>
+                                <div class="input-group input-group-merge">
+                                    <input type="text" class="form-control" id="requestHeaderParameter" maxlength="300" placeholder="请求头参数">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3" id="requestHeaderValueAddDiv">
+                                <label for="requestHeaderValue" class="form-label">请求头取值</label>
+
+                                <div class="input-group input-group-merge">
+                                    <input type="text" class="form-control" id="requestHeaderValue" maxlength="300" placeholder="请求头取值">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" th:onclick="saveOriginRequestHeader('[[${domain.id}]]','[[${domainConfig.get(\'origin_request_header\')}]]', 1, 0)">
+                            保存
+                        </button>
+                            <button type="button" class="btn btn-white" data-bs-dismiss="modal">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Modal -->
+
+            <!-- Modal -->
+            <div id="updateOriginRequestHeader" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="originRequestHeade1r">修改回源请求头</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="hiddenHeader">
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="checkOptionalTypeUpdate" class="form-label">请求头操作</label>
+                                <div class="input-group input-group-sm-vertical" id="checkOptionalTypeUpdate">
+                                    <!-- Radio Check -->
+                                    <label class="form-control" for="editUserModalAccountTypeModalRadioEg1_3">
+                                    <span class="form-check">
+                                      <input type="radio" class="form-check-input"
+                                             name="editRadioUpdate"
+                                             id="editUserModalAccountTypeModalRadioEg1_3" value="set" checked>
+                                      <span class="form-check-label">设置</span>
+                                    </span>
+                                </label>
+                                    <!-- End Radio Check -->
+
+                                    <!-- Radio Check -->
+                                    <label class="form-control" for="editUserModalAccountTypeModalRadioEg1_4">
+                                    <span class="form-check">
+                                      <input type="radio" class="form-check-input"
+                                             name="editRadioUpdate"
+                                             id="editUserModalAccountTypeModalRadioEg1_4" value="delete">
+                                      <span class="form-check-label">删除</span>
+                                    </span>
+                                </label>
+                                    <!-- End Radio Check -->
+                                </div>
+
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="requestHeaderParameter1" class="form-label">请求头参数</label>
+                                <div class="input-group input-group-merge">
+                                    <input type="text" class="form-control" id="requestHeaderParameter1" maxlength="300" placeholder="请求头参数">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3" id="requestHeaderValueUpdateDiv">
+                                <label for="requestHeaderValue1" class="form-label">请求头取值</label>
+
+                                <div class="input-group input-group-merge">
+                                    <input type="text" class="form-control" id="requestHeaderValue1" maxlength="300" placeholder="请求头取值">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                        </div>
+
+                        <div class="modal-footer">
+                            <a type="button" class="btn btn-primary" href="javascript:void(0)" th:onclick="saveOriginRequestHeader('[[${domain.id}]]','[[${domainConfig.get(\'origin_request_header\')}]]', 2, 0)">
+                            保存
+                        </a>
+                            <a type="button" class="btn btn-white" data-bs-dismiss="modal" href="javascript:void(0)">关闭</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Modal -->
+
+            <script>
+                function updateOriginRequestHeader(source, index) {
+                    $("#updateOriginRequestHeader").modal("show");
+                    source = JSON.parse(source)
+                    $("input[name='editRadioUpdate']").each(function() {
+                        if (this.value === source.action) {
+                            $(this).prop("checked", true);
+                        } else {
+                            $(this).prop("checked", false);
+                        }
+                    });
+
+                    $("#hiddenHeader").val(index)
+                    $("#requestHeaderParameter1").val(source.name)
+                    $("#requestHeaderValue1").val(source.value)
+                    clickRequestHeader()
+
+                }
+            </script>
+
+        </div>
+        <!-- End Content -->
+
+        <!-- Footer -->
+        <div th:replace="common/common-dashboard::#footer(curPage='domain-list')"></div>
+        <!-- End Footer -->
+    </main>
+    <!-- ========== END MAIN CONTENT ========== -->
+
+    <!-- ========== SECONDARY CONTENTS ========== -->
+
+    <div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='domain-list')"></div>
+
+    <!-- End Import Products Modal -->
+
+    <!-- ========== END SECONDARY CONTENTS ========== -->
+
+    <!-- JS Global Compulsory  -->
+    <script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+    <!-- JS Implementing Plugins -->
+    <script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+    <script th:src="@{dashboard/assets/vendor/hs-nav-scroller/dist/hs-nav-scroller.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/clipboard/dist/clipboard.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/datatables/media/js/jquery.dataTables.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/datatables.net.extensions/select/select.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/dropzone/dist/min/dropzone.min.js}"></script>
+
+    <!-- JS Front -->
+    <script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+    <script th:src="@{common/layer/layer.js}"></script>
+    <script th:src="@{common/util/reg.js}"></script>
+    <script th:src="@{common/custom.js}"></script>
+    <script th:src="@{common/custom_ceo.js}"></script>
+    <script th:src="@{common/custom_cmo.js}"></script>
+    <script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+
+    <!-- JS Plugins Init. -->
+    <script>
+        $(document).on('ready', function() {
+
+            $('#toggleColumn_product').change(function(e) {
+                datatable.columns(1).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_type').change(function(e) {
+                datatable.columns(2).visible(e.target.checked)
+            })
+
+
+            $('#toggleColumn_vendor').change(function(e) {
+                datatable.columns(3).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_stocks').change(function(e) {
+                datatable.columns(4).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_sku').change(function(e) {
+                datatable.columns(5).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_price').change(function(e) {
+                datatable.columns(6).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_quantity').change(function(e) {
+                datatable.columns(7).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_variants').change(function(e) {
+                datatable.columns(8).visible(e.target.checked)
+            })
+        });
+    </script>
+
+    <!-- JS Plugins Init. -->
+    <script>
+        (function() {
+            window.onload = function() {
+
+
+                // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+                // =======================================================
+                new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+                // INITIALIZATION OF FORM SEARCH
+                // =======================================================
+                new HSFormSearch('.js-form-search')
+
+
+                // INITIALIZATION OF BOOTSTRAP DROPDOWN
+                // =======================================================
+                HSBsDropdown.init()
+
+
+                // INITIALIZATION OF SELECT
+                // =======================================================
+                HSCore.components.HSTomSelect.init('.js-select')
+
+
+                // INITIALIZATION OF NAV SCROLLER
+                // =======================================================
+                new HsNavScroller('.js-nav-scroller')
+
+
+                // INITIALIZATION OF DROPZONE
+                // =======================================================
+                HSCore.components.HSDropzone.init('.js-dropzone')
+
+                HSCore.components.HSClipboard.init('.js-clipboard')
+            }
+        })()
+    </script>
+
+    <!-- Style Switcher JS -->
+
+    <script>
+        (function() {
+            // STYLE SWITCHER
+            // =======================================================
+            const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+            const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+            // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+            const setActiveStyle = function() {
+                $variants.forEach($item => {
+                    if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                        $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                        return $item.classList.add('active')
+                    }
+
+                    $item.classList.remove('active')
+                })
+            }
+
+            // Add a click event to all items of the dropdown to set the style
+            $variants.forEach(function($item) {
+                $item.addEventListener('click', function() {
+                    HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+                })
+            })
+
+            // Call the setActiveStyle on load page
+            setActiveStyle()
+
+            // Add event listener on change style to call the setActiveStyle function
+            window.addEventListener('on-hs-appearance-change', function() {
+                setActiveStyle()
+            })
+
+        })()
+    </script>
+
+    <!-- End Style Switcher JS -->
+</body>
+
+</html>
+<script th:if="${openAgent}">
+    window.onload = function() {
+        // 代理配置
+        // 获取所有的 a 标签
+        const aTags = document.querySelectorAll('a');
+        // 遍历每个 a 标签并为其添加点击事件监听器
+        aTags.forEach(aTag => {
+            aTag.addEventListener('click', event => {
+                // 阻止默认行为以确保不会立即跳转
+                event.preventDefault();
+
+                // 获取当前链接并将 agent 参数添加到查询字符串中
+                const href = aTag.getAttribute('href');
+                const url = new URL(href, window.location.href);
+                url.searchParams.set('agent', `[[${agentConfig.userId}]]`);
+
+                // 跳转到带有新 URL 的页面
+                window.location.href = url.toString();
+            });
+        });
+    }
+</script>
+<script>
+    function clickRequestHeader() {
+        // 获取radio按钮组的父元素
+        var radioGroupAdd = document.getElementById("checkOptionalTypeAdd");
+        var radioGroupUpdate = document.getElementById("checkOptionalTypeUpdate");
+
+        // 监听radio按钮的change事件
+        radioGroupAdd.addEventListener("change", function() {
+            // 获取当前选中的radio按钮
+            let selectedRadio = document.querySelector('input[name="editRadioAdd"]:checked');
+
+            if (selectedRadio.value === "delete") {
+                // 如果选中的是"删除"，就将请求头参数和请求头取值input元素的style.display属性设置为"none"，即隐藏它们
+                document.getElementById("requestHeaderValueAddDiv").style.display = "none";
+            } else {
+                // 否则，就将它们的style.display属性设置为""（空字符串），即显示它们
+                document.getElementById("requestHeaderValueAddDiv").style.display = "";
+            }
+        });
+
+        // 监听radio按钮的change事件
+        radioGroupUpdate.addEventListener("change", function() {
+            // 获取当前选中的radio按钮
+            let selectedRadio = document.querySelector('input[name="editRadioUpdate"]:checked');
+
+            if (selectedRadio.value === "delete") {
+                // 如果选中的是"删除"，就将请求头参数和请求头取值input元素的style.display属性设置为"none"，即隐藏它们
+                document.getElementById("requestHeaderValueUpdateDiv").style.display = "none";
+            } else {
+                // 否则，就将它们的style.display属性设置为""（空字符串），即显示它们
+                document.getElementById("requestHeaderValueUpdateDiv").style.display = "";
+            }
+        });
+
+        // 获取当前选中的radio按钮
+        var selectedRadioAdd = document.querySelector('input[name="editRadioAdd"]:checked');
+
+        if (selectedRadioAdd.value === "delete") {
+            // 如果选中的是"删除"，就将请求头参数和请求头取值input元素的style.display属性设置为"none"，即隐藏它们
+            document.getElementById("requestHeaderValueAddDiv").style.display = "none";
+        }
+        // 获取当前选中的radio按钮
+        var selectedRadioUpdate = document.querySelector('input[name="editRadioUpdate"]:checked');
+        console.log(selectedRadioUpdate)
+        if (selectedRadioUpdate.value === "delete") {
+            // 如果选中的是"删除"，就将请求头参数和请求头取值input元素的style.display属性设置为"none"，即隐藏它们
+            document.getElementById("requestHeaderValueUpdateDiv").style.display = "none";
+        }
+    }
+</script>
+<div th:replace="common/common-dashboard::#agent"></div>

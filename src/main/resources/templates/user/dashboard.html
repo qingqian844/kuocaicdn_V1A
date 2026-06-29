@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title th:if="${!openAgent}">[[${websiteBaseConfig.websiteName}]] 服务概览</title>
+    <title th:if="${openAgent}">[[${agentConfig.websiteName}]] 服务概览</title>
+
+    <!-- Favicon -->
+    <link th:if="${!openAgent}" rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:if="${openAgent}" rel="shortcut icon" th:href="${agentConfig.icon}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/daterangepicker/daterangepicker.css}">
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/jsvectormap/dist/css/jsvectormap.min.css}">
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {"switcherSupport": true},
+                "header": {"layoutMode": "default", "containerMode": "container-fluid"},
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {"100": "#f9fafc", "900": "#1e2022"}
+                    }, "font": "Inter"
+                }
+            },
+            "languageDirection": {"lang": "en"},
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {"*assets/js/theme-custom.js": ""},
+                "build": {"*assets/js/theme-custom.js": "", "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"}
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {"src": "./src", "dist": "./dist", "build": "./build"},
+            "fileNames": {
+                "dist": {"js": "theme.min.js", "css": "theme.min.css"},
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl   footer-offset">
+
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+<!-- ========== HEADER ========== -->
+
+<div th:replace="common/common-dashboard::header(curPage='dashboard', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<!-- Navbar Vertical -->
+
+<div th:replace="common/common-dashboard::aside(curPage='dashboard', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<main id="content" role="main" class="main">
+    <!-- Content -->
+    <div class="content container-fluid">
+        <!-- Page Header -->
+        <div class="page-header" style="padding-bottom: 5px;margin-bottom: 10px">
+            <div class="row align-items-center">
+                <div class="col-sm mb-2 mb-sm-0">
+                    <h1 class="page-header-title">服务概览 <i class="bi-speedometer nav-icon"></i></h1>
+                </div>
+                <!-- End Col -->
+            </div>
+        </div>
+        <!-- End Page Header -->
+
+        <div class="row">
+            <div class="col-sm-8">
+                <div class="col-sm-12">
+                    <div class="alert alert-soft-danger" role="alert">
+                        <i class="bi bi-exclamation-diamond"></i> 注意：系统每月赠送的流量包在用尽前后均无短信或邮件通知，请自行注意您的用量防止出现流量超出扣费等问题（付款购买的套餐包请忽略）
+                    </div>
+                </div>
+                <div class="col-sm-12" th:if="${session.loginUser.status == 'register_not_certified'}">
+                    <div class="alert alert-soft-danger" role="alert">
+                        <i class="bi bi-exclamation-diamond"></i> 根据相关法规和政策要求，必须完成账号实名认证才能使用相关功能。<br/>
+                        <i class="bi bi-exclamation-diamond"></i> 请尽快完成实名认证，否则可能会影响部分功能的使用。
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <!-- Card -->
+                        <div class="card card-body mb-3">
+                            <div class="row col-lg-divider gx-lg-6">
+                                <div class="col-lg-6">
+                                    <!-- Media -->
+                                    <div class="d-flex">
+                                        <div class="flex-grow-1">
+                                            <h6 class="card-subtitle mb-3">域名总数</h6>
+                                            <h3 class="card-title" th:text="${countStatistics.get('domainCount')}"></h3>
+                                        </div>
+
+                                        <span class="icon icon-soft-secondary icon-sm icon-circle ms-3">
+                                            <i class="bi-router-fill"></i>
+                                        </span>
+                                    </div>
+                                    <!-- End Media -->
+                                </div>
+                                <!-- End Col -->
+
+<!--                                <div class="col-lg-4">-->
+<!--                                    &lt;!&ndash; Media &ndash;&gt;-->
+<!--                                    <div class="d-flex">-->
+<!--                                        <div class="flex-grow-1">-->
+<!--                                            <h6 class="card-subtitle mb-3">证书总数</h6>-->
+<!--                                            <h3 class="card-title"-->
+<!--                                                th:text="${countStatistics.get('certificateCount')}"></h3>-->
+<!--                                        </div>-->
+<!--                                        <span class="icon icon-soft-secondary icon-sm icon-circle ms-3">-->
+<!--                            <i class="bi-patch-check-fill"></i>-->
+<!--                        </span>-->
+<!--                                    </div>-->
+<!--                                    &lt;!&ndash; End Media &ndash;&gt;-->
+<!--                                </div>-->
+<!--                                &lt;!&ndash; End Col &ndash;&gt;-->
+
+                                <div class="col-lg-6">
+                                    <!-- Media -->
+                                    <div class="d-flex">
+                                        <div class="flex-grow-1">
+                                            <h6 class="card-subtitle mb-3">提交工单数</h6>
+                                            <h3 class="card-title" th:text="${countStatistics.get('orderCount')}"></h3>
+                                        </div>
+                                        <span class="icon icon-soft-secondary icon-sm icon-circle ms-3">
+                                            <i class="bi-border-width"></i>
+                                        </span>
+                                    </div>
+                                    <!-- End Media -->
+                                </div>
+                                <!-- End Col -->
+                            </div>
+                            <!-- End Row -->
+                        </div>
+                        <!-- End Card -->
+                    </div>
+                </div>
+
+                <div class="col-sm-12">
+                    <!-- Card -->
+                    <div class="card mb-3">
+                        <!-- Header -->
+                        <div class="card-header card-header-content-sm-between">
+                            <!-- Nav -->
+                            <div>
+                                <ul class="nav nav-segment nav-pills" role="tablist">
+                                    <li class="nav-item">
+                                        <a class="nav-link active" id="nav-one-eg1-tab" href="#nav-one-eg1"
+                                           data-bs-toggle="pill" data-bs-target="#nav-one-eg1" role="tab"
+                                           aria-controls="nav-one-eg1" aria-selected="true">流量趋势</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" id="nav-two-eg1-tab" href="#nav-two-eg1"
+                                           data-bs-toggle="pill" data-bs-target="#nav-two-eg1" role="tab"
+                                           aria-controls="nav-two-eg1" aria-selected="false">峰值带宽</a>
+                                    </li>
+
+                                </ul>
+                            </div>
+                            <!-- End Nav -->
+
+                            <button id="flux-daterangepicker-predefined"
+                                    class="btn btn-ghost-secondary btn-sm dropdown-toggle">
+                                <i class="tio-date-range"></i>
+                                <span class="flux-daterangepicker-predefined-preview ms-1"></span>
+                            </button>
+                        </div>
+                        <!-- End Header -->
+
+                        <!-- Body -->
+                        <div class="card-body">
+                            <!-- Tab Content -->
+                            <div class="tab-content">
+                                <div class="tab-pane fade show active" id="nav-one-eg1" role="tabpanel"
+                                     aria-labelledby="nav-one-eg1-tab">
+                                    <!-- Bar Chart -->
+                                    <div class="chartjs-custom mb-3 mb-sm-5" style="height: 300px">
+                                        <canvas id="fluxChart" class="js-chart"
+                                                data-hs-chartjs-options='{
+                                          "type": "line",
+                                          "data": {
+                                            "labels": ["1:00", "2:00", "3:00", "4:00", "5:00", "6:00", "7:00", "8:00", "9:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00", "24:00"],
+                                            "datasets": [{
+                                              "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                              "backgroundColor": "#377dff",
+                                              "hoverBackgroundColor": "#377dff",
+                                              "borderColor": "#377dff",
+                                              "maxBarThickness": "10"
+                                            },
+                                            {
+                                              "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                              "backgroundColor": "#31a3be",
+                                              "hoverBackgroundColor": "#31a3be",
+                                              "borderColor": "#31a3be",
+                                              "maxBarThickness": "10"
+                                            }]
+                                          },
+                                          "options": {
+                                            "scales": {
+                                              "y": {
+                                                "grid": {
+                                                  "color": "#e7eaf3",
+                                                  "drawBorder": false,
+                                                  "zeroLineColor": "#e7eaf3"
+                                                },
+                                                "ticks": {
+                                                  "beginAtZero": true,
+                                                  "stepSize": 100,
+                                                  "color": "#97a4af",
+                                                    "font": {
+                                                      "size": 12,
+                                                      "family": "Open Sans, sans-serif"
+                                                    },
+                                                  "padding": 10,
+                                                  "postfix": ""
+                                                }
+                                              },
+                                              "x": {
+                                                "grid": {
+                                                  "display": false,
+                                                  "drawBorder": false
+                                                },
+                                                "ticks": {
+                                                  "color": "#97a4af",
+                                                    "font": {
+                                                      "size": 12,
+                                                      "family": "Open Sans, sans-serif"
+                                                    },
+                                                  "padding": 5
+                                                },
+                                                "categoryPercentage": 0.5,
+                                                "maxBarThickness": "10"
+                                              }
+                                            },
+                                            "cornerRadius": 2,
+                                            "plugins": {
+                                              "tooltip": {
+                                                "prefix": "",
+                                                "postfix": "",
+                                                "hasIndicator": true,
+                                                "mode": "index",
+                                                "intersect": false
+                                              }
+                                            },
+                                            "hover": {
+                                              "mode": "nearest",
+                                              "intersect": true
+                                            }
+                                          }
+                                        }'></canvas>
+                                    </div>
+                                    <!-- End Bar Chart -->
+
+                                    <!-- Legend Indicators -->
+                                    <div class="row justify-content-center">
+                                        <div class="col-auto mb-3 mb-sm-0">
+                                            <span class="legend-indicator bg-primary"></span> 流出流量 <small>(<small
+                                                class="text-primary" id="sum_flux">0</small>)</small>
+                                        </div>
+
+                                        <div class="col-auto mb-3 mb-sm-0">
+                                            <span class="legend-indicator bg-info"></span> 回源流量 <small>(<small
+                                                class="text-info"
+                                                id="sum_bs_flux">0</small>)</small>
+                                        </div>
+                                    </div>
+                                    <!-- End Legend Indicators -->
+                                </div>
+
+                                <div class="tab-pane fade" id="nav-two-eg1" role="tabpanel"
+                                     aria-labelledby="nav-two-eg1-tab">
+                                    <!-- Bar Chart -->
+                                    <div class="chartjs-custom mb-3 mb-sm-5" style="height: 300px">
+                                        <canvas id="bwChart" class="js-chart"
+                                                data-hs-chartjs-options='{
+                                                  "type": "line",
+                                                  "data": {
+                                                    "labels": ["1:00", "2:00", "3:00", "4:00", "5:00", "6:00", "7:00", "8:00", "9:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00", "24:00"],
+                                                    "datasets": [{
+                                                      "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                                      "backgroundColor": "#377dff",
+                                                      "hoverBackgroundColor": "#377dff",
+                                                      "borderColor": "#377dff",
+                                                      "maxBarThickness": "10"
+                                                    },
+                                                    {
+                                                      "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                                      "backgroundColor": "#31a3be",
+                                                      "hoverBackgroundColor": "#31a3be",
+                                                      "borderColor": "#31a3be",
+                                                      "maxBarThickness": "10"
+                                                    }]
+                                                  },
+                                                  "options": {
+                                                    "scales": {
+                                                      "y": {
+                                                        "grid": {
+                                                          "color": "#e7eaf3",
+                                                          "drawBorder": false,
+                                                          "zeroLineColor": "#e7eaf3"
+                                                        },
+                                                        "ticks": {
+                                                          "beginAtZero": true,
+                                                          "stepSize": 100,
+                                                          "color": "#97a4af",
+                                                            "font": {
+                                                              "size": 12,
+                                                              "family": "Open Sans, sans-serif"
+                                                            },
+                                                          "padding": 10,
+                                                          "postfix": ""
+                                                        }
+                                                      },
+                                                      "x": {
+                                                        "grid": {
+                                                          "display": false,
+                                                          "drawBorder": false
+                                                        },
+                                                        "ticks": {
+                                                          "color": "#97a4af",
+                                                            "font": {
+                                                              "size": 12,
+                                                              "family": "Open Sans, sans-serif"
+                                                            },
+                                                          "padding": 5
+                                                        },
+                                                        "categoryPercentage": 0.5,
+                                                        "maxBarThickness": "10"
+                                                      }
+                                                    },
+                                                    "cornerRadius": 2,
+                                                    "plugins": {
+                                                      "tooltip": {
+                                                        "prefix": "",
+                                                        "postfix": "",
+                                                        "hasIndicator": true,
+                                                        "mode": "index",
+                                                        "intersect": false
+                                                      }
+                                                    },
+                                                    "hover": {
+                                                      "mode": "nearest",
+                                                      "intersect": true
+                                                    }
+                                                  }
+                                                }'></canvas>
+                                    </div>
+                                    <!-- End Bar Chart -->
+                                    <!-- Legend Indicators -->
+                                    <div class="row justify-content-center">
+                                        <div class="col-auto mb-3 mb-sm-0">
+                                            <span class="legend-indicator bg-primary"></span> 峰值带宽 <small>(<small
+                                                class="text-primary" id="sum_bw">0</small>)</small>
+                                        </div>
+
+                                        <div class="col-auto mb-3 mb-sm-0">
+                                            <span class="legend-indicator bg-info"></span> 峰值回源带宽 <small>(<small
+                                                class="text-info"
+                                                id="sum_bs_bw">0</small>)</small>
+                                        </div>
+                                    </div>
+                                    <!-- End Legend Indicators -->
+                                </div>
+                            </div>
+                            <!-- End Tab Content -->
+                        </div>
+                        <!-- End Body -->
+                    </div>
+                    <!-- End Card -->
+                </div>
+
+            </div>
+            <div class="col-sm-4">
+
+                <div class="row">
+                    <div class="col-sm-12">
+                        <!-- Card -->
+                        <div class="card mb-3">
+                            <!-- Header -->
+                            <div class="card-header card-header-content-md-between">
+                                <h4 class="card-header-title">
+                                    <i class="bi bi-card-heading"></i>
+                                    网站介绍
+                                </h4>
+                            </div>
+                            <!-- End Header -->
+
+                            <!-- Body -->
+                            <div class="card-body">
+                                [[${websiteBaseConfig.websiteAnnouncement}]]
+                            </div>
+                            <!-- End Body -->
+                        </div>
+
+                        <div class="card mb-3" th:if="${announcement != null}">
+                            <!-- Header -->
+                            <div class="card-header card-header-content-md-between">
+                                <h4 class="card-header-title">
+                                    <i class="bi bi-bell"></i>
+                                    <span th:text="${announcement.title}"></span>
+                                </h4>
+                                <small>公告时间：[[${#dates.format(announcement.updateTime, 'yyyy-MM-dd')}]]</small>
+                            </div>
+                            <!-- End Header -->
+
+                            <!-- Body -->
+                            <div class="card-body" th:utext="${announcement.content}">
+                            </div>
+                        </div>
+                        <!-- End Card -->
+                    </div>
+                </div>
+
+
+                <div class="row">
+                    <div class="col-sm-12">
+                        <!-- Card -->
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <!-- Stats -->
+                                <div class="row col-lg-divider">
+                                    <div class="col-lg-12">
+                                        <!-- Card -->
+                                        <div class="text-center">
+                                            <span class="text-cap text-body">快复制你的专属链接给好友吧~</span>
+                                            <small class="text-cap"></small>
+                                            <!-- Input Group -->
+                                            <div class="input-group" style="min-width: 250px">
+                                                <input id="referralCode" type="text" class="form-control" readonly
+                                                       th:value="${recommendCode}">
+                                                <div class="input-group-append">
+                                                    <button class="js-clipboard btn btn-white"
+                                                       onclick="copy('referralCode');" data-bs-toggle="tooltip"
+                                                       data-bs-placement="right" title="复制到剪切板"
+                                                       data-hs-clipboard-options='{
+                                                    "type": "tooltip",
+                                                    "successText": "已复制!",
+                                                    "contentTarget": "#referralCode",
+                                                    "classChangeTarget": "#referralCodeIcon",
+                                                    "defaultClass": "bi-clipboard",
+                                                    "successClass": "bi-check"
+                                                   }'>
+                                                        <i id="referralCodeIcon" class="bi-clipboard"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <!-- End Input Group -->
+                                            <!-- End Row -->
+                                        </div>
+                                        <!-- End Card -->
+                                    </div>
+                                </div>
+                                <!-- End Stats -->
+                            </div>
+                        </div>
+                        <!-- End Card -->
+                    </div>
+                </div>
+
+<!--                <div class="row">-->
+<!--                    <div class="col-sm-12">-->
+<!--                        &lt;!&ndash; Card &ndash;&gt;-->
+<!--                        <div class="card mb-3">-->
+<!--                            &lt;!&ndash; Header &ndash;&gt;-->
+<!--                            <div class="card-header card-header-content-md-between">-->
+<!--                                <h4 class="card-header-title">登录信息</h4>-->
+<!--                                <small>最近登录：[[${#dates.format(loginDevice.loginTime, 'yyyy-MM-dd-->
+<!--                                    HH:mm:ss')}]]</small>-->
+<!--                            </div>-->
+<!--                            &lt;!&ndash; End Header &ndash;&gt;-->
+
+<!--                            &lt;!&ndash; Body &ndash;&gt;-->
+<!--                            <div class="card-body">-->
+<!--                                <div class="row">-->
+<!--                                    <div class="col-sm-12">-->
+<!--                                        <ul class="list-unstyled list-py-2 text-dark mt-2">-->
+<!--                                            <li class="pb-0"><span class="card-subtitle">设备信息</span></li>-->
+<!--                                            <li>-->
+<!--                                                <div class="row">-->
+<!--                                                    <div class="col-sm-6">-->
+<!--                                                        <i class="bi bi-hdd dropdown-item-icon"></i> <small>[[${loginDevice.device}]]</small>-->
+<!--                                                    </div>-->
+<!--                                                    <div class="col-sm-6">-->
+<!--                                                        <i class="bi bi-disc dropdown-item-icon"></i> <small>[[${loginDevice.browser}]]</small>-->
+<!--                                                    </div>-->
+<!--                                                </div>-->
+<!--                                            </li>-->
+<!--                                        </ul>-->
+<!--                                    </div>-->
+<!--                                    <div class="col-sm-12">-->
+<!--                                        <ul class="list-unstyled list-py-2 text-dark mt-2">-->
+<!--                                            <li class="pb-0"><span class="card-subtitle">地址信息</span></li>-->
+<!--                                            <li>-->
+<!--                                                <div class="row">-->
+<!--                                                    <div class="col-sm-6">-->
+<!--                                                        <i class="bi-geo-alt dropdown-item-icon"></i> <small>[[${loginDevice.location}]]</small>-->
+<!--                                                    </div>-->
+<!--                                                    <div class="col-sm-6">-->
+<!--                                                        <i class="bi-pin-map dropdown-item-icon"></i> <small>[[${loginDevice.loginIp}]]</small>-->
+<!--                                                    </div>-->
+<!--                                                </div>-->
+<!--                                            </li>-->
+<!--                                        </ul>-->
+<!--                                    </div>-->
+<!--                                </div>-->
+<!--                            </div>-->
+<!--                            &lt;!&ndash; End Body &ndash;&gt;-->
+<!--                        </div>-->
+<!--                        &lt;!&ndash; End Card &ndash;&gt;-->
+<!--                    </div>-->
+<!--                </div>-->
+
+                <!-- Card -->
+                <div class="card" th:if="${session.loginUser.status == 'certified'}">
+                    <div class="card-header card-header-content-md-between">
+                        <h4 class="card-header-title">流量包</h4>
+                        <a class="link" href="buy-flow-packages">更多</a>
+                    </div>
+                    <div class="card-body">
+                        <div th:if="${purchasedFlows.size() == 0}">
+                            当前没有可用的流量包，点击“更多”快去选购吧~
+                        </div>
+                        <div class="row" th:each="purchasedFlow :${purchasedFlows}">
+                            <span>[[${purchasedFlow.flowPackageName}]] - [[${purchasedFlow.flowPackageSizeString}]]</span>
+                            <!-- Progress -->
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="progress flex-grow-1" th:if="${purchasedFlow.percentageValue < 50}">
+                                    <div class="progress-bar bg-success" role="progressbar"
+                                         th:style="${'width:' +  purchasedFlow.percentage}"
+                                         aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <div class="progress flex-grow-1"
+                                     th:if="${purchasedFlow.percentageValue >= 50 && purchasedFlow.percentageValue < 70}">
+                                    <div class="progress-bar bg-warning" role="progressbar"
+                                         th:style="${'width:' +  purchasedFlow.percentage}"
+                                         aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <div class="progress flex-grow-1" th:if="${purchasedFlow.percentageValue >= 70}">
+                                    <div class="progress-bar bg-danger" role="progressbar"
+                                         th:style="${'width:' +  purchasedFlow.percentage}"
+                                         aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <span class="ms-4" th:text="${purchasedFlow.percentage}"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- End Card -->
+            </div>
+        </div>
+
+    </div>
+    <!-- End Content -->
+
+    <!-- Footer -->
+    <div th:replace="common/common-dashboard::#footer(curPage='dashboard')"></div>
+    <!-- End Footer -->
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- ========== SECONDARY CONTENTS ========== -->
+
+<!-- Activity -->
+<div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='dashboard')"></div>
+<!-- End Activity -->
+
+<!-- ========== END SECONDARY CONTENTS ========== -->
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+<!-- JS Implementing Plugins -->
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/daterangepicker/moment.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/daterangepicker/daterangepicker.js}"></script>
+<script th:src="@{dashboard/assets/vendor/chart.js/dist/chart.js}"></script>
+<script th:src="@{dashboard/assets/vendor/chartjs-chart-matrix/dist/chartjs-chart-matrix.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jsvectormap/dist/js/jsvectormap.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jsvectormap/dist/maps/world.js}"></script>
+<script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+
+<!-- JS Front -->
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+<script th:src="@{dashboard/assets/js/hs.theme-appearance-charts.js}"></script>
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/util/reg.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom_ceo.js}"></script>
+<script th:src="@{common/custom_cmo.js}"></script>
+<script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+<!-- JS Plugins Init. -->
+<script>
+    $(document).on('ready', function () {
+
+        HSCore.components.HSChartJS.init('.js-chart')
+
+        // 流量趋势 开始
+        var start = moment();
+        var end = moment();
+
+        async function cbFlux(start, end, lebel) {
+            let name = 'flux';
+            const rangeStart = start.clone();
+            const rangeEnd = end.clone();
+            $('#' + name + '-daterangepicker-predefined .' + name + '-daterangepicker-predefined-preview').html(rangeStart.format('YYYY/MM/DD') + ' - ' + rangeEnd.format('YYYY/MM/DD'));
+            let startTime = rangeStart.format('YYYY-MM-DD') + ' 00:00:00';
+            let endTime = rangeEnd.clone().add(1, 'days').format('YYYY-MM-DD') + ' 00:00:00'
+            if (!lebel || lebel === '今天') {
+
+            } else if (lebel === '昨天') {
+
+            } else if (lebel === '最近7天') {
+
+            } else if (lebel === '最近30天') {
+
+            } else if (lebel === '自定义范围') {
+                if (end.diff(start, 'day') > 30) {
+                    layerWarn("最大支持查询天数为30天！");
+                    return;
+                }
+            }
+            let result = await queryMyResourceStatistics(startTime, endTime);
+            if (result) {
+                let flux = result.resource_summary.flux;
+                let bs_flux = result.resource_summary.bs_flux;
+                let bw = result.resource_summary.bw;
+                let bs_bw = result.resource_summary.bs_bw;
+                $('#sum_flux').text(flux === undefined ? 0 : flux);
+                $('#sum_bs_flux').text(bs_flux === undefined ? 0 : bs_flux);
+                $('#sum_bw').text(bw === undefined ? 0 : bw);
+                $('#sum_bs_bw').text(bs_bw === undefined ? 0 : bs_bw);
+
+                const fluxChart = HSCore.components.HSChartJS.getItem('fluxChart');
+                fluxChart.data.labels = result.labels;
+                fluxChart.data.datasets[0].data = result.resource_detail.flux.data;
+                fluxChart.data.datasets[1].data = result.resource_detail.bs_flux.data;
+                fluxChart.options.plugins.tooltip.postfix = result.resource_detail.flux.unit;
+                fluxChart.update();
+                const bwChart = HSCore.components.HSChartJS.getItem('bwChart');
+                bwChart.data.labels = result.labels;
+                bwChart.data.datasets[0].data = result.resource_detail.bw.data;
+                bwChart.data.datasets[1].data = result.resource_detail.bs_bw.data;
+                bwChart.options.plugins.tooltip.postfix = result.resource_detail.bw.unit;
+                bwChart.update();
+            }
+        }
+
+        $('#flux-daterangepicker-predefined').daterangepicker({
+            startDate: start,
+            endDate: end,
+            "locale": {//汉化
+                format: "YYYY-MM-DD",
+                separator: " 至 ",
+                applyLabel: "应用",
+                cancelLabel: "取消",
+                customRangeLabel: "自定义范围",
+                daysOfWeek: ['日', '一', '二', '三', '四', '五', '六'],
+                monthNames: ['一月', '二月', '三月', '四月', '五月', '六月',
+                    '七月', '八月', '九月', '十月', '十一月', '十二月'],
+            },
+            ranges: {
+                '今天': [moment(), moment()],
+                '昨天': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                '最近7天': [moment().subtract(6, 'days'), moment()],
+                '最近30天': [moment().subtract(29, 'days'), moment()]
+            }
+        }, cbFlux);
+        cbFlux(start, end);
+        setInterval(function () {
+            if (document.hidden) {
+                return;
+            }
+            const picker = $('#flux-daterangepicker-predefined').data('daterangepicker');
+            if (!picker) {
+                return;
+            }
+            const today = moment();
+            if (today.isBetween(picker.startDate.clone().startOf('day'), picker.endDate.clone().endOf('day'), undefined, '[]')) {
+                cbFlux(picker.startDate.clone(), picker.endDate.clone(), picker.chosenLabel);
+            }
+        }, 60000);
+        // 流量趋势 结束
+
+
+    });
+
+    $.fn.textScroll = function () {
+        var p = $(this), c = p.children(), speed = 3000; //值越大速度越小
+        var cw = c.width(), pw = p.width();
+        var t = (cw / 100) * speed;
+        var f = null, t1 = 0;
+
+        function ani(tm) {
+            counttime();
+            c.animate({left: -cw}, tm, "linear", function () {
+                c.css({left: pw});
+                clearInterval(f);
+                t1 = 0;
+                t = ((cw + pw) / 100) * speed;
+                ani(t);
+            });
+        }
+
+        function counttime() {
+            f = setInterval(function () {
+                t1 += 10;
+            }, 10);
+        }
+
+        p.on({
+            mouseenter: function () {
+                c.stop(false, false);
+                clearInterval(f);
+                console.log(t1);
+            }, mouseleave: function () {
+                ani(t - t1);
+                console.log(t1);
+            }
+        });
+        ani(t);
+    }
+
+    $("#notice").textScroll();
+</script>
+
+<!-- JS Plugins Init. -->
+<script>
+    (function () {
+        window.onload = function () {
+
+
+            // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+            // =======================================================
+            new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+            // INITIALIZATION OF FORM SEARCH
+            // =======================================================
+            new HSFormSearch('.js-form-search')
+
+
+            // INITIALIZATION OF BOOTSTRAP DROPDOWN
+            // =======================================================
+            HSBsDropdown.init()
+
+
+            // INITIALIZATION OF CHARTJS
+            // =======================================================
+            // HSCore.components.HSChartJS.init('.js-chart')
+
+
+            // INITIALIZATION OF VECTOR MAP
+            // =======================================================
+
+            // INITIALIZATION OF SELECT
+            // =======================================================
+            HSCore.components.HSTomSelect.init('.js-select')
+        }
+    })()
+</script>
+
+<!-- Style Switcher JS -->
+
+<script>
+    (function () {
+        // STYLE SWITCHER
+        // =======================================================
+        const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+        const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+        // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+        const setActiveStyle = function () {
+            $variants.forEach($item => {
+                if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                    $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                    return $item.classList.add('active')
+                }
+
+                $item.classList.remove('active')
+            })
+        }
+
+        // Add a click event to all items of the dropdown to set the style
+        $variants.forEach(function ($item) {
+            $item.addEventListener('click', function () {
+                HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+            })
+        })
+
+        // Call the setActiveStyle on load page
+        setActiveStyle()
+
+        // Add event listener on change style to call the setActiveStyle function
+        window.addEventListener('on-hs-appearance-change', function () {
+            setActiveStyle()
+        })
+    })()
+</script>
+<!-- End Style Switcher JS -->
+</body>
+</html>
+
+<div th:replace="common/common-dashboard::#agent"></div>

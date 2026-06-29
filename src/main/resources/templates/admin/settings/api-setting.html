@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title>[[${websiteBaseConfig.websiteName}]] API 配置</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/quill/dist/quill.snow.css}" as="style">
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+        
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {
+                    "switcherSupport": true
+                },
+                "header": {
+                    "layoutMode": "default",
+                    "containerMode": "container-fluid"
+                },
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {
+                            "100": "#f9fafc",
+                            "900": "#1e2022"
+                        }
+                    },
+                    "font": "Inter"
+                }
+            },
+            "languageDirection": {
+                "lang": "en"
+            },
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {
+                    "*assets/js/theme-custom.js": ""
+                },
+                "build": {
+                    "*assets/js/theme-custom.js": "",
+                    "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"
+                }
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {
+                "src": "./src",
+                "dist": "./dist",
+                "build": "./build"
+            },
+            "fileNames": {
+                "dist": {
+                    "js": "theme.min.js",
+                    "css": "theme.min.css"
+                },
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl   footer-offset">
+
+    <script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+    <script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+    <!-- ========== HEADER ========== -->
+
+    <div th:replace="common/common-dashboard::header(curPage='api-setting', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+    <!-- ========== END HEADER ========== -->
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <!-- Navbar Vertical -->
+
+    <div th:replace="common/common-dashboard::aside(curPage='api-setting', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+    <main id="content" role="main" class="main">
+        <!-- Content -->
+        <div class="content container-fluid">
+            <!-- Page Header -->
+            <div class="page-header" style="padding-bottom: 5px;margin-bottom: 10px">
+                <div class="row align-items-end">
+                    <div class="col-sm mb-2 mb-sm-0">
+
+
+                        <h1 class="page-header-title">API 配置 <i class="bi-gear nav-icon"></i></h1>
+                    </div>
+                    <!-- End Col -->
+                </div>
+                <!-- End Row -->
+            </div>
+            <!-- End Page Header -->
+
+            <div class="row">
+                <div class="col-lg-3">
+                    <!-- Navbar -->
+                    <div class="navbar-expand-lg navbar-vertical mb-3 mb-lg-5">
+                        <!-- Navbar Toggle -->
+                        <!-- Navbar Toggle -->
+                        <div class="d-grid">
+                            <button type="button" class="navbar-toggler btn btn-white mb-3" data-bs-toggle="collapse" data-bs-target="#navbarVerticalNavMenu" aria-label="Toggle navigation" aria-expanded="false" aria-controls="navbarVerticalNavMenu">
+                <span class="d-flex justify-content-between align-items-center">
+                  <span class="text-dark">菜单</span>
+
+                  <span class="navbar-toggler-default">
+                    <i class="bi-list"></i>
+                  </span>
+
+                  <span class="navbar-toggler-toggled">
+                    <i class="bi-x"></i>
+                  </span>
+                </span>
+                        </button>
+                        </div>
+                        <!-- End Navbar Toggle -->
+                        <!-- End Navbar Toggle -->
+
+                        <!-- Navbar 折叠 -->
+                        <div id="navbarVerticalNavMenu" class="collapse navbar-collapse">
+                            <ul id="navbarSettings" class="js-sticky-block js-scrollspy card card-navbar-nav nav nav-tabs nav-lg nav-vertical" data-hs-sticky-block-options='{
+                     "parentSelector": "#navbarVerticalNavMenu",
+                     "targetSelector": "#header",
+                     "breakpoint": "lg",
+                     "startPoint": "#navbarVerticalNavMenu",
+                     "endPoint": "#stickyBlockEndPoint",
+                     "stickyOffsetTop": 20
+                   }'>
+                                <li class="nav-item" th:if="${#lists.contains(authorizedVendorCodes, 'huawei') or #lists.contains(authorizedVendorCodes, 'huawei_volcengine')}">
+                                    <a class="nav-link active" href="#wechatPayPart">
+                                        <i class="bi-at bi-cloud nav-icon"></i> 华为云
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#dnsConfigPart">
+                                        <i class="bi-at bi-globe2 nav-icon"></i> DNS解析
+                                    </a>
+                                </li>
+                                <li class="nav-item" th:if="${#lists.contains(authorizedVendorCodes, 'volcengine') or #lists.contains(authorizedVendorCodes, 'huawei_volcengine')}">
+                                    <a class="nav-link" href="#aliPayPart">
+                                        <i class="bi-at bi-cloud nav-icon"></i> 火山云
+                                    </a>
+                                </li>
+                                <li class="nav-item" th:if="${#lists.contains(authorizedVendorCodes, 'baishan')}">
+                                    <a class="nav-link" href="#whiteMountainPart">
+                                        <i class="bi-at bi-cloud nav-icon"></i> 白山云
+                                    </a>
+                                </li>
+                                <li class="nav-item" th:if="${#lists.contains(authorizedVendorCodes, 'tencent')}">
+                                    <a class="nav-link" href="#tencentCloudPart">
+                                        <i class="bi-at bi-cloud nav-icon"></i> 腾讯云
+                                    </a>
+                                </li>
+                                <li class="nav-item" th:if="${#lists.contains(authorizedVendorCodes, 'tencent_edgeone')}">
+                                    <a class="nav-link" href="#tencentEdgeOnePart">
+                                        <i class="bi-at bi-cloud nav-icon"></i> 腾讯云 EdgeOne
+                                    </a>
+                                </li>
+                                <li class="nav-item" th:if="${#lists.contains(authorizedVendorCodes, 'cdnetworks')}">
+                                    <a class="nav-link" href="#CDNetworksPart">
+                                        <i class="bi-at bi-cloud nav-icon"></i> CDNetworks
+                                    </a>
+                                </li>
+                                <li class="nav-item" th:if="${#lists.contains(authorizedVendorCodes, 'aliyun')}">
+                                    <a class="nav-link" href="#AliyunPart">
+                                        <i class="bi-at bi-cloud nav-icon"></i> 阿里云
+                                    </a>
+                                </li>
+                                <li class="nav-item" th:if="${false}">
+                                    <a class="nav-link" href="#WangsuPart">
+                                        <i class="bi-at bi-cloud nav-icon"></i> 网宿
+                                    </a>
+                                </li>
+                                <li class="nav-item" th:if="${#lists.contains(authorizedVendorCodes, 'baidu')}">
+                                    <a class="nav-link" href="#BaiduPart">
+                                        <i class="bi-at bi-cloud nav-icon"></i> 百度
+                                    </a>
+                                </li>
+                                <li class="nav-item" th:if="${#lists.contains(authorizedVendorCodes, 'kingsoft')}">
+                                    <a class="nav-link" href="#KingsoftPart">
+                                        <i class="bi-at bi-cloud nav-icon"></i> 金山云
+                                    </a>
+                                </li>
+                                <li class="nav-item" th:if="${#lists.contains(authorizedVendorCodes, 'huawei_volcengine')}">
+                                    <a class="nav-link" href="#mergePart">
+                                        <i class="bi-at bi-cloud nav-icon"></i> 调度配置
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                        <!-- End Navbar 折叠 -->
+                    </div>
+                    <!-- End Navbar -->
+                </div>
+
+                <div class="col-lg-9">
+                    <div class="d-grid gap-3 gap-lg-5">
+
+                        <div id="dnsConfigPart" class="card">
+                            <div class="card-header">
+                                <h4 class="card-title">DNS解析配置</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-soft-primary mb-4" role="alert">
+                                    用于系统自动生成 CNAME 解析记录。这里配置的是腾讯 DNSPod 权限，不是腾讯云 CDN 厂商接口。
+                                </div>
+
+                                <div class="row mb-4">
+                                    <label for="dnsPrimaryDomain" class="col-sm-3 col-form-label form-label">
+                                        CNAME主域名
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="例如 touaaa.com，系统会在这个域名下创建客户域名对应的 CNAME 记录"></i>
+                                    </label>
+                                    <div class="col-sm-9">
+                                        <input th:value="${dnsConfig} eq null ? '' : ${dnsConfig.primaryDomain}"
+                                               type="text" class="form-control" id="dnsPrimaryDomain" maxlength="255"
+                                               placeholder="请输入CNAME主域名，例如 touaaa.com">
+                                    </div>
+                                </div>
+
+                                <div class="row mb-4">
+                                    <label for="dnsDomainTtl" class="col-sm-3 col-form-label form-label">TTL</label>
+                                    <div class="col-sm-9">
+                                        <input th:value="${dnsConfig == null or dnsConfig.domainTtl == null ? '600' : dnsConfig.domainTtl}"
+                                               type="number" class="form-control" id="dnsDomainTtl" min="1" maxlength="10"
+                                               placeholder="请输入TTL，默认600">
+                                    </div>
+                                </div>
+
+                                <div class="row mb-4">
+                                    <label for="dnsSecretId" class="col-sm-3 col-form-label form-label">
+                                        SecretId
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="腾讯云 DNSPod API SecretId，需要有该主域名的解析管理权限"></i>
+                                    </label>
+                                    <div class="col-sm-9">
+                                        <input th:value="${dnsConfig} eq null ? '' : ${dnsConfig.secretId}"
+                                               type="text" class="form-control" id="dnsSecretId" maxlength="500"
+                                               placeholder="请输入腾讯云DNS SecretId">
+                                    </div>
+                                </div>
+
+                                <div class="row mb-4">
+                                    <label for="dnsSecretKey" class="col-sm-3 col-form-label form-label">
+                                        SecretKey
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="腾讯云 DNSPod API SecretKey"></i>
+                                    </label>
+                                    <div class="col-sm-9">
+                                        <input th:value="${dnsConfig} eq null ? '' : ${dnsConfig.secretKey}"
+                                               type="text" class="form-control" id="dnsSecretKey" maxlength="500"
+                                               placeholder="请输入腾讯云DNS SecretKey">
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-end">
+                                    <button type="button" onclick="saveDnsConfig()" class="btn btn-primary">保存更改</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card -->
+                        <div id="wechatPayPart" class="card" th:if="${#lists.contains(authorizedVendorCodes, 'huawei') or #lists.contains(authorizedVendorCodes, 'huawei_volcengine')}">
+                            <div class="card-header">
+                                <h2 class="card-title h4">华为云</h2>
+                            </div>
+                            <!-- Body -->
+                            <div class="card-body">
+                                <!-- Form -->
+                                <form>
+
+                                    <!-- Form -->
+                                    <div class="row mb-4">
+                                        <label for="huaWeiCloudProjectName" class="col-sm-3 col-form-label form-label">项目名
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="项目名"></i>
+                                    </label>
+
+                                        <div class="col-sm-9">
+                                            <input th:value="${huaWeiCloudApiConfig} eq null ? '' : ${huaWeiCloudApiConfig.huaWeiCloudProjectName}" type="text" class="form-control" id="huaWeiCloudProjectName" maxlength="300" placeholder="请输入项目名">
+                                        </div>
+                                    </div>
+                                    <!-- End Form -->
+
+                                    <!-- Form -->
+                                    <div class="row mb-4">
+                                        <label for="huaWeiCloudAk" class="col-sm-3 col-form-label form-label">AK
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="华为云AK"></i>
+                                    </label>
+
+                                        <div class="col-sm-9">
+                                            <input th:value="${huaWeiCloudApiConfig} eq null ? '' : ${huaWeiCloudApiConfig.huaWeiCloudAk}" type="text" class="form-control" id="huaWeiCloudAk" maxlength="500" placeholder="请输入华为云AK">
+                                        </div>
+                                    </div>
+                                    <!-- End Form -->
+
+                                    <!-- Form -->
+                                    <div class="row mb-4">
+                                        <label for="huaWeiCloudSk" class="col-sm-3 col-form-label form-label">SK
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="华为云SK"></i>
+                                    </label>
+
+                                        <div class="col-sm-9">
+                                            <input th:value="${huaWeiCloudApiConfig} eq null ? '' : ${huaWeiCloudApiConfig.huaWeiCloudSk}" type="text" class="form-control" id="huaWeiCloudSk" maxlength="500" placeholder="请输入华为云SK">
+                                        </div>
+                                    </div>
+                                    <!-- End Form -->
+
+                                </form>
+                                <div class="d-flex justify-content-end">
+                                    <button onclick="saveHuaWeiCloudConfig()" class="btn btn-primary">保存更改
+                                </button>
+                                </div>
+                                <!-- End Form -->
+                            </div>
+                            <!-- End Body -->
+                        </div>
+                        <!-- End Card -->
+
+                        <!-- Card -->
+                        <div id="aliPayPart" class="card" th:if="${#lists.contains(authorizedVendorCodes, 'volcengine') or #lists.contains(authorizedVendorCodes, 'huawei_volcengine')}">
+                            <div class="card-header">
+                                <h4 class="card-title">火山云</h4>
+                            </div>
+                            <!-- Body -->
+                            <div class="card-body">
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="volcanicCloudProjectName" class="col-sm-3 col-form-label form-label">项目名
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="项目名"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${volcanicCloudApiConfig} eq null ? '' : ${volcanicCloudApiConfig.volcanicCloudProjectName}" type="text" class="form-control" id="volcanicCloudProjectName" maxlength="300" placeholder="请输入项目名">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="volcanicCloudAk" class="col-sm-3 col-form-label form-label">AK
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="火山云AK"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${volcanicCloudApiConfig} eq null ? '' : ${volcanicCloudApiConfig.volcanicCloudAk}" type="text" class="form-control" id="volcanicCloudAk" maxlength="500" placeholder="请输入AK">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="volcanicCloudSk" class="col-sm-3 col-form-label form-label">SK
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="火山云SK"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${volcanicCloudApiConfig} eq null ? '' : ${volcanicCloudApiConfig.volcanicCloudSk}" type="text" class="form-control" id="volcanicCloudSk" maxlength="500" placeholder="请输入SK">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <div class="d-flex justify-content-end">
+                                    <button onclick="saveVolcanicCloudConfig()" class="btn btn-primary">保存更改
+                                </button>
+                                </div>
+                            </div>
+                            <!-- End Body -->
+                        </div>
+                        <!-- End Card -->
+
+                        <!-- Card -->
+                        <div id="whiteMountainPart" class="card" th:if="${#lists.contains(authorizedVendorCodes, 'baishan')}">
+                            <div class="card-header">
+                                <h4 class="card-title">白山云</h4>
+                            </div>
+                            <!-- Body -->
+                            <div class="card-body">
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="whiteMountainCloudProjectName" class="col-sm-3 col-form-label form-label">项目名
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="项目名"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${whiteMountainCloudApiConfig} eq null ? '' : ${whiteMountainCloudApiConfig.whiteMountainCloudProjectName}" type="text" class="form-control" id="whiteMountainCloudProjectName" maxlength="300" placeholder="请输入项目名">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="whiteMountainCloudBaseApi" class="col-sm-3 col-form-label form-label">API
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="白山云基础API"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${whiteMountainCloudApiConfig} eq null ? '' : ${whiteMountainCloudApiConfig.whiteMountainCloudBaseApi}" type="text" class="form-control" id="whiteMountainCloudBaseApi" maxlength="500" placeholder="请输入API">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="whiteMountainCloudToken" class="col-sm-3 col-form-label form-label">token
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="白山云token"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${whiteMountainCloudApiConfig} eq null ? '' : ${whiteMountainCloudApiConfig.whiteMountainCloudToken}" type="text" class="form-control" id="whiteMountainCloudToken" maxlength="500" placeholder="请输入token">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <div class="d-flex justify-content-end">
+                                    <button onclick="saveWhiteMountainCloudConfig()" class="btn btn-primary">保存更改
+                                </button>
+                                </div>
+                            </div>
+                            <!-- End Body -->
+                        </div>
+                        <!-- End Card -->
+
+                        <!-- Card -->
+                        <div id="tencentCloudPart" class="card" th:if="${#lists.contains(authorizedVendorCodes, 'tencent')}">
+                            <div class="card-header">
+                                <h4 class="card-title">腾讯云</h4>
+                            </div>
+                            <!-- Body -->
+                            <div class="card-body">
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="tencentCloudProjectName" class="col-sm-3 col-form-label form-label">项目名
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="项目名"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${tencentCloudApiConfig} eq null ? '' : ${tencentCloudApiConfig.tencentCloudProjectName}" type="text" class="form-control" id="tencentCloudProjectName" maxlength="300" placeholder="请输入项目名">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="tencentCloudSecretId" class="col-sm-3 col-form-label form-label">SecretId
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="腾讯云SecretId"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${tencentCloudApiConfig} eq null ? '' : ${tencentCloudApiConfig.tencentCloudSecretId}" type="text" class="form-control" id="tencentCloudSecretId" maxlength="500" placeholder="请输入SecretId">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="tencentCloudSecretKey" class="col-sm-3 col-form-label form-label">SecretKey
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="腾讯云SecretKey"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${tencentCloudApiConfig} eq null ? '' : ${tencentCloudApiConfig.tencentCloudSecretKey}" type="text" class="form-control" id="tencentCloudSecretKey" maxlength="500" placeholder="请输入SecretKey">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+
+
+                                <div class="d-flex justify-content-end">
+                                    <button type="button" onclick="saveTencentCloudConfig()" class="btn btn-primary">保存更改
+                                </button>
+                                </div>
+                            </div>
+                            <!-- End Body -->
+                        </div>
+                        <!-- End Card -->
+
+                        <!-- Card -->
+                        <!-- Card -->
+                        <div id="tencentEdgeOnePart" class="card" th:if="${#lists.contains(authorizedVendorCodes, 'tencent_edgeone')}">
+                            <div class="card-header">
+                                <h4 class="card-title">腾讯云 EdgeOne</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-4">
+                                    <label for="tencentEdgeOneProjectName" class="col-sm-3 col-form-label form-label">项目名</label>
+                                    <div class="col-sm-9">
+                                        <input th:value="${tencentEdgeOneApiConfig} eq null ? '' : ${tencentEdgeOneApiConfig.projectName}" type="text" class="form-control" id="tencentEdgeOneProjectName" maxlength="300" placeholder="请输入项目名">
+                                    </div>
+                                </div>
+
+                                <div class="row mb-4">
+                                    <label for="tencentEdgeOneTagValue" class="col-sm-3 col-form-label form-label">授权标签值</label>
+                                    <div class="col-sm-9">
+                                        <input th:value="${tencentEdgeOneApiConfig == null ? '' : (#strings.isEmpty(tencentEdgeOneApiConfig.tagValue) ? tencentEdgeOneApiConfig.projectName : tencentEdgeOneApiConfig.tagValue)}" type="text" class="form-control" id="tencentEdgeOneTagValue" maxlength="300" placeholder="请输入 eo-user 标签值，例如 ljfcdn">
+                                        <span class="form-text">创建 EdgeOne 根站点时会写入腾讯云标签：eo-user = 此处填写的值。</span>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-4">
+                                    <label for="tencentEdgeOneSecretId" class="col-sm-3 col-form-label form-label">SecretId</label>
+                                    <div class="col-sm-9">
+                                        <input th:value="${tencentEdgeOneApiConfig} eq null ? '' : ${tencentEdgeOneApiConfig.secretId}" type="text" class="form-control" id="tencentEdgeOneSecretId" maxlength="500" placeholder="请输入 EdgeOne SecretId">
+                                    </div>
+                                </div>
+
+                                <div class="row mb-4">
+                                    <label for="tencentEdgeOneSecretKey" class="col-sm-3 col-form-label form-label">SecretKey</label>
+                                    <div class="col-sm-9">
+                                        <input th:value="${tencentEdgeOneApiConfig} eq null ? '' : ${tencentEdgeOneApiConfig.secretKey}" type="text" class="form-control" id="tencentEdgeOneSecretKey" maxlength="500" placeholder="请输入 EdgeOne SecretKey">
+                                    </div>
+                                </div>
+
+                                <div class="row mb-4">
+                                    <label for="tencentEdgeOnePlanId" class="col-sm-3 col-form-label form-label">套餐ID PlanId</label>
+                                    <div class="col-sm-9">
+                                        <input th:value="${tencentEdgeOneApiConfig} eq null ? '' : ${tencentEdgeOneApiConfig.planId}" type="text" class="form-control" id="tencentEdgeOnePlanId" maxlength="200" placeholder="请输入腾讯云 EdgeOne 套餐ID，例如 edgeone-xxxx">
+                                        <span class="form-text">创建 EdgeOne 根域名站点前必须绑定套餐，否则腾讯云会拒绝创建加速域名。</span>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-end">
+                                    <button type="button" onclick="saveTencentEdgeOneConfig()" class="btn btn-primary">保存更改</button>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- End Card -->
+
+                        <div id="CDNetworksPart" class="card" th:if="${#lists.contains(authorizedVendorCodes, 'cdnetworks')}">
+                            <div class="card-header">
+                                <h4 class="card-title">CDNetworks</h4>
+                            </div>
+                            <!-- Body -->
+                            <div class="card-body">
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="cdnetworksProjectName" class="col-sm-3 col-form-label form-label">项目名
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="项目名"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${cdnetworksApiConfig} eq null ? '' : ${cdnetworksApiConfig.cdnetworksProjectName}" type="text" class="form-control" id="cdnetworksProjectName" maxlength="300" placeholder="请输入项目名">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="cdnetworksAccessKey" class="col-sm-3 col-form-label form-label">AccessKey
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="CDNetworks AccessKey"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${cdnetworksApiConfig} eq null ? '' : ${cdnetworksApiConfig.cdnetworksAccessKey}" type="text" class="form-control" id="cdnetworksAccessKey" maxlength="500" placeholder="请输入AccessKey">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="cdnetworksSecretKey" class="col-sm-3 col-form-label form-label">SecretKey
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="CDNetworks SecretKey"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${cdnetworksApiConfig} eq null ? '' : ${cdnetworksApiConfig.cdnetworksSecretKey}" type="text" class="form-control" id="cdnetworksSecretKey" maxlength="500" placeholder="请输入SecretKey">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <div class="d-flex justify-content-end">
+                                    <button onclick="saveCDNetworksConfig()" class="btn btn-primary">保存更改
+                                </button>
+                                </div>
+                            </div>
+                            <!-- End Body -->
+                        </div>
+                        <!-- End Card -->
+
+                        <!-- Card -->
+                        <div id="AliyunPart" class="card" th:if="${#lists.contains(authorizedVendorCodes, 'aliyun')}">
+                            <div class="card-header">
+                                <h4 class="card-title">阿里云 CDN</h4>
+                            </div>
+                            <!-- Body -->
+                            <div class="card-body">
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="aliyunCdnProjectName" class="col-sm-3 col-form-label form-label">项目名
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="项目名"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${aliyunCdnConfig} eq null ? '' : ${aliyunCdnConfig.projectName}" type="text" class="form-control" id="aliyunCdnProjectName" maxlength="300" placeholder="请输入项目名">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="aliyunCdnAccessKeyId" class="col-sm-3 col-form-label form-label">AccessKey
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="Aliyun AccessKeyId"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${aliyunCdnConfig} eq null ? '' : ${aliyunCdnConfig.accessKeyId}" type="text" class="form-control" id="aliyunCdnAccessKeyId" maxlength="500" placeholder="请输入 AccessKeyId">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="aliyunCdnAccessKeySecret" class="col-sm-3 col-form-label form-label">SecretKey
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="Aliyun AccessKeySecret"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${aliyunCdnConfig} eq null ? '' : ${aliyunCdnConfig.accessKeySecret}" type="text" class="form-control" id="aliyunCdnAccessKeySecret" maxlength="500" placeholder="请输入 AccessKeySecret">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <div class="d-flex justify-content-end">
+                                    <button onclick="saveAliyunCdnConfig()" class="btn btn-primary">保存更改
+                                </button>
+                                </div>
+                            </div>
+                            <!-- End Body -->
+                        </div>
+                        <!-- End Card -->
+
+                        <!-- Card -->
+                        <div id="WangsuPart" class="card" th:if="${false}">
+                            <div class="card-header">
+                                <h4 class="card-title">网宿 CDN</h4>
+                            </div>
+                            <!-- Body -->
+                            <div class="card-body">
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="wangsuCdnAccessKey" class="col-sm-3 col-form-label form-label">AccessKey
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="网宿 AccessKey"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${wangsuCdnConfig} eq null ? '' : ${wangsuCdnConfig.accessKey}" type="text" class="form-control" id="wangsuCdnAccessKey" maxlength="500" placeholder="请输入 AccessKey">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="wangsuCdnSecretKey" class="col-sm-3 col-form-label form-label">SecretKey
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="网宿 SecretKey"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${wangsuCdnConfig} eq null ? '' : ${wangsuCdnConfig.secretKey}" type="text" class="form-control" id="wangsuCdnSecretKey" maxlength="500" placeholder="请输入 SecretKey">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <div class="d-flex justify-content-end">
+                                    <button onclick="saveWangsuCdnConfig()" class="btn btn-primary">保存更改
+                                </button>
+                                </div>
+                            </div>
+                            <!-- End Body -->
+                        </div>
+                        <!-- End Card -->
+
+                        <!-- Card -->
+                        <div id="BaiduPart" class="card" th:if="${#lists.contains(authorizedVendorCodes, 'baidu')}">
+                            <div class="card-header">
+                                <h4 class="card-title">百度 CDN</h4>
+                            </div>
+                            <!-- Body -->
+                            <div class="card-body">
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="baiduCdnAccessKeyId" class="col-sm-3 col-form-label form-label">AccessKeyId
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="百度 AccessKeyId"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${baiduCdnConfig} eq null ? '' : ${baiduCdnConfig.accessKeyId}" type="text" class="form-control" id="baiduCdnAccessKeyId" maxlength="500" placeholder="请输入 AccessKeyId">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="baiduCdnSecretAccessKey" class="col-sm-3 col-form-label form-label">SecretAccessKey
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="百度 SecretAccessKey"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${baiduCdnConfig} eq null ? '' : ${baiduCdnConfig.secretAccessKey}" type="text" class="form-control" id="baiduCdnSecretAccessKey" maxlength="500" placeholder="请输入 SecretAccessKey">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <div class="d-flex justify-content-end">
+                                    <button onclick="saveBaiduCdnConfig()" class="btn btn-primary">保存更改
+                                </button>
+                                </div>
+                            </div>
+                            <!-- End Body -->
+                        </div>
+                        <!-- End Card -->
+
+                        <!-- Card -->
+                        <div id="KingsoftPart" class="card" th:if="${#lists.contains(authorizedVendorCodes, 'kingsoft')}">
+                            <div class="card-header">
+                                <h4 class="card-title">金山云 CDN</h4>
+                            </div>
+                            <!-- Body -->
+                            <div class="card-body">
+
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="kingsoftCdnAccessKey" class="col-sm-3 col-form-label form-label">AccessKey
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="金山云AccessKey"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${kingsoftCdnConfig} eq null ? '' : ${kingsoftCdnConfig.accessKey}" type="text" class="form-control" id="kingsoftCdnAccessKey" maxlength="500" placeholder="请输入AccessKey">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="kingsoftCdnSecretKey" class="col-sm-3 col-form-label form-label">SecretKey
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="金山云SecretKey"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${kingsoftCdnConfig} eq null ? '' : ${kingsoftCdnConfig.secretKey}" type="text" class="form-control" id="kingsoftCdnSecretKey" maxlength="500" placeholder="请输入SecretKey">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="kingsoftCdnEndpoint" class="col-sm-3 col-form-label form-label">Endpoint
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="金山云API端点"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${kingsoftCdnConfig} eq null ? 'cdn.api.ksyun.com' : ${kingsoftCdnConfig.endpoint}" type="text" class="form-control" id="kingsoftCdnEndpoint" maxlength="500" placeholder="请输入Endpoint，默认：cdn.api.ksyun.com">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="kingsoftCdnRegion" class="col-sm-3 col-form-label form-label">Region
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="金山云区域"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${kingsoftCdnConfig} eq null ? 'cn-shanghai-1' : ${kingsoftCdnConfig.region}" type="text" class="form-control" id="kingsoftCdnRegion" maxlength="500" placeholder="请输入Region，默认：cn-shanghai-1">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="kingsoftCdnServiceName" class="col-sm-3 col-form-label form-label">ServiceName
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="金山云服务名"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${kingsoftCdnConfig} eq null ? 'cdn' : ${kingsoftCdnConfig.serviceName}" type="text" class="form-control" id="kingsoftCdnServiceName" maxlength="500" placeholder="请输入ServiceName，默认：cdn">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <div class="row mb-4">
+                                    <label for="kingsoftCdnProjectId" class="col-sm-3 col-form-label form-label">ProjectId
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="Kingsoft project ID, optional"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${kingsoftCdnConfig} eq null ? '' : ${kingsoftCdnConfig.projectId}" type="text" class="form-control" id="kingsoftCdnProjectId" maxlength="100" placeholder="Optional. Leave blank to use default project">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <div class="d-flex justify-content-end">
+                                    <button onclick="saveKingsoftCdnConfig()" class="btn btn-primary">保存更改</button>
+                                </div>
+                            </div>
+                            <!-- End Body -->
+                        </div>
+                        <!-- End Card -->
+
+                        <!-- Card -->
+                        <div id="mergePart" class="card" th:if="${#lists.contains(authorizedVendorCodes, 'huawei_volcengine')}">
+                            <div class="card-header">
+                                <h4 class="card-title">调度配置</h4>
+                            </div>
+                            <!-- Body -->
+                            <div class="card-body">
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="huaweiWorkHours" class="col-sm-3 col-form-label form-label">华为调度时间
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="华为调度时间"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${mergeCdnApiConfig} eq null ? '' : ${mergeCdnApiConfig.huaweiWorkHours}" type="text" class="form-control" id="huaweiWorkHours" maxlength="500" placeholder="请输入0-23之间的数字，多个数字以英文 ; 分割。华为与火山的配置时间不可交叉。">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="volcanicWorkHours" class="col-sm-3 col-form-label form-label">火山调度时间
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="火山调度时间"></i>
+                                </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${mergeCdnApiConfig} eq null ? '' : ${mergeCdnApiConfig.volcanicWorkHours}" type="text" class="form-control" id="volcanicWorkHours" maxlength="500" placeholder="请输入0-23之间的数字，多个数字以英文 ; 分割。华为与火山的配置时间不可交叉。">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <div class="d-flex justify-content-end">
+                                    <button onclick="saveMergeCdnApiConfig()" class="btn btn-primary">保存更改
+                                </button>
+                                </div>
+                            </div>
+                            <!-- End Body -->
+                        </div>
+                        <!-- End Card -->
+                    </div>
+
+                    <!-- Sticky Block End Point -->
+                    <div id="stickyBlockEndPoint"></div>
+                </div>
+            </div>
+            <!-- End Row -->
+        </div>
+        <!-- End Content -->
+
+        <!-- Footer -->
+
+        <div th:replace="common/common-dashboard::#footer(curPage='api-setting')"></div>
+
+        <!-- End Footer -->
+    </main>
+    <!-- ========== END MAIN CONTENT ========== -->
+
+    <!-- Activity -->
+    <div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='api-setting')"></div>
+    <!-- End Activity -->
+
+    <!-- ========== END SECONDARY CONTENTS ========== -->
+
+    <!-- JS Global Compulsory  -->
+    <script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+    <!-- JS Implementing Plugins -->
+    <script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+    <script th:src="@{dashboard/assets/vendor/hs-file-attach/dist/hs-file-attach.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/hs-sticky-block/dist/hs-sticky-block.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/hs-scrollspy/dist/hs-scrollspy.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/imask/dist/imask.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/quill/dist/quill.min.js}"></script>
+
+    <!-- JS Front -->
+    <script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+
+    <script th:src="@{common/layer/layer.js}"></script>
+    <script th:src="@{common/util/reg.js}"></script>
+    <script th:src="@{common/custom.js}"></script>
+    <script th:src="@{common/custom_ceo.js}"></script>
+    <script th:src="@{common/custom_cmo.js}"></script>
+    <script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+    <!-- JS Plugins Init. -->
+    <script>
+        (function() {
+            window.onload = function() {
+
+                // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+                // =======================================================
+                new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+                // INITIALIZATION OF FORM SEARCH
+                // =======================================================
+                new HSFormSearch('.js-form-search')
+
+
+                // INITIALIZATION OF BOOTSTRAP DROPDOWN
+                // =======================================================
+                HSBsDropdown.init()
+
+
+                // INITIALIZATION OF SELECT
+                // =======================================================
+                HSCore.components.HSTomSelect.init('.js-select')
+
+                // INITIALIZATION OF QUILLJS EDITOR
+                // =======================================================
+                HSCore.components.HSQuill.init('.js-quill')
+
+
+                // INITIALIZATION OF INPUT MASK
+                // =======================================================
+                HSCore.components.HSMask.init('.js-input-mask')
+
+                // INITIALIZATION OF FILE ATTACHMENT
+                // =======================================================
+                new HSFileAttach('.js-file-attach')
+
+
+                // INITIALIZATION OF STICKY BLOCKS
+                // =======================================================
+                new HSStickyBlock('.js-sticky-block', {
+                    targetSelector: document.getElementById('header').classList.contains('navbar-fixed') ? '#header' : null
+                })
+
+                // SCROLLSPY
+                // =======================================================
+                new bootstrap.ScrollSpy(document.body, {
+                    target: '#navbarSettings',
+                    offset: 100
+                })
+
+                new HSScrollspy('#navbarVerticalNavMenu', {
+                    breakpoint: 'lg',
+                    scrollOffset: -20
+                })
+            }
+        })()
+    </script>
+
+    <!-- Style Switcher JS -->
+
+    <script>
+        (function() {
+            // STYLE SWITCHER
+            // =======================================================
+            const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+            const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+            // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+            const setActiveStyle = function() {
+                $variants.forEach($item => {
+                    if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                        $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                        return $item.classList.add('active')
+                    }
+
+                    $item.classList.remove('active')
+                })
+            }
+
+            // Add a click event to all items of the dropdown to set the style
+            $variants.forEach(function($item) {
+                $item.addEventListener('click', function() {
+                    HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+                })
+            })
+
+            // Call the setActiveStyle on load page
+            setActiveStyle()
+
+            // Add event listener on change style to call the setActiveStyle function
+            window.addEventListener('on-hs-appearance-change', function() {
+                setActiveStyle()
+            })
+        })()
+    </script>
+
+    <!-- End Style Switcher JS -->
+</body>
+
+</html>
+

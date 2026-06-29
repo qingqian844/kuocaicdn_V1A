@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>CDN Domain Statistics</title>
+    <link rel="stylesheet" th:href="@{/dashboard/assets/css/theme.min.css}">
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl footer-offset">
+
+    <script th:src="@{/dashboard/assets/js/hs.theme-appearance.js}"></script>
+    <script th:src="@{/dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+    <!-- ========== HEADER ========== -->
+    <div th:replace="~{common/common-dashboard::#header(curPage='statistics')}"></div>
+    <!-- ========== END HEADER ========== -->
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <div th:replace="~{common/common-dashboard::#aside(curPage='statistics')}"></div>
+
+    <main id="content" role="main" class="main">
+        <div class="content container-fluid">
+            <div class="page-header">
+                <div class="row align-items-center">
+                    <div class="col-sm mb-2 mb-sm-0">
+                        <h1 class="page-header-title">CDN Domain Statistics</h1>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <p>Statistics will be displayed here.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div th:replace="~{common/common-dashboard::#footer(curPage='statistics')}"></div>
+        <!-- End Footer -->
+    </main>
+    <!-- ========== END MAIN CONTENT ========== -->
+
+    <script th:src="@{/dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+    <script th:src="@{/dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+    <script th:src="@{/dashboard/assets/js/theme.min.js}"></script>
+
+</body>
+
+</html>

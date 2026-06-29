@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>后台公共部分</title>
+</head>
+<body>
+<header id="header"
+        class="navbar navbar-expand-lg navbar-fixed navbar-height navbar-container navbar-bordered bg-white"
+        th:fragment="header(curPage, dashboardLogo, dashboardIcon)">
+    <div class="navbar-nav-wrap">
+
+        <!-- Logo -->
+        <a class="navbar-brand" href="/dashboard" aria-label="Front">
+            <img class="navbar-brand-logo" th:src="${dashboardLogo != null and !#strings.isEmpty(dashboardLogo)} ? ${dashboardLogo} : @{/image/f96b75d4a78a3eea3837c7150316fe25.png}" alt="Logo" data-hs-theme-appearance="default">
+            <img class="navbar-brand-logo" th:src="${dashboardLogo != null and !#strings.isEmpty(dashboardLogo)} ? ${dashboardLogo} : @{/image/f96b75d4a78a3eea3837c7150316fe25.png}" alt="Logo" data-hs-theme-appearance="dark">
+            <img class="navbar-brand-logo-mini" th:src="${dashboardIcon != null and !#strings.isEmpty(dashboardIcon)} ? ${dashboardIcon} : @{/image/4b05f2ef00458ac8323812f98a073a72.png}" alt="Logo" data-hs-theme-appearance="default">
+            <img class="navbar-brand-logo-mini" th:src="${dashboardIcon != null and !#strings.isEmpty(dashboardIcon)} ? ${dashboardIcon} : @{/image/4b05f2ef00458ac8323812f98a073a72.png}" alt="Logo" data-hs-theme-appearance="dark">
+        </a>
+        <!-- End Logo -->
+
+        <div class="navbar-nav-wrap-content-start">
+            <!-- Navbar Vertical Toggle -->
+            <button type="button" class="js-navbar-vertical-aside-toggle-invoker navbar-aside-toggler">
+                <i class="bi-arrow-bar-left navbar-toggler-short-align"
+                   data-bs-template='<div class="tooltip d-none d-md-block" role="tooltip"><div class="arrow"></div><div class="tooltip-inner"></div></div>'
+                   data-bs-toggle="tooltip" data-bs-placement="right" title="折叠"></i>
+                <i class="bi-arrow-bar-right navbar-toggler-full-align"
+                   data-bs-template='<div class="tooltip d-none d-md-block" role="tooltip"><div class="arrow"></div><div class="tooltip-inner"></div></div>'
+                   data-bs-toggle="tooltip" data-bs-placement="right" title="展开"></i>
+            </button>
+
+            <!-- End Navbar Vertical Toggle -->
+
+            <!-- Search Form -->
+            <!--            <div class="dropdown ms-2">-->
+            <!--                &lt;!&ndash; Input Group &ndash;&gt;-->
+            <!--                <div class="d-none d-lg-block">-->
+            <!--                    <div class="input-group input-group-merge input-group-borderless input-group-hover-light navbar-input-group">-->
+            <!--                        <div class="input-group-prepend input-group-text">-->
+            <!--                            <i class="bi-search"></i>-->
+            <!--                        </div>-->
+
+            <!--                        <input type="search" class="js-form-search form-control" placeholder="输入你想搜索的关键词"-->
+            <!--                               aria-label="Search in front" data-hs-form-search-options='{-->
+            <!--                       "clearIcon": "#clearSearchResultsIcon",-->
+            <!--                       "dropMenuElement": "#searchDropdownMenu",-->
+            <!--                       "dropMenuOffset": 20,-->
+            <!--                       "toggleIconOnFocus": true,-->
+            <!--                       "activeClass": "focus"-->
+            <!--                     }'>-->
+            <!--                        <a class="input-group-append input-group-text" href="javascript:;">-->
+            <!--                            <i id="clearSearchResultsIcon" class="bi-x-lg" style="display: none;"></i>-->
+            <!--                        </a>-->
+            <!--                    </div>-->
+            <!--                </div>-->
+
+            <!--                <button class="js-form-search js-form-search-mobile-toggle btn btn-ghost-secondary btn-icon rounded-circle d-lg-none"-->
+            <!--                        type="button" data-hs-form-search-options='{-->
+            <!--                       "clearIcon": "#clearSearchResultsIcon",-->
+            <!--                       "dropMenuElement": "#searchDropdownMenu",-->
+            <!--                       "dropMenuOffset": 20,-->
+            <!--                       "toggleIconOnFocus": true,-->
+            <!--                       "activeClass": "focus"-->
+            <!--                     }'>-->
+            <!--                    <i class="bi-search"></i>-->
+            <!--                </button>-->
+            <!--                &lt;!&ndash; End Input Group &ndash;&gt;-->
+
+            <!--                &lt;!&ndash; Card Search Content &ndash;&gt;-->
+            <!--                <div id="searchDropdownMenu"-->
+            <!--                     class="hs-form-search-menu-content dropdown-menu dropdown-menu-form-search navbar-dropdown-menu-borderless">-->
+            <!--                    <div class="card">-->
+            <!--                        &lt;!&ndash; Body &ndash;&gt;-->
+            <!--                        <div class="card-body-height">-->
+            <!--                            <div class="d-lg-none">-->
+            <!--                                <div class="input-group input-group-merge navbar-input-group mb-5">-->
+            <!--                                    <div class="input-group-prepend input-group-text">-->
+            <!--                                        <i class="bi-search"></i>-->
+            <!--                                    </div>-->
+
+            <!--                                    <input type="search" class="form-control" placeholder="Search in front"-->
+            <!--                                           aria-label="Search in front">-->
+            <!--                                    <a class="input-group-append input-group-text" href="javascript:;">-->
+            <!--                                        <i class="bi-x-lg"></i>-->
+            <!--                                    </a>-->
+            <!--                                </div>-->
+            <!--                            </div>-->
+
+            <!--                            <span class="dropdown-header">最新搜索</span>-->
+
+            <!--                            <div class="dropdown-item bg-transparent text-wrap">-->
+            <!--                                <a class="btn btn-soft-dark btn-xs rounded-pill" href="index">-->
+            <!--                                    CDN <i class="bi-search ms-1"></i>-->
+            <!--                                </a>-->
+
+            <!--                            </div>-->
+
+            <!--                            <div class="dropdown-divider"></div>-->
+
+            <!--                            <span class="dropdown-header">模块1</span>-->
+
+            <!--                            <a class="dropdown-item" href="index">-->
+            <!--                                <div class="d-flex align-items-center">-->
+            <!--                                    <div class="flex-shrink-0">-->
+            <!--                      <span class="icon icon-soft-dark icon-xs icon-circle">-->
+            <!--                        <i class="bi-sliders"></i>-->
+            <!--                      </span>-->
+            <!--                                    </div>-->
+
+            <!--                                    <div class="flex-grow-1 text-truncate ms-2">-->
+            <!--                                        <span>结果1</span>-->
+            <!--                                    </div>-->
+            <!--                                </div>-->
+            <!--                            </a>-->
+
+            <!--                            <a class="dropdown-item" href="index">-->
+            <!--                                <div class="d-flex align-items-center">-->
+            <!--                                    <div class="flex-shrink-0">-->
+            <!--                      <span class="icon icon-soft-dark icon-xs icon-circle">-->
+            <!--                        <i class="bi-paint-bucket"></i>-->
+            <!--                      </span>-->
+            <!--                                    </div>-->
+
+            <!--                                    <div class="flex-grow-1 text-truncate ms-2">-->
+            <!--                                        <span>结果2</span>-->
+            <!--                                    </div>-->
+            <!--                                </div>-->
+            <!--                            </a>-->
+
+            <!--                            <div class="dropdown-divider"></div>-->
+
+            <!--                            <span class="dropdown-header">模块2</span>-->
+
+            <!--                        </div>-->
+            <!--                        &lt;!&ndash; End Body &ndash;&gt;-->
+
+            <!--                        &lt;!&ndash; Footer &ndash;&gt;-->
+            <!--                        <a class="card-footer text-center" href="index">-->
+            <!--                            查看全部结果 <i class="bi-chevron-right small"></i>-->
+            <!--                        </a>-->
+            <!--                        &lt;!&ndash; End Footer &ndash;&gt;-->
+            <!--                    </div>-->
+            <!--                </div>-->
+            <!--                &lt;!&ndash; End Card Search Content &ndash;&gt;-->
+
+            <!--            </div>-->
+
+            <!-- End Search Form -->
+        </div>
+        <style>
+            @keyframes fadeIn {
+                0%{
+                    opacity: 0;
+                    transform: translateY(2rem);
+                }
+                100%{
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            @keyframes fadeOut {
+                0%{
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+                100%{
+                    opacity: 0;
+                    transform: translateY(2rem);
+                }
+            }
+            .customer-manager {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+
+            }
+            .customer-manager-inner {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+                padding: 0.5rem;
+
+
+            }
+            .customer-manager-info {
+                display: none;
+                visibility: hidden;
+                flex-direction: column;
+                border-radius: 0.7rem;
+                padding: 1rem;
+                margin-top: 0;
+                height: 20rem;
+                width: 20rem;
+                position: absolute;
+                top: 30px;
+                /* align-items: center; */
+                justify-content: space-around;
+
+            }
+            .customer-manager-inner:hover +.customer-manager-info {
+                margin-top: 4rem;
+                animation: fadeIn 500ms;
+                visibility: visible;
+                display: flex;
+            }
+            .customer-manager-info:hover{
+                margin-top: 4rem;
+                visibility: visible;
+                display: flex;
+            }
+            @media only screen and (max-width: 580px) {
+                .customer-manager-inner:hover +.customer-manager-info {
+                    margin-top: 4rem;
+                    margin-right: 8rem;
+                    animation: fadeIn 500ms;
+                    visibility: visible;
+                    display: flex;
+                }
+            }
+            .title{
+                color: #325677;
+                font-size: 1.3rem;
+                display: flex;
+                flex-grow: 1;
+                justify-content: space-around;
+                align-items: center;
+
+            }
+            .cm-img{
+                width: 80%;
+                height: 80%;
+                align-self: center;
+            }
+            .cm-icon{
+                width: 50%;
+                height: 50%;
+            }
+            .cm-user-head{
+                margin-left: 1.5rem;
+                width: 15%;
+
+
+            }
+            .cm-info{
+                display: flex;
+                flex-direction: column;
+                margin-right: 1.5rem;
+                font-size: 1rem;
+            }
+            .customer-manager {
+                display: none !important;
+            }
+        </style>
+
+        <div class="navbar-nav-wrap-content-end">
+            <!-- Navbar -->
+            <ul class="navbar-nav">
+                <li>
+                    <div class="customer-manager" th:if="${!openAgent}" >
+                        <div class="customer-manager-inner">
+                            <img src="common/default-avatar.png" alt="加载失败" class="cm-icon">
+                        </div>
+                        <div class="customer-manager-info card">
+                            <div class="title">
+                                <img src="common/default-avatar.png" alt="加载失败" class="cm-user-head">
+                                <div class="cm-info">
+                                    <span>联系客户经理</span>
+                                    <span>电话：0459-6662886</span>
+                                </div>
+                            </div>
+                            <img src="common/default-avatar.png" alt="加载失败" class="cm-img">
+                        </div>
+                        <!-- <div class="customer-manager-info card">
+                            <div class="title">
+                                <img src="https://kuocaicdn.com/image/68f29eb92991153770f23cb3f7caca99.png" alt="加载失败" class="cm-user-head">
+                                <div class="cm-info">
+                                    <span>客户经理:文嘉</span>
+                                    <span>电话:0459-6662886</span>
+                                </div>
+                            </div>
+                            <img src="https://assets.truimo.com/images/kf/f8e309cfb0db1ad95f8c88a86bc2288b.jpg" alt="加载失败" class="cm-img">
+                        </div> -->
+                    </div>
+                </li>
+                <li class="nav-item d-none d-sm-inline-block">
+                    <!-- Notification -->
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-ghost-secondary btn-icon rounded-circle"
+                                id="navbarNotificationsDropdown" data-bs-toggle="dropdown" aria-expanded="false"
+                                data-bs-auto-close="outside" data-bs-dropdown-animation>
+                            <i class="bi-bell"></i>
+                            <span class="btn-status btn-sm-status btn-status-danger"
+                                  th:if="${unReadMessages.size() > 0}"></span>
+                        </button>
+
+                        <div class="dropdown-menu dropdown-menu-end dropdown-card navbar-dropdown-menu navbar-dropdown-menu-borderless"
+                             aria-labelledby="navbarNotificationsDropdown" style="width: 25rem;">
+                            <div class="card">
+                                <!-- Header -->
+                                <div class="card-header card-header-content-between">
+                                    <h4 class="card-title mb-0">我的消息</h4>
+
+                                    <!-- Unfold -->
+                                    <div class="dropdown">
+                                        <button type="button"
+                                                class="btn btn-icon btn-sm btn-ghost-secondary rounded-circle"
+                                                id="navbarNotificationsDropdownSettings" data-bs-toggle="dropdown"
+                                                aria-expanded="false">
+                                            <i class="bi-three-dots-vertical"></i>
+                                        </button>
+
+                                        <div class="dropdown-menu dropdown-menu-end navbar-dropdown-menu navbar-dropdown-menu-borderless"
+                                             aria-labelledby="navbarNotificationsDropdownSettings">
+                                            <span class="dropdown-header">设置</span>
+                                            <button class="dropdown-item" onclick="readAllMessage()">
+                                                <i class="bi-eye-fill dropdown-item-icon"></i> 全部已读
+                                            </button>
+
+                                        </div>
+                                    </div>
+                                    <!-- End Unfold -->
+                                </div>
+                                <!-- End Header -->
+
+                                <!-- Nav -->
+                                <ul class="nav nav-tabs nav-justified" id="notificationTab" role="tablist">
+                                    <li class="nav-item">
+                                        <a class="nav-link active" href="#notificationNavOne"
+                                           id="notificationNavOne-tab" data-bs-toggle="tab"
+                                           data-bs-target="#notificationNavOne" role="tab"
+                                           aria-controls="notificationNavOne" aria-selected="true">未读消息([[${unReadMessages.size()}]])</a>
+                                    </li>
+                                </ul>
+                                <!-- End Nav -->
+
+                                <!-- Body -->
+                                <div class="card-body-height">
+                                    <!-- Tab Content -->
+                                    <div class="tab-content" id="notificationTabContent">
+                                        <div class="tab-pane fade show active" id="notificationNavOne" role="tabpanel"
+                                             aria-labelledby="notificationNavOne-tab">
+                                            <!-- List Group -->
+                                            <ul class="list-group list-group-flush navbar-card-list-group">
+                                                <!-- Item -->
+                                                <li class="list-group-item" th:each="m: ${unReadMessages}">
+                                                    <div class="row">
+                                                        <div style="margin-left: -10px" class="col-auto">
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="form-check">
+                                                                    <span class="form-check-stretched-bg"></span>
+                                                                </div>
+                                                                <img class="avatar avatar-sm avatar-circle"
+                                                                     th:src="${m.sendUserImg}"
+                                                                     alt="Image Description">
+                                                            </div>
+                                                        </div>
+                                                        <!-- End Col -->
+
+                                                        <div class="col ms-n2">
+                                                            <div class="justify-content-end">
+                                                                <h5 class="mb-1">[[${m.sendUserName}]]</h5>
+                                                                <small class="col-auto text-muted text-cap">[[${#dates.format(m.createTime,
+                                                                    'yyyy-MM-dd HH:mm:ss')}]]</small>
+                                                            </div>
+
+                                                            <p class="text-body fs-5"> [[${m.message}]] </p>
+                                                        </div>
+                                                        <!-- End Col -->
+
+
+                                                        <!-- End Col -->
+                                                    </div>
+                                                    <!-- End Row -->
+                                                </li>
+                                                <!-- End Item -->
+                                            </ul>
+                                            <!-- End List Group -->
+                                        </div>
+                                    </div>
+                                    <!-- End Tab Content -->
+                                </div>
+                                <!-- End Body -->
+
+                                <!-- Card Footer -->
+                                <a class="card-footer text-center" href="message">
+                                    查看全部 <i class="bi-chevron-right"></i>
+                                </a>
+                                <!-- End Card Footer -->
+                            </div>
+                        </div>
+                    </div>
+                    <!-- End Notification -->
+                </li>
+
+                <!--                <li class="nav-item d-none d-sm-inline-block">-->
+                <!--                    &lt;!&ndash; Apps &ndash;&gt;-->
+                <!--                    <div class="dropdown">-->
+                <!--                        <button type="button" class="btn btn-icon btn-ghost-secondary rounded-circle"-->
+                <!--                                id="navbarAppsDropdown" data-bs-toggle="dropdown" aria-expanded="false"-->
+                <!--                                data-bs-dropdown-animation>-->
+                <!--                            <i class="bi-app-indicator"></i>-->
+                <!--                        </button>-->
+
+                <!--                        <div class="dropdown-menu dropdown-menu-end dropdown-card navbar-dropdown-menu navbar-dropdown-menu-borderless"-->
+                <!--                             aria-labelledby="navbarAppsDropdown" style="width: 25rem;">-->
+                <!--                            <div class="card">-->
+                <!--                                &lt;!&ndash; Header &ndash;&gt;-->
+                <!--                                <div class="card-header">-->
+                <!--                                    <h4 class="card-title">我们的产品与服务</h4>-->
+                <!--                                </div>-->
+                <!--                                &lt;!&ndash; End Header &ndash;&gt;-->
+
+                <!--                                &lt;!&ndash; Body &ndash;&gt;-->
+                <!--                                <div class="card-body card-body-height">-->
+                <!--                                    <a class="dropdown-item" href="index">-->
+                <!--                                        <div class="d-flex align-items-center">-->
+                <!--                                            <div class="flex-shrink-0">-->
+                <!--                                                <img class="avatar avatar-xs avatar-4x3"-->
+                <!--                                                     th:src="@{dashboard/assets/svg/logos/logo-short.svg}"-->
+                <!--                                                     alt="Image Description">-->
+                <!--                                            </div>-->
+                <!--                                            <div class="flex-grow-1 text-truncate ms-3">-->
+                <!--                                                <h5 class="mb-0">[[${websiteBaseConfig.websiteName}]]</h5>-->
+                <!--                                                <p class="card-text text-body">内容分发网络 CDN</p>-->
+                <!--                                            </div>-->
+                <!--                                        </div>-->
+                <!--                                    </a>-->
+
+                <!--                                </div>-->
+                <!--                                &lt;!&ndash; End Body &ndash;&gt;-->
+
+                <!--                                &lt;!&ndash; Footer &ndash;&gt;-->
+                <!--                                <a class="card-footer text-center" href="#">-->
+                <!--                                    查看全部 <i class="bi-chevron-right"></i>-->
+                <!--                                </a>-->
+                <!--                                &lt;!&ndash; End Footer &ndash;&gt;-->
+                <!--                            </div>-->
+                <!--                        </div>-->
+                <!--                    </div>-->
+                <!--                    &lt;!&ndash; End Apps &ndash;&gt;-->
+                <!--                </li>-->
+
+                <li class="nav-item d-none d-sm-inline-block">
+                    <!-- Activity -->
+                    <button th:onclick="showOperationLog([[${session.loginUser.id.toString()}]])"
+                            class="btn btn-ghost-secondary btn-icon rounded-circle" type="button"
+                    >
+                        <i class="bi-x-diamond"></i>
+                    </button>
+                    <!-- Activity -->
+                </li>
+
+                <li class="nav-item">
+                    <!-- Account -->
+                    <div class="dropdown">
+                        <a class="navbar-dropdown-account-wrapper" href="javascript:;" id="accountNavbarDropdown"
+                           data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside"
+                           data-bs-dropdown-animation>
+                            <div class="avatar avatar-sm avatar-circle">
+                                <img class="avatar-img" th:src="${session.loginUser != null and !#strings.isEmpty(session.loginUser.img)} ? ${session.loginUser.img} : @{/common/default-avatar.png}"
+                                     onerror="this.onerror=null;this.src='/common/default-avatar.png';"
+                                     alt="Image Description">
+                                <span class="avatar-status avatar-sm-status avatar-status-success"></span>
+                            </div>
+                        </a>
+
+                        <div class="dropdown-menu dropdown-menu-end navbar-dropdown-menu navbar-dropdown-menu-borderless navbar-dropdown-account"
+                             aria-labelledby="accountNavbarDropdown" style="width: 16rem;">
+                            <div class="dropdown-item-text">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar avatar-sm avatar-circle">
+                                        <img class="avatar-img" th:src="${session.loginUser != null and !#strings.isEmpty(session.loginUser.img)} ? ${session.loginUser.img} : @{/common/default-avatar.png}"
+                                             onerror="this.onerror=null;this.src='/common/default-avatar.png';"
+                                             alt="Image Description" id="loginUserImg">
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <h5 class="mb-0" id="loginUserName">[[${session.loginUser.userName}]]</h5>
+                                        <p class="card-text text-body">[[${session.loginUser.email}]]</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="dropdown-divider"></div>
+
+                            <a class="dropdown-item" href="user-info">资料 &amp; 账户</a>
+
+
+                            <div class="dropdown-divider"></div>
+
+                            <button class="dropdown-item" onclick="logout()">退出登录</button>
+                        </div>
+                    </div>
+                    <!-- End Account -->
+                </li>
+            </ul>
+            <!-- End Navbar -->
+        </div>
+    </div>
+
+</header>
+
+<aside id="aside"
+       class="js-navbar-vertical-aside navbar navbar-vertical-aside navbar-vertical navbar-vertical-fixed navbar-expand-xl navbar-bordered bg-white  "
+       th:fragment="aside(curPage, dashboardLogo, dashboardIcon)">
+    <div class="navbar-vertical-container">
+        <div class="navbar-vertical-footer-offset">
+            <!-- Logo -->
+
+            <a class="navbar-brand" href="/dashboard" aria-label="Front">
+                <img class="navbar-brand-logo"
+                     th:src="${dashboardLogo != null and !#strings.isEmpty(dashboardLogo)} ? ${dashboardLogo} : @{/image/f96b75d4a78a3eea3837c7150316fe25.png}"
+                     alt="Logo" data-hs-theme-appearance="default">
+                <img class="navbar-brand-logo"
+                     th:src="${dashboardLogo != null and !#strings.isEmpty(dashboardLogo)} ? ${dashboardLogo} : @{/image/f96b75d4a78a3eea3837c7150316fe25.png}"
+                     alt="Logo" data-hs-theme-appearance="dark">
+                <img class="navbar-brand-logo-mini"
+                     th:src="${dashboardIcon != null and !#strings.isEmpty(dashboardIcon)} ? ${dashboardIcon} : @{/image/4b05f2ef00458ac8323812f98a073a72.png}"
+                     alt="Logo"
+                     data-hs-theme-appearance="default">
+                <img class="navbar-brand-logo-mini"
+                     th:src="${dashboardIcon != null and !#strings.isEmpty(dashboardIcon)} ? ${dashboardIcon} : @{/image/4b05f2ef00458ac8323812f98a073a72.png}"
+                     alt="Logo"
+                     data-hs-theme-appearance="dark">
+            </a>
+
+            <!-- End Logo -->
+
+            <!-- Navbar Vertical Toggle -->
+            <button type="button" class="js-navbar-vertical-aside-toggle-invoker navbar-aside-toggler">
+                <i class="bi-arrow-bar-left navbar-toggler-short-align"
+                   data-bs-template='<div class="tooltip d-none d-md-block" role="tooltip"><div class="arrow"></div><div class="tooltip-inner"></div></div>'
+                   data-bs-toggle="tooltip" data-bs-placement="right" title="折叠"></i>
+                <i class="bi-arrow-bar-right navbar-toggler-full-align"
+                   data-bs-template='<div class="tooltip d-none d-md-block" role="tooltip"><div class="arrow"></div><div class="tooltip-inner"></div></div>'
+                   data-bs-toggle="tooltip" data-bs-placement="right" title="展开"></i>
+            </button>
+
+            <!-- End Navbar Vertical Toggle -->
+
+            <!-- Content -->
+            <div th:if="${session.loginUserRoleCode == 'admin'}" class="navbar-vertical-content">
+                <div id="navbarVerticalMenu" class="nav nav-pills nav-vertical card-navbar-nav">
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a th:class="${curPage == 'dashboard' ? 'nav-link active':'nav-link'}" href="dashboard"
+                           data-placement="left">
+                            <i class="bi-speedometer nav-icon"></i>
+                            <span class="nav-link-title">服务概览
+                            </span>
+                        </a>
+                    </div>
+                    <div class="nav-item">
+                        <a th:class="${curPage == 'data-board' ? 'nav-link active':'nav-link'}" href="data-board"
+                           data-placement="left">
+                            <i class="bi-bar-chart nav-icon"></i>
+                            <span class="nav-link-title">数据统计
+                            </span>
+                        </a>
+                    </div>
+
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a th:class="${curPage == 'user-info' or curPage == 'authentication-real-name' ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
+                           href="#navbarVerticalMenuPagesUserProfileMenu"
+                           role="button" data-bs-toggle="collapse"
+                           data-bs-target="#navbarVerticalMenuPagesUserProfileMenu" aria-expanded="false"
+                           aria-controls="navbarVerticalMenuPagesUserProfileMenu">
+                            <i class="bi-person nav-icon"></i>
+                            <span class="nav-link-title">个人中心</span>
+                        </a>
+
+                        <div id="navbarVerticalMenuPagesUserProfileMenu"
+                             th:class="${curPage == 'user-info' or curPage == 'authentication-real-name' ? 'nav-collapse collapse show':'nav-collapse collapse'}"
+                             data-bs-parent="#navbarVerticalMenuPagesMenu">
+                            <a th:class="${curPage == 'user-info' ? 'nav-link active':'nav-link'}"
+                               href="user-info">账号设置</a>
+                        </div>
+                    </div>
+                    <!-- End 折叠 -->
+
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a th:class="${curPage == 'user-price-list' ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
+                           href="#navbarVerticalMenuPagesProduct"
+                           role="button" data-bs-toggle="collapse"
+                           data-bs-target="#navbarVerticalMenuPagesProduct" aria-expanded="false"
+                           aria-controls="navbarVerticalMenuPagesProduct">
+                            <i class="bi-bag-heart nav-icon"></i>
+                            <span class="nav-link-title">产品管理</span>
+                        </a>
+
+                        <div id="navbarVerticalMenuPagesProduct"
+                             th:class="${curPage == 'user-price-list'  ? 'nav-collapse collapse show':'nav-collapse collapse'}"
+                             data-bs-parent="#navbarVerticalMenuPagesMenu">
+                            <a th:class="${curPage == 'user-price-list' ? 'nav-link active':'nav-link'}"
+                               href="user-price-list">用户产品配置</a>
+                        </div>
+                    </div>
+                    <!-- End 折叠 -->
+
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a th:class="${curPage == 'domain-list' or curPage == 'certification-list' or curPage == 'cache-preheating' ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
+                           href="#navbarVerticalMenuPagesSite"
+                           role="button" data-bs-toggle="collapse"
+                           data-bs-target="#navbarVerticalMenuPagesSite" aria-expanded="false"
+                           aria-controls="navbarVerticalMenuPagesSite">
+                            <i class="bi-diagram-3 nav-icon"></i>
+                            <span class="nav-link-title">站点管理</span>
+                        </a>
+
+                        <div id="navbarVerticalMenuPagesSite"
+                             th:class="${curPage == 'domain-list' or curPage == 'certification-list' or curPage == 'cache-preheating' ? 'nav-collapse collapse show':'nav-collapse collapse'}"
+                             data-bs-parent="#navbarVerticalMenuPagesMenu">
+                            <a th:class="${curPage == 'domain-list' ? 'nav-link active':'nav-link'}"
+                               href="domain-list">域名管理</a>
+                            <!--                            <a th:class="${curPage == 'certification-list' ? 'nav-link active':'nav-link'}"-->
+                            <!--                               href="certification-list">证书管理</a>-->
+                            <a th:class="${curPage == 'cache-preheating' ? 'nav-link active':'nav-link'}"
+                               href="cache-preheating">缓存配置</a>
+                        </div>
+                    </div>
+                    <!-- End 折叠 -->
+
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a th:class="${curPage == 'transaction-order-list' or curPage == 'recharge' or curPage == 'manual-recharge' or curPage == 'manual-deduction' ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
+                           href="#navbarVerticalMenuPagesFinance"
+                           role="button" data-bs-toggle="collapse"
+                           data-bs-target="#navbarVerticalMenuPagesFinance" aria-expanded="false"
+                           aria-controls="navbarVerticalMenuPagesFinance">
+                            <i class="bi-cash-coin nav-icon"></i>
+                            <span class="nav-link-title">财务管理</span>
+                        </a>
+
+                        <div id="navbarVerticalMenuPagesFinance"
+                             th:class="${curPage == 'transaction-order-list' or curPage == 'recharge' or curPage == 'manual-recharge' or curPage == 'manual-deduction' ? 'nav-collapse collapse show':'nav-collapse collapse'}"
+                             data-bs-parent="#navbarVerticalMenuPagesMenu">
+                            <a th:class="${curPage == 'transaction-order-list' ? 'nav-link active':'nav-link'}"
+                               href="transaction-order-list">订单列表</a>
+                            <a th:class="${curPage == 'manual-recharge' ? 'nav-link active':'nav-link'}"
+                               href="manual-recharge">人工充值</a>
+                            <a th:class="${curPage == 'manual-deduction' ? 'nav-link active':'nav-link'}"
+                               href="manual-deduction">人工扣款</a>
+                        </div>
+                    </div>
+                    <!-- End 折叠 -->
+
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a th:class="${curPage == 'user-list' or curPage == 'admin-list' or curPage == 'user-update' or curPage == 'role-list' or curPage == 'authentication-real-name-list' or curPage == 'banned-list' ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
+                           href="#navbarVerticalMenuUsers"
+                           role="button" data-bs-toggle="collapse"
+                           data-bs-target="#navbarVerticalMenuUsers" aria-expanded="false"
+                           aria-controls="navbarVerticalMenuUsers">
+                            <i class="bi-person-video nav-icon"></i>
+                            <span class="nav-link-title">账户管理
+                            <span th:if="${countWaitingAuthentication > 0}" class="badge bg-primary rounded-pill ms-1"
+                                  th:text="${countWaitingAuthentication}"></span>
+                            </span>
+                        </a>
+
+                        <div id="navbarVerticalMenuUsers"
+                             th:class="${curPage == 'user-list' or curPage == 'user-update' or curPage == 'admin-list' or curPage == 'role-list' or curPage == 'authentication-real-name-list' or curPage == 'banned-list' ? 'nav-collapse collapse show':'nav-collapse collapse'}"
+                             data-bs-parent="#navbarVerticalMenuPagesMenu">
+                            <a th:class="${curPage == 'user-list' ? 'nav-link active':'nav-link'}"
+                               href="user-list">用户列表</a>
+                            <a th:class="${curPage == 'admin-list' ? 'nav-link active':'nav-link'}"
+                               href="admin-list">管理员列表</a>
+                            <a th:class="${curPage == 'banned-list' ? 'nav-link active':'nav-link'}"
+                               href="banned-list">封禁用户列表</a>
+<!--                            <a th:class="${curPage == 'role-list' ? 'nav-link active':'nav-link'}"-->
+<!--                               href="role-list">角色设置</a>-->
+                            <a th:class="${curPage == 'authentication-real-name-list' ? 'nav-link active':'nav-link'}"
+                               href="authentication-real-name-list">认证申请 <span
+                                    th:if="${countWaitingAuthentication > 0}" class="badge bg-primary rounded-pill ms-1"
+                                    th:text="${countWaitingAuthentication}"></span></a>
+                            <!--                            <a th:class="${curPage == 'user-update' ? 'nav-link active':'nav-link'}" href="user-update">用户编辑</a>-->
+                        </div>
+                    </div>
+                    <!-- End 折叠 -->
+
+                    <!-- 折叠 -->
+                    <div class="nav-item" th:if="${false}"><a href="#navbarVerticalMenuPagesAgentLevelMenu"
+                           role="button" data-bs-toggle="collapse"
+                           data-bs-target="#navbarVerticalMenuPagesAgentLevelMenu" aria-expanded="false"
+                           aria-controls="navbarVerticalMenuPagesAgentLevelMenu">
+                            <i class="bi-person nav-icon"></i>
+                            <span class="nav-link-title">代理管理</span>
+                        </a>
+
+                        <div id="navbarVerticalMenuPagesAgentLevelMenu"
+                             th:class="${false? 'nav-collapse collapse show':'nav-collapse collapse'}"
+                             data-bs-parent="#navbarVerticalMenuPagesMenu">
+                        </div>
+                    </div>
+                    <!-- End 折叠 -->
+
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a th:class="${curPage == 'order-list' or curPage == 'order-detail' or curPage == 'order-type-list' ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
+                           href="#navbarVerticalMenuPagesWorkOrder"
+                           role="button" data-bs-toggle="collapse"
+                           data-bs-target="#navbarVerticalMenuPagesWorkOrder" aria-expanded="false"
+                           aria-controls="navbarVerticalMenuPagesWorkOrder">
+                            <i class="bi-list-ul nav-icon"></i>
+                            <span class="nav-link-title">工单管理
+                                <span th:if="${newMessageIds != null and newMessageIds.size() > 0}" class="badge bg-primary rounded-pill ms-1"
+                                      th:text="${newMessageIds.size()}"></span>
+                            </span>
+                        </a>
+
+                        <div id="navbarVerticalMenuPagesWorkOrder"
+                             th:class="${curPage == 'order-list' or curPage == 'order-detail' or curPage == 'order-type-list' ? 'nav-collapse collapse show':'nav-collapse collapse'}"
+                             data-bs-parent="#navbarVerticalMenuPagesMenu">
+                            <a th:class="${curPage == 'order-list' ? 'nav-link active':'nav-link'}"
+                               href="order-list">工单列表 <span th:if="${newMessageIds != null and newMessageIds.size() > 0}"
+                                                                class="badge bg-primary rounded-pill ms-1"
+                                                                th:text="${newMessageIds.size()}"></span></a>
+                            <a th:class="${curPage == 'order-type-list' ? 'nav-link active':'nav-link'}"
+                               href="order-type-list">工单分类</a>
+                        </div>
+                    </div>
+                    <!-- End 折叠 -->
+
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a th:class="${curPage == 'website-setting' or curPage == 'pay-setting' or curPage == 'real-name-setting' or curPage == 'email-setting'or curPage == 'sms-setting' or curPage == 'quick-login-setting' or curPage == 'api-setting' or curPage == 'wechat-code-config' or curPage == 'api-config' or curPage == 'menu'? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
+                           href="#navbarVerticalMenuPagesSystem"
+                           role="button" data-bs-toggle="collapse"
+                           data-bs-target="#navbarVerticalMenuPagesSystem" aria-expanded="false"
+                           aria-controls="navbarVerticalMenuPagesSystem">
+                            <i class="bi-gear nav-icon"></i>
+                            <span class="nav-link-title">系统设置</span>
+                        </a>
+
+                        <div id="navbarVerticalMenuPagesSystem"
+                             th:class="${curPage == 'website-setting' or curPage == 'pay-setting' or curPage == 'real-name-setting' or curPage == 'email-setting'or curPage == 'sms-setting' or curPage == 'quick-login-setting' or curPage == 'api-setting' or curPage == 'wechat-code-config' or curPage == 'api-config' or curPage == 'menu'? 'nav-collapse collapse show':'nav-collapse collapse'}"
+                             data-bs-parent="#navbarVerticalMenuPagesMenu">
+                            <a th:class="${curPage == 'website-setting' ? 'nav-link active':'nav-link'} "
+                               href="website-setting">网站配置</a>
+                            <a th:class="${curPage == 'pay-setting' ? 'nav-link active':'nav-link'} "
+                               href="pay-setting">支付配置</a>
+                            <a th:class="${curPage == 'real-name-setting' ? 'nav-link active':'nav-link'} "
+                               href="real-name-setting">实名配置</a>
+                            <a th:class="${curPage == 'email-setting' ? 'nav-link active':'nav-link'} "
+                               href="email-setting">邮件配置</a>
+                            <a th:class="${curPage == 'sms-setting' ? 'nav-link active':'nav-link'} "
+                               href="sms-setting">短信配置</a>
+                            <a th:class="${curPage == 'quick-login-setting' ? 'nav-link active':'nav-link'} "
+                               href="quick-login-setting">快捷登录</a>
+                            <a th:class="${curPage == 'api-setting' ? 'nav-link active':'nav-link'} "
+                               href="api-setting">API 配置</a>
+                            <a th:class="${curPage == 'menu' ? 'nav-link active':'nav-link'} "
+                               href="menu">菜单配置</a>
+                            <!--                            <a th:class="${curPage == 'wechat-code-config' ? 'nav-link active':'nav-link'} "-->
+                            <!--                               href="wechat-code-config">微信扫码</a>-->
+                            <!--                            <a th:class="${curPage == 'api-config' ? 'nav-link active':'nav-link'} "-->
+                            <!--                               href="api-config">API 配置</a>-->
+                        </div>
+                    </div>
+                    <!-- End 折叠 -->
+
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a th:class="${curPage == 'operation-logs' ? 'nav-link active':'nav-link'}"
+                           href="operation-logs"
+                           data-placement="left">
+                            <i class="bi-journal-x nav-icon"></i>
+                            <span class="nav-link-title">操作日志
+                            </span>
+                        </a>
+                    </div>
+                    <!-- End 折叠 -->
+
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a th:class="${curPage == 'message' ? 'nav-link active':'nav-link'}"
+                           href="message"
+                           data-placement="left">
+                            <i class="bi-chat-dots nav-icon"></i>
+                            <span class="nav-link-title">消息中心
+                                <span th:if="${unReadMessages.size() > 0}" class="badge bg-primary rounded-pill ms-1"
+                                      th:text="${unReadMessages.size()}"></span>
+                            </span>
+                        </a>
+                    </div>
+                    <!-- End 折叠 -->
+
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a th:class="${curPage == 'announcement' ? 'nav-link active':'nav-link'}"
+                           href="announcement"
+                           data-placement="left">
+                            <i class="bi-bell nav-icon"></i>
+                            <span class="nav-link-title">系统公告
+                            </span>
+                        </a>
+                    </div>
+                    <!-- End 折叠 -->
+
+                </div>
+
+            </div>
+            <!-- End Content -->
+
+            <!-- Content -->
+            <div th:if="${session.loginUserRoleCode == 'user'}" class="navbar-vertical-content">
+                <div id="navbarVerticalMenu" class="nav nav-pills nav-vertical card-navbar-nav">
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a th:class="${curPage == 'dashboard' ? 'nav-link active':'nav-link'}" href="dashboard"
+                           data-placement="left">
+                            <i class="bi-speedometer nav-icon"></i>
+                            <span class="nav-link-title">服务概览
+                            </span>
+                        </a>
+                    </div>
+                    <div class="nav-item">
+                        <a th:class="${curPage == 'data-board' ? 'nav-link active':'nav-link'}" href="data-board"
+                           data-placement="left">
+                            <i class="bi-bar-chart nav-icon"></i>
+                            <span class="nav-link-title">数据统计
+                            </span>
+                        </a>
+                    </div>
+
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a th:class="${curPage == 'user-info' or curPage == 'authentication-real-name' ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
+                           href="#navbarVerticalMenuPagesUserProfileMenu"
+                           role="button" data-bs-toggle="collapse"
+                           data-bs-target="#navbarVerticalMenuPagesUserProfileMenu" aria-expanded="false"
+                           aria-controls="navbarVerticalMenuPagesUserProfileMenu">
+                            <i class="bi-person nav-icon"></i>
+                            <span class="nav-link-title">个人中心</span>
+                        </a>
+
+                        <div id="navbarVerticalMenuPagesUserProfileMenu"
+                             th:class="${curPage == 'user-info' or curPage == 'authentication-real-name' ? 'nav-collapse collapse show':'nav-collapse collapse'}"
+                             data-bs-parent="#navbarVerticalMenuPagesMenu">
+                            <a th:class="${curPage == 'user-info' ? 'nav-link active':'nav-link'}"
+                               href="user-info">账号设置</a>
+                            <a th:class="${curPage == 'authentication-real-name' ? 'nav-link active':'nav-link'}"
+                               href="authentication-real-name">实名认证</a>
+                        </div>
+                    </div>
+                    <!-- End 折叠 -->
+
+                    <!-- 折叠 -->
+                    <div class="nav-item" th:if="${false}">
+                        <a th:class="${false ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
+                           href="#navbarVerticalMenuPagesAgentLevelMenu"
+                           role="button" data-bs-toggle="collapse"
+                           data-bs-target="#navbarVerticalMenuPagesAgentLevelMenu" aria-expanded="false"
+                           aria-controls="navbarVerticalMenuPagesAgentLevelMenu">
+                            <i class="bi-person nav-icon"></i>
+                            <span class="nav-link-title">代理管理</span>
+                        </a>
+
+                        <div id="navbarVerticalMenuPagesAgentLevelMenu"
+                             th:class="${false ? 'nav-collapse collapse show':'nav-collapse collapse'}"
+                             data-bs-parent="#navbarVerticalMenuPagesAgentLevelMenu">
+                        </div>
+                    </div>
+                    <!-- End 折叠 -->
+
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a th:class="${false ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
+                           href="#navbarVerticalMenuPagesProduct"
+                           role="button" data-bs-toggle="collapse"
+                           data-bs-target="#navbarVerticalMenuPagesProduct" aria-expanded="false"
+                           aria-controls="navbarVerticalMenuPagesMenu">
+                            <i class="bi-bag-heart nav-icon"></i>
+                            <span class="nav-link-title">套餐管理</span>
+                        </a>
+
+                        <div id="navbarVerticalMenuPagesProduct"
+                             th:class="${false ? 'nav-collapse collapse show':'nav-collapse collapse'}"
+                             data-bs-parent="#navbarVerticalMenuPagesMenu">
+                        </div>
+                    </div>
+                    <!-- End 折叠 -->
+
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a th:class="${curPage == 'domain-list' or curPage == 'certification-list' or curPage == 'cache-preheating' ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
+                           href="#navbarVerticalMenuPagesSite"
+                           role="button" data-bs-toggle="collapse"
+                           data-bs-target="#navbarVerticalMenuPagesSite" aria-expanded="false"
+                           aria-controls="navbarVerticalMenuPagesSite">
+                            <i class="bi-diagram-3 nav-icon"></i>
+                            <span class="nav-link-title">静态加速</span>
+                        </a>
+
+                        <div id="navbarVerticalMenuPagesSite"
+                             th:class="${curPage == 'domain-list' or curPage == 'certification-list' or curPage == 'cache-preheating' ? 'nav-collapse collapse show':'nav-collapse collapse'}"
+                             data-bs-parent="#navbarVerticalMenuPagesMenu">
+                            <a th:class="${curPage == 'domain-list' ? 'nav-link active':'nav-link'}"
+                               href="domain-list">我的域名</a>
+                            <!--                            <a th:class="${curPage == 'certification-list' ? 'nav-link active':'nav-link'}"-->
+                            <!--                               href="certification-list">我的证书</a>-->
+                            <a th:class="${curPage == 'cache-preheating' ? 'nav-link active':'nav-link'}"
+                               href="cache-preheating">缓存配置</a>
+                        </div>
+                    </div>
+                    <!-- End 折叠 -->
+                    <!-- 折叠 -->
+                    <div class="nav-item hide" style="display: none">
+                        <a th:class="${curPage == 'dcdn' ? 'nav-link active':'nav-link'}"
+                           href="dcdn"
+                           data-placement="left">
+                            <i class="bi-diagram-3 nav-icon"></i>
+                            <span class="nav-link-title">DCDN</span>
+                        </a>
+                    </div>
+                    <!-- End 折叠 -->
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a th:class="${curPage == 'transaction-order-list' or curPage == 'recharge' ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
+                           href="#navbarVerticalMenuPagesFinance"
+                           role="button" data-bs-toggle="collapse"
+                           data-bs-target="#navbarVerticalMenuPagesFinance" aria-expanded="false"
+                           aria-controls="navbarVerticalMenuPagesFinance">
+                            <i class="bi-cash-coin nav-icon"></i>
+                            <span class="nav-link-title">财务管理</span>
+                        </a>
+
+                        <div id="navbarVerticalMenuPagesFinance"
+                             th:class="${curPage == 'transaction-order-list' or curPage == 'recharge' ? 'nav-collapse collapse show':'nav-collapse collapse'}"
+                             data-bs-parent="#navbarVerticalMenuPagesMenu">
+                            <a th:class="${curPage == 'transaction-order-list' ? 'nav-link active':'nav-link'}"
+                               href="transaction-order-list">我的订单</a>
+                            <a th:class="${curPage == 'recharge' ? 'nav-link active':'nav-link'}"
+                               href="recharge">账户充值</a>
+                        </div>
+                    </div>
+                    <!-- End 折叠 -->
+
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a th:class="${curPage == 'order-list' or curPage == 'order-detail' or curPage == 'order-create' ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
+                           href="#navbarVerticalMenuPagesWorkOrder"
+                           role="button" data-bs-toggle="collapse"
+                           data-bs-target="#navbarVerticalMenuPagesWorkOrder" aria-expanded="false"
+                           aria-controls="navbarVerticalMenuPagesWorkOrder">
+                            <i class="bi-list-ul nav-icon"></i>
+                            <span class="nav-link-title">工单管理</span>
+                        </a>
+
+                        <div id="navbarVerticalMenuPagesWorkOrder"
+                             th:class="${curPage == 'order-list' or curPage == 'order-detail' or curPage == 'order-create' ? 'nav-collapse collapse show':'nav-collapse collapse'}"
+                             data-bs-parent="#navbarVerticalMenuPagesMenu">
+                            <a th:class="${curPage == 'order-list' ? 'nav-link active':'nav-link'}"
+                               href="order-list">我的工单</a>
+                            <a th:class="${curPage == 'order-create' ? 'nav-link active':'nav-link'}"
+                               href="order-create">提交工单</a>
+                        </div>
+                    </div>
+                    <!-- End 折叠 -->
+
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a th:class="${curPage == 'operation-logs' ? 'nav-link active':'nav-link'}"
+                           href="operation-logs"
+                           data-placement="left">
+                            <i class="bi-journal-x nav-icon"></i>
+                            <span class="nav-link-title">操作日志
+                            </span>
+                        </a>
+                    </div>
+
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a th:class="${curPage == 'message' ? 'nav-link active':'nav-link'}"
+                           href="message"
+                           data-placement="left">
+                            <i class="bi-chat-dots nav-icon"></i>
+                            <span class="nav-link-title">消息中心
+                                <span th:if="${unReadMessages.size() > 0}" class="badge bg-primary rounded-pill ms-1"
+                                      th:text="${unReadMessages.size()}"></span>
+                            </span>
+                        </a>
+                    </div>
+                    <!-- End 折叠 -->
+
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a class="nav-link" data-bs-toggle="modal" data-bs-target="#exampleModalTopCover"
+                           href="#"
+                           data-placement="left">
+                            <i class="bi-gift nav-icon"></i>
+                            <span class="nav-link-title">礼品兑换
+                            </span>
+                        </a>
+                    </div>
+                    <!-- End 折叠 -->
+
+                    <!-- 折叠 -->
+                    <div class="nav-item">
+                        <a class="nav-link" data-placement="left" href="javascript:void(0);" onclick="claimMonthlyFreePackage()" title="领取每月福利">
+                            <i class="bi-gift nav-icon"></i>
+                            <span class="nav-link-title">每月福利</span>
+                        </a>
+                    </div>
+                    <script>
+                        function claimMonthlyFreePackage() {
+                            const n = Date.now();
+                            const w = navigator.language;
+                            loadingShow();
+                            $.ajax({
+                                type: 'POST',
+                                url: '/RemovedFeature/disabled',
+                                data: {t: n, a: w},
+                                complete: function () {
+                                    loadingRemove();
+                                },
+                                success: function (data) {
+                                    layerInfo(data.message || '领取成功');
+                                },
+                                error: function (xhr) {
+                                    if ('responseJSON' in xhr && xhr.responseJSON && 'message' in xhr.responseJSON) {
+                                        layerFail(xhr.responseJSON.message);
+                                    } else {
+                                        layerFail('请求失败，请检查网络情况或稍后再试！');
+                                    }
+                                }
+                            });
+                        }
+                    </script>
+                    <!-- End 折叠 -->
+                </div>
+
+            </div>
+            <!-- End Content -->
+
+            <!-- Footer -->
+            <div class="navbar-vertical-footer">
+                <ul class="navbar-vertical-footer-list">
+                    <!--                    <li class="navbar-vertical-footer-list-item">-->
+                    <!--                        &lt;!&ndash; Style Switcher &ndash;&gt;-->
+                    <!--                        <div class="dropdown dropup">-->
+                    <!--                            <button type="button" class="btn btn-ghost-secondary btn-icon rounded-circle"-->
+                    <!--                                    id="selectThemeDropdown" data-bs-toggle="dropdown" aria-expanded="false"-->
+                    <!--                                    data-bs-dropdown-animation>-->
+
+                    <!--                            </button>-->
+
+                    <!--                            <div class="dropdown-menu navbar-dropdown-menu navbar-dropdown-menu-borderless"-->
+                    <!--                                 aria-labelledby="selectThemeDropdown">-->
+                    <!--                                <a class="dropdown-item" href="#" data-icon="bi-brightness-high" data-value="default">-->
+                    <!--                                    <i class="bi-brightness-high me-2"></i>-->
+                    <!--                                    <span class="text-truncate" title="Default (light mode)">浅色主题</span>-->
+                    <!--                                </a>-->
+                    <!--                                <a class="dropdown-item active" href="#" data-icon="bi-moon" data-value="dark">-->
+                    <!--                                    <i class="bi-moon me-2"></i>-->
+                    <!--                                    <span class="text-truncate" title="Dark">深色主题</span>-->
+                    <!--                                </a>-->
+                    <!--                            </div>-->
+                    <!--                        </div>-->
+
+                    <!--                        &lt;!&ndash; End Style Switcher &ndash;&gt;-->
+                    <!--                    </li>-->
+
+                    <!--                    <li class="navbar-vertical-footer-list-item">-->
+                    <!--                        &lt;!&ndash; Other Links &ndash;&gt;-->
+                    <!--                        <div class="dropdown dropup">-->
+                    <!--                            <button type="button" class="btn btn-ghost-secondary btn-icon rounded-circle"-->
+                    <!--                                    id="otherLinksDropdown" data-bs-toggle="dropdown" aria-expanded="false"-->
+                    <!--                                    data-bs-dropdown-animation>-->
+                    <!--                                <i class="bi-info-circle"></i>-->
+                    <!--                            </button>-->
+
+                    <!--                            <div class="dropdown-menu navbar-dropdown-menu-borderless"-->
+                    <!--                                 aria-labelledby="otherLinksDropdown">-->
+                    <!--                                <span class="dropdown-header">寻求帮助</span>-->
+                    <!--                                <a class="dropdown-item" href="#">-->
+                    <!--                                    <i class="bi-journals dropdown-item-icon"></i>-->
+                    <!--                                    <span class="text-truncate" title="Resources &amp; tutorials">常见问题</span>-->
+                    <!--                                </a>-->
+                    <!--                                <a class="dropdown-item" href="#">-->
+                    <!--                                    <i class="bi-command dropdown-item-icon"></i>-->
+                    <!--                                    <span class="text-truncate" title="Keyboard shortcuts">问答社区</span>-->
+                    <!--                                </a>-->
+                    <!--                                <a class="dropdown-item" href="#">-->
+                    <!--                                    <i class="bi-alt dropdown-item-icon"></i>-->
+                    <!--                                    <span class="text-truncate" title="Connect other apps">文档中心</span>-->
+                    <!--                                </a>-->
+
+                    <!--                                <div class="dropdown-divider"></div>-->
+                    <!--                                <span class="dropdown-header">关于我们</span>-->
+                    <!--                                <a class="dropdown-item" href="#">-->
+                    <!--                                    <i class="bi-chat-left-dots dropdown-item-icon"></i>-->
+                    <!--                                    <span class="text-truncate" title="Contact support">公司介绍</span>-->
+                    <!--                                </a>-->
+                    <!--                                <a class="dropdown-item" href="#">-->
+                    <!--                                    <i class="bi-chat-left-dots dropdown-item-icon"></i>-->
+                    <!--                                    <span class="text-truncate" title="Contact support">联系我们</span>-->
+                    <!--                                </a>-->
+                    <!--                            </div>-->
+                    <!--                        </div>-->
+                    <!--                        &lt;!&ndash; End Other Links &ndash;&gt;-->
+                    <!--                    </li>-->
+
+                </ul>
+            </div>
+            <!-- End Footer -->
+        </div>
+    </div>
+</aside>
+
+<!-- Activity -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasActivityStream"
+     aria-labelledby="offcanvasActivityStreamLabel">
+    <div class="offcanvas-header">
+        <h4 id="offcanvasActivityStreamLabel" class="mb-0">操作记录</h4>
+        <button type="button" class="btn-close"
+                th:onclick="hideOperationLog([[${session.loginUser.id.toString()}]])"></button>
+    </div>
+    <div class="offcanvas-body">
+        <!-- Step -->
+        <ul class="step step-icon-sm step-avatar-sm" id="operationLogUl">
+            <!-- Step Item -->
+            <li class="step-item">
+                <div class="step-content-wrapper">
+                    <div class="step-avatar">
+                        <img class="step-avatar" th:src="${session.loginUser != null and !#strings.isEmpty(session.loginUser.img)} ? ${session.loginUser.img} : @{/common/default-avatar.png}"
+                             onerror="this.onerror=null;this.src='/common/default-avatar.png';"
+                             alt="Image Description">
+                    </div>
+
+                    <div class="step-content">
+                        <h5 class="mb-1">王五</h5>
+
+                        <p class="fs-5 mb-1">修改了个人资料。</p>
+
+                        <span class="small text-muted text-uppercase">刚刚</span>
+                    </div>
+                </div>
+            </li>
+            <!-- End Step Item -->
+        </ul>
+        <!-- End Step -->
+
+        <div class="d-grid">
+            <a class="btn btn-white" href="operation-logs">查看全部 <i class="bi-chevron-right"></i></a>
+        </div>
+    </div>
+</div>
+<!-- End Activity -->
+
+
+<div id="footer">
+    <!--    <div class="row justify-content-between align-items-center">-->
+    <!--        <div class="col">-->
+    <!--            <p class="fs-6 mb-0">-->
+    <!--                Copyright © 2024. 括彩云 版权所有 上海括彩科技有限公司 |-->
+    <!--                《ICP备案号》-->
+    <!--                <a href="https://beian.miit.gov.cn/" th:text="${websiteBaseConfig.icpNumber}"></a> |-->
+    <!--                《增值电信业务经营许可证》-->
+    <!--                <a href="https://dxzhgl.miit.gov.cn/dxxzsp/xkz/xkzgl/resource/qiyesearch.jsp?num=%E4%B8%8A%E6%B5%B7%E6%8B%AC%E5%BD%A9%E7%A7%91%E6%8A%80%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8&type=xuke">-->
+    <!--                    B1-20220812/沪B2-20220232-->
+    <!--                </a>-->
+    <!--            </p>-->
+    <!--        </div>-->
+    <!--        &lt;!&ndash; End Col &ndash;&gt;-->
+    <!--    </div>-->
+    <!-- Modal -->
+    <div id="exampleModalTopCover" class="modal fade" tabindex="-1" role="dialog"
+         aria-labelledby="exampleModalTopCoverTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <!-- Header -->
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalCenterTitle">礼品兑换</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <!-- End Header -->
+
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="giftCode">兑换码</label>
+                        <input type="text" id="giftCode" maxlength="20" class="form-control" placeholder="请输入兑换码">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-white" data-bs-dismiss="modal">关闭</button>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Modal -->
+</div>
+
+<div id="agent">
+
+</div>
+
+</body>
+</html>
+

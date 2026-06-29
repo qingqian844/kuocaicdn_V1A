@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title th:if="${!openAgent}">[[${websiteBaseConfig.websiteName}]] 创建域名</title>
+    <title th:if="${openAgent}">[[${agentConfig.websiteName}]] 创建域名</title>
+
+    <!-- Favicon -->
+    <link th:if="${!openAgent}" rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:if="${openAgent}" rel="shortcut icon" th:href="${agentConfig.icon}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/quill/dist/quill.snow.css}">
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+        
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {
+                    "switcherSupport": true
+                },
+                "header": {
+                    "layoutMode": "default",
+                    "containerMode": "container-fluid"
+                },
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {
+                            "100": "#f9fafc",
+                            "900": "#1e2022"
+                        }
+                    },
+                    "font": "Inter"
+                }
+            },
+            "languageDirection": {
+                "lang": "en"
+            },
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {
+                    "*assets/js/theme-custom.js": ""
+                },
+                "build": {
+                    "*assets/js/theme-custom.js": "",
+                    "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"
+                }
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {
+                "src": "./src",
+                "dist": "./dist",
+                "build": "./build"
+            },
+            "fileNames": {
+                "dist": {
+                    "js": "theme.min.js",
+                    "css": "theme.min.css"
+                },
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl footer-offset">
+
+    <script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+    <script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+    <!-- ========== HEADER ========== -->
+
+    <div th:replace="common/common-dashboard::header(curPage='domains', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+    <!-- ========== END HEADER ========== -->
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <!-- Navbar Vertical -->
+
+    <div th:replace="common/common-dashboard::aside(curPage='domains', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+    <main id="content" role="main" class="main">
+
+        <!-- Content -->
+        <div class="content container-fluid">
+            <!-- Page Header -->
+            <div class="page-header" style="padding-bottom: 5px;margin-bottom: 10px">
+                <div class="row align-items-center">
+                    <div class="col-sm mb-2 mb-sm-0">
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb breadcrumb-no-gutter">
+                                <li class="breadcrumb-item"><a class="breadcrumb-link" href="domain-list">域名管理</a>
+                                </li>
+                                <li class="breadcrumb-item active" aria-current="page">添加域名</li>
+                            </ol>
+                        </nav>
+                    </div>
+                    <!-- End Col -->
+                </div>
+                <!-- End Row -->
+            </div>
+            <!-- End Page Header -->
+
+            <div class="row">
+                <div class="col-lg-12 mb-3 mb-lg-0">
+                    <!-- Card -->
+                    <div class="card mb-3 mb-lg-5">
+                        <!-- Header -->
+                        <div class="card-header card-header-content-between">
+                            <h4 class="card-header-title">域名配置</h4>
+
+                            <div class="h3"> <span class="badge bg-soft-primary text-primary">当前可用域名额度：[[${availableCount}]]</span></div>
+                        </div>
+                        <!-- End Header -->
+
+                        <!-- Body -->
+                        <div class="card-body">
+                            <div class="alert alert-soft-primary d-flex justify-content-between align-items-center"
+                                 th:if="${edgeOneQuotaSummary != null and edgeOneQuotaSummary.enabled}">
+                                <div>
+                                EdgeOne根域名额度：
+                                总额度 <strong>[[${edgeOneQuotaSummary.totalQuota}]]</strong> 个，
+                                已用 <strong>[[${edgeOneQuotaSummary.usedQuota}]]</strong> 个，
+                                剩余 <strong>[[${edgeOneQuotaSummary.remainingQuota}]]</strong> 个；
+                                超出后单价 <strong>[[${edgeOneQuotaSummary.unitPrice}]]</strong> 元/个，
+                                有效期 <strong>[[${edgeOneQuotaSummary.quotaValidDays}]]</strong> 天。
+                                </div>
+                                <button type="button" class="btn btn-sm btn-primary ms-3"
+                                        th:if="${edgeOneQuotaSummary.remainingQuota <= 0}"
+                                        th:onclick="|showEdgeOneQuotaModal({data:{summary:{unitPrice:${edgeOneQuotaSummary.unitPrice},quotaValidDays:${edgeOneQuotaSummary.quotaValidDays}}}})|">购买额度</button>
+                            </div>
+                            <div class="alert alert-danger" th:if="${routeAuthorized == false}">
+                                当前用户 CDN 路线未授权：<span th:text="${licenseVendorNameMap[route] != null ? licenseVendorNameMap[route] : route}">route</span>
+                            </div>
+                            <!-- Form -->
+                            <div class="mb-4">
+                                <label for="domainName" class="form-label">加速域名 <i
+                                    class="bi-question-circle text-body ms-1" data-bs-toggle="tooltip"
+                                    data-bs-placement="top"
+                                    title="加速的域名请先完成在中国大陆的 ICP 备案，同时建议进行公安网备案。"></i></label>
+
+                                <input type="text" class="form-control" name="productName" id="domainName" placeholder="请输入已备案的加速域名，例如：www.example.com" maxlength="255" value="" autocomplete="off">
+                            </div>
+                            <!-- End Form -->
+
+                            <div class="row mb-4">
+                                <label class="form-label">加速类型</label>
+
+                                <div class="input-group input-group-sm-vertical">
+                                    <!-- Radio Check -->
+
+                                    <label class="form-control" for="businessTypeWeb">
+                                    <span class="form-check">
+                                        <input type="radio" class="form-check-input" name="businessType"
+                                               id="businessTypeWeb" checked value="web">
+
+                                        <span class="form-check-label">网站加速</span>
+                                        <i class="bi-question-circle text-body ms-1" title="适用于电商、网站、UGC社区等业务场景。"></i>
+                                    </span>
+                                </label>
+
+                                    <label class="form-control" for="businessTypeDownload">
+                                    <span class="form-check">
+                                        <input type="radio" class="form-check-input" name="businessType"
+                                               id="businessTypeDownload" value="download">
+
+                                        <span class="form-check-label">下载加速</span>
+                                        <i class="bi-question-circle text-body ms-1" title="适用于较大文件，如游戏安装包、应用更新、应用程序包下载等业务场景。"></i>
+                                    </span>
+                                </label>
+
+                                    <label class="form-control" for="businessTypeVideo">
+                                    <span class="form-check">
+                                        <input type="radio" class="form-check-input" name="businessType"
+                                               id="businessTypeVideo" value="video">
+
+                                        <span class="form-check-label">点播加速</span>
+                                        <i class="bi-question-circle text-body ms-1" title="适用于在线音视频点播等音视频文件的点播加速业务场景。"></i>
+                                    </span>
+                                </label>
+
+<!--                                    <label class="form-control" for="businessTypeFullSite">-->
+<!--                                    <span class="form-check">-->
+<!--                                        <input type="radio" class="form-check-input" name="businessType"-->
+<!--                                               id="businessTypeFullSite" value="fullsite">-->
+
+<!--                                        <span class="form-check-label">全站加速</span>-->
+<!--                                        <i class="bi-question-circle text-body ms-1" title="适用于动静资源混合，包含动态资源请求（如asp、php、jsp等文件）的业务场景。"></i>-->
+<!--                                    </span>-->
+<!--                                </label>-->
+                                    <!-- End Radio Check -->
+                                </div>
+                            </div>
+                            <!-- End Row -->
+
+                            <div class="row mb-4">
+                                <!--                            <label class="form-label">覆盖范围（如需境外线路请提工单申请）</label>-->
+                                <label class="form-label">加速区域</label>
+
+                                <div th:if='${route == "baishan"}' class="input-group input-group-sm-vertical">
+                                    <label class="form-control" for="serviceAreaMainlandChina">
+                                    <span class="form-check">
+                                        <input type="radio" class="form-check-input" name="serviceArea"
+                                               id="serviceAreaMainlandChina" checked value="mainland_china">
+
+                                        <span class="form-check-label">中国大陆</span>
+                                        <i class="bi-question-circle text-body ms-1" title="-"></i>
+                                    </span>
+                                </label>
+                                    <!--                                <label class="form-control" for="serviceAreaOutSideMainlandChina">-->
+                                    <!--                                    <span class="form-check">-->
+                                    <!--                                        <input type="radio" class="form-check-input" name="serviceArea"-->
+                                    <!--                                               id="serviceAreaOutSideMainlandChina" value="outside_mainland_china">-->
+
+                                    <!--                                        <span class="form-check-label">全球（不包含中国内地）</span>-->
+                                    <!--&lt;!&ndash;                                        <i class="bi-question-circle text-body ms-1" title="-"></i>&ndash;&gt;-->
+                                    <!--                                    </span>-->
+                                    <!--                                </label>-->
+                                    <!-- End Radio Check -->
+                                </div>
+
+                                <div th:if='${route == "tencent_edgeone"}' class="input-group input-group-sm-vertical">
+                                    <label class="form-control" for="serviceAreaOutSideMainlandChina">
+                                    <span class="form-check">
+                                        <input type="radio" class="form-check-input" name="serviceArea"
+                                               id="serviceAreaOutSideMainlandChina" checked value="outside_mainland_china">
+
+                                        <span class="form-check-label">全球可用区（不含中国大陆）</span>
+                                        <i class="bi-question-circle text-body ms-1" title="腾讯云 EdgeOne 全球可用区（不含中国大陆），对应腾讯 Area：overseas"></i>
+                                    </span>
+                                </label>
+                                    <label class="form-control" for="serviceAreaMainlandChina">
+                                    <span class="form-check">
+                                        <input type="radio" class="form-check-input" name="serviceArea"
+                                               id="serviceAreaMainlandChina" value="mainland_china">
+
+                                        <span class="form-check-label">中国大陆可用区</span>
+                                        <i class="bi-question-circle text-body ms-1" title="腾讯云 EdgeOne 中国大陆可用区，对应腾讯 Area：mainland"></i>
+                                    </span>
+                                </label>
+                                    <label class="form-control" for="serviceAreaGlobal">
+                                    <span class="form-check">
+                                        <input type="radio" class="form-check-input" name="serviceArea" id="serviceAreaGlobal" value="global">
+                                        <span class="form-check-label">全球可用区</span>
+                                        <i class="bi-question-circle text-body ms-1" title="腾讯云 EdgeOne 全球可用区，对应腾讯 Area：global"></i>
+                                    </span>
+                                </label>
+                                </div>
+
+                                <div th:if='${route != "baishan" and route != "tencent_edgeone"}' class="input-group input-group-sm-vertical">
+                                    <label class="form-control" for="serviceAreaMainlandChina">
+                                    <span class="form-check">
+                                        <input type="radio" class="form-check-input" name="serviceArea"
+                                               id="serviceAreaMainlandChina" checked value="mainland_china">
+
+                                        <span class="form-check-label">中国大陆</span>
+                                        <i class="bi-question-circle text-body ms-1" title="所有用户均使用括彩云中国境内节点就近提供加速服务；选择该加速区域时，加速域名需为已备案域名。"></i>
+                                    </span>
+                                </label>
+                                    <label class="form-control" for="serviceAreaOutSideMainlandChina" th:if="${enableOverseas == 1}">
+                                    <span class="form-check">
+                                        <input type="radio" class="form-check-input" name="serviceArea"
+                                               id="serviceAreaOutSideMainlandChina" value="outside_mainland_china">
+
+                                        <span class="form-check-label">海外加速</span>
+                                        <i class="bi-question-circle text-body ms-1" title="仅在中国大陆境外加速，适用于业务在海外的用户。"></i>
+                                    </span>
+                                </label>
+                                    <label class="form-control" for="serviceAreaGlobal" th:if="${enableGlobal == 1}">
+                                    <span class="form-check">
+                                        <input type="radio" class="form-check-input" name="serviceArea" id="serviceAreaGlobal" value="global">
+                                        <span class="form-check-label">全球加速</span>
+                                        <i class="bi-question-circle text-body ms-1" title="全球用户就近访问，中国境内和境外的用户均可获得良好的访问体验；选择该区域时，加速域名需为已备案域名。"></i>
+                                    </span>
+                                </label>
+                                </div>
+                            </div>
+                            <div class="row mb-4">
+                                <label class="form-label">源站配置</label>
+
+                                <div class="input-group input-group-sm-vertical">
+
+                                    <!-- Radio Check -->
+                                    <label class="form-control" for="originTypeIpaddr">
+                                            <span class="form-check">
+                                                <input type="radio" class="form-check-input" name="originType"
+                                                       id="originTypeIpaddr" checked
+                                                       value="ipaddr">
+                                                <span class="form-check-label">IP源站</span>
+                                            </span>
+                                </label>
+
+                                    <label class="form-control" for="originTypeDomain">
+                                            <span class="form-check">
+                                                <input type="radio" class="form-check-input" name="originType"
+                                                       id="originTypeDomain"
+                                                       value="domain">
+                                                <span class="form-check-label">域名源站</span>
+                                            </span>
+                                </label>
+                                    <!-- End Radio Check -->
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <textarea id="originAddr" class="form-control" placeholder="若选择源站IP，请输入IPV4格式的IP地址，最多支持15个源站IP，使用分号隔开，不能有空格；若选择源站域名，请输入域名信息" rows="4"></textarea>
+                                <div class="form-text">源站地址只填写 IP 或域名；回源端口请填写到下方端口栏。</div>
+                            </div>
+                            <div class="row mb-4">
+                                <label class="form-label">回源协议</label>
+                                <div class="input-group input-group-sm-vertical">
+                                    <label class="form-control" for="originProtocolHttp">
+                                        <span class="form-check">
+                                            <input type="radio" class="form-check-input" name="createOriginProtocol" id="originProtocolHttp" value="http" checked>
+                                            <span class="form-check-label">HTTP</span>
+                                        </span>
+                                    </label>
+                                    <label class="form-control" for="originProtocolHttps">
+                                        <span class="form-check">
+                                            <input type="radio" class="form-check-input" name="createOriginProtocol" id="originProtocolHttps" value="https">
+                                            <span class="form-check-label">HTTPS</span>
+                                        </span>
+                                    </label>
+                                    <label class="form-control" for="originProtocolFollow">
+                                        <span class="form-check">
+                                            <input type="radio" class="form-check-input" name="createOriginProtocol" id="originProtocolFollow" value="follow">
+                                            <span class="form-check-label">协议跟随</span>
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="row mb-4 g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label" for="originHttpPort">HTTP端口</label>
+                                    <input id="originHttpPort" class="form-control" type="number" min="1" max="65535" value="80" placeholder="1-65535">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="originHttpsPort">HTTPS端口</label>
+                                    <input id="originHttpsPort" class="form-control" type="number" min="1" max="65535" value="443" placeholder="1-65535">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="originWeight">权重</label>
+                                    <input id="originWeight" class="form-control" type="number" min="1" max="100" value="100" placeholder="1-100">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="originHost">回源HOST</label>
+                                    <input id="originHost" class="form-control" placeholder="不填则默认使用加速域名">
+                                </div>
+                                <div class="form-text">EdgeOne 创建时会同步设置回源协议及端口；权重和回源HOST为预留配置项，可在域名配置页继续调整。</div>
+                            </div>
+                            <!-- End Row -->
+                        </div>
+                        <!-- Body -->
+                        <div class="card-footer" th:if="${availableCount > 0}">
+                            <div class="d-flex justify-content-end">
+                                <a class="btn btn-outline-danger" style="margin: 0px 5px" href="domain-list">
+                                取消
+                            </a>
+                                <button class="btn btn-primary" th:disabled="${routeAuthorized == false}" onclick="createDomain()">
+                                创建
+                            </button>
+                                <span style="display: none" id="verifyCode" th:text="${verifyCode}"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- End Card -->
+
+                </div>
+            </div>
+            <!-- End Row -->
+
+        </div>
+        <!-- End Content -->
+
+        <!-- Footer -->
+        <div th:replace="common/common-dashboard::#footer(curPage='domains')"></div>
+        <!-- End Footer -->
+        <div class="modal fade" id="verifyDomainModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="staticBackdropLabel">验证域名的归属权</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>验证该域名（<span class="txt-verify-domain"></span>）的归属权，从而保证您的业务正常运行。</p>
+                        <div class="accordion" id="accordionVerifyDomain">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingDnsVerify">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDnsVerify" aria-expanded="true" aria-controls="collapseDnsVerify">
+                                    DNS 解析验证
+                                </button>
+                                </h2>
+                                <div id="collapseDnsVerify" class="accordion-collapse collapse show" aria-labelledby="headingDnsVerify" data-bs-parent="#accordionVerifyDomain">
+                                    <div class="accordion-body">
+                                        <p>1.请在您的域名解析服务商处给该域名添加如下解析记录。</p>
+                                        <div class="table-responsive">
+                                            <table class="table">
+                                                <thead>
+                                                    <tr>
+                                                        <th scope="col">主机记录</th>
+                                                        <th scope="col">记录类型</th>
+                                                        <th scope="col">记录值</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td><span class="txt-sub-domain">-</span></td>
+                                                        <td><span class="txt-record-type">-</span></td>
+                                                        <td><span class="txt-record">-</span></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <p>2. 等待TXT解析生效，一般需要1分钟左右时间。如果长期未生效，请您联系域名解析服务商进行确认。</p>
+                                        <p>3. 点击下方的“验证”按钮开始验证。</p>
+                                        <button id="dnsVerifyDomainBtn" type="button" class="btn btn-primary">验证</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingFileVerify">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFileVerify" aria-expanded="false" aria-controls="collapseFileVerify">
+                                    文件验证
+                                </button>
+                                </h2>
+                                <div id="collapseFileVerify" class="accordion-collapse collapse" aria-labelledby="headingFileVerify" data-bs-parent="#accordionVerifyDomain">
+                                    <div class="accordion-body">
+                                        <p>1. 请先下载验证文件 <span class="txt-verify-file">verification.html</span></p>
+                                        <p>2. 上传该文件至 <span class="txt-verify-domains">-</span> 的根目录</p>
+                                        <p>3. 确认可通过 <span class="txt-verify-url">-</span> 访问到该文件</p>
+                                        <p>4. 点击下方的“验证”按钮，开始验证</p>
+                                        <button id="fileVerifyDomainBtn" type="button" class="btn btn-primary">验证</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-white" data-bs-dismiss="modal">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Modal -->
+
+        <!-- End Modal -->
+    </main>
+    <!-- ========== END MAIN CONTENT ========== -->
+
+    <!-- ========== SECONDARY CONTENTS ========== -->
+
+    <div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='domains')"></div>
+
+    <!-- ========== END SECONDARY CONTENTS ========== -->
+
+    <!-- JS Global Compulsory  -->
+    <script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+    <!-- JS Implementing Plugins -->
+    <script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+    <script th:src="@{dashboard/assets/vendor/hs-quantity-counter/dist/hs-quantity-counter.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/hs-add-field/dist/hs-add-field.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/quill/dist/quill.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/dropzone/dist/min/dropzone.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/datatables/media/js/jquery.dataTables.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/datatables.net.extensions/select/select.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.qrcode.js}"></script>
+
+    <!-- JS Front -->
+    <script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+
+    <script th:src="@{common/layer/layer.js}"></script>
+    <script th:src="@{common/util/reg.js}"></script>
+    <script th:src="@{common/custom.js}"></script>
+    <script th:src="@{common/custom_ceo.js(v='20260629-origin-port-create')}"></script>
+    <script th:src="@{common/custom_cmo.js}"></script>
+    <script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+
+    <!-- JS Plugins Init. -->
+    <script>
+        $(document).on('ready', function() {
+            // INITIALIZATION OF DATATABLES
+            HSCore.components.HSDatatables.init($('#datatable'), {
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child input[type="checkbox"]',
+                    classMap: {
+                        checkAll: '#datatableCheckAll',
+                        counter: '#datatableCounter',
+                        counterInfo: '#datatableCounterInfo'
+                    }
+                }
+            });
+        });
+    </script>
+
+    <!-- JS Plugins Init. -->
+    <script>
+        (function() {
+            window.onload = function() {
+
+
+                // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+                // =======================================================
+                new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+                // INITIALIZATION OF FORM SEARCH
+                // =======================================================
+                new HSFormSearch('.js-form-search')
+
+
+                // INITIALIZATION OF BOOTSTRAP DROPDOWN
+                // =======================================================
+                HSBsDropdown.init()
+
+
+                // INITIALIZATION OF SELECT
+                // =======================================================
+                HSCore.components.HSTomSelect.init('.js-select')
+
+
+                // INITIALIZATION OF ADD FIELD
+                // =======================================================
+                new HSAddField('.js-add-field', {
+                    addedField: field => {
+                        HSCore.components.HSTomSelect.init(field.querySelector('.js-select-dynamic'))
+                    }
+                })
+
+
+                // INITIALIZATION OF  QUANTITY COUNTER
+                // =======================================================
+                new HSQuantityCounter('.js-quantity-counter')
+
+
+                // INITIALIZATION OF DROPZONE
+                // =======================================================
+                HSCore.components.HSDropzone.init('.js-dropzone')
+
+
+                // INITIALIZATION OF QUILLJS EDITOR
+                // =======================================================
+                HSCore.components.HSQuill.init('.js-quill')
+            }
+        })()
+    </script>
+
+    <!-- Style Switcher JS -->
+
+    <script>
+        (function() {
+            // STYLE SWITCHER
+            // =======================================================
+            const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+            const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+            // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+            const setActiveStyle = function() {
+                $variants.forEach($item => {
+                    if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                        $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                        return $item.classList.add('active')
+                    }
+
+                    $item.classList.remove('active')
+                })
+            }
+
+            // Add a click event to all items of the dropdown to set the style
+            $variants.forEach(function($item) {
+                $item.addEventListener('click', function() {
+                    HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+                })
+            })
+
+            // Call the setActiveStyle on load page
+            setActiveStyle()
+
+            // Add event listener on change style to call the setActiveStyle function
+            window.addEventListener('on-hs-appearance-change', function() {
+                setActiveStyle()
+            })
+
+
+        })()
+    </script>
+
+    <script>
+        'use strict';
+        const businessTypes = ['serviceAreaMainlandChina', 'serviceAreaOutSideMainlandChina', 'serviceAreaGlobal'];
+
+        function onBusinessTypeChange(ev) {
+            const businessTypeWeb = document.getElementById('businessTypeWeb'),
+                businessTypeDownload = document.getElementById('businessTypeDownload'),
+                businessTypeVideo = document.getElementById('businessTypeVideo')
+            if ('outside_mainland_china' === ev.target.value) {
+                businessTypeDownload.checked = false
+                businessTypeVideo.checked = false
+                businessTypeWeb.checked = true
+                businessTypeDownload.disabled = true
+                businessTypeVideo.disabled = true
+            } else {
+                businessTypeDownload.disabled = false
+                businessTypeVideo.disabled = false
+            }
+        }
+        businessTypes.forEach(function(it) {
+            const item = document.getElementById(it)
+            if (item === null) {
+                return
+            }
+            item.addEventListener('change', onBusinessTypeChange, false)
+        })
+    </script>
+
+    <!-- End Style Switcher JS -->
+</body>
+
+</html>
+<div th:replace="common/common-dashboard::#agent"></div>
+

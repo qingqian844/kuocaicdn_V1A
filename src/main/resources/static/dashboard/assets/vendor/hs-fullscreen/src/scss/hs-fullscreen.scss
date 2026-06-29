@@ -1,0 +1,24 @@
+//
+// HS Fullscreen
+//
+
+// Imports
+@import "./variables";
+
+.u-fullscreen {
+	position: fixed !important;
+	z-index: $z-index;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 100vh !important;
+	max-height: 100vh !important;
+	width: 100vw !important;
+	max-width: 100vw !important;
+	border-radius: 0;
+	border: 0;
+}
+
+.u-fullscreen-on {
+	overflow: hidden;
+}

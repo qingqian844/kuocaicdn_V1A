@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title>400</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" th:href="${dashboardIcon != null and !#strings.isEmpty(dashboardIcon)} ? ${dashboardIcon} : '/image/4b05f2ef00458ac8323812f98a073a72.png'">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{front/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <!-- CSS Front Template -->
+    <link rel="stylesheet" th:href="@{front/assets/css/theme.min.css}">
+</head>
+
+<body class="d-flex flex-column justify-content-center align-items-center h-100">
+<!-- ========== HEADER ========== -->
+<header id="header" class="navbar navbar-expand navbar-light navbar-absolute-top">
+    <div class="container">
+        <nav class="navbar-nav-wrap">
+            <!-- Default Logo -->
+            <a class="navbar-brand" href="/index" aria-label="Front">
+                <img class="navbar-brand-logo" th:src="${dashboardLogo != null and !#strings.isEmpty(dashboardLogo)} ? ${dashboardLogo} : (${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : '/image/f96b75d4a78a3eea3837c7150316fe25.png')" alt="Logo">
+            </a>
+            <!-- End Default Logo -->
+        </nav>
+    </div>
+</header>
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<main id="content" role="main">
+    <!-- Content -->
+    <div class="container text-center" style="margin-top: 40%">
+        <div class="mb-3">
+            <img class="img-fluid" th:src="@{front/assets/svg/illustrations/oc-error.svg}" alt="Image Description"
+                 style="width: 30rem;">
+        </div>
+
+        <div class="mb-4">
+            <p class="fs-4 mb-0">400 Bad Request</p>
+            <p class="fs-4">语义有误，当前请求无法被服务器理解。</p>
+        </div>
+
+        <a class="btn btn-primary" href="javascript:{window.history.go(-1)}">返回上一页</a>
+    </div>
+    <!-- End Content -->
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- ========== FOOTER ========== -->
+<div th:replace="common/common-error::#error_footer"></div>
+<!-- ========== END FOOTER ========== -->
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{front/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+<!-- JS Front -->
+<script th:src="@{front/assets/js/theme.min.js}"></script>
+</body>
+</html>

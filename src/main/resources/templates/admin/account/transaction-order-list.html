@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title th:if="${!openAgent}">[[${websiteBaseConfig.websiteName}]] 订单列表</title>
+    <title th:if="${openAgent}">[[${agentConfig.websiteName}]] 订单列表</title>
+
+    <!-- Favicon -->
+    <link th:if="${!openAgent}" rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:if="${openAgent}" rel="shortcut icon" th:href="${agentConfig.icon}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {"switcherSupport": true},
+                "header": {"layoutMode": "default", "containerMode": "container-fluid"},
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {"100": "#f9fafc", "900": "#1e2022"}
+                    }, "font": "Inter"
+                }
+            },
+            "languageDirection": {"lang": "en"},
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {"*assets/js/theme-custom.js": ""},
+                "build": {"*assets/js/theme-custom.js": "", "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"}
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {"src": "./src", "dist": "./dist", "build": "./build"},
+            "fileNames": {
+                "dist": {"js": "theme.min.js", "css": "theme.min.css"},
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl   footer-offset">
+
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+<!-- ========== HEADER ========== -->
+
+<div th:replace="common/common-dashboard::header(curPage='transaction-order-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<!-- Navbar Vertical -->
+
+<div th:replace="common/common-dashboard::aside(curPage='transaction-order-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- End Navbar Vertical -->
+<main id="content" role="main" class="main">
+
+    <button style="display: none" type="button" class="btn btn-primary" data-bs-toggle="modal"
+            data-bs-target="#exampleModalCenteredScrollable" id="testButton">
+        Vertically centered scrollable modal
+    </button>
+    <div id="exampleModalCenteredScrollable" class="modal fade" tabindex="-1" role="dialog"
+         aria-labelledby="exampleModalCenteredScrollableTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered" role="document">
+            <div class="modal-content" style="height: 300px;width: 350px">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalCenteredScrollableTitle" style="text-align: center"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
+                            onclick="closeQrcode()"></button>
+                </div>
+                <div class="modal-body" style="text-align: center" id="qrCode">
+
+                </div>
+                <!--<div class="modal-footer" style="padding: calc(var(&#45;&#45;bs-modal-padding) - var(&#45;&#45;bs-modal-footer-gap) * 3)">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+&lt;!&ndash;                    <button type="button" class="btn btn-primary">Save changes</button>&ndash;&gt;
+                </div>-->
+            </div>
+        </div>
+    </div>
+    <!-- Content -->
+    <div class="content container-fluid">
+        <!-- Page Header -->
+        <div class="page-header" style="padding-bottom: 5px;margin-bottom: 10px">
+            <div class="row align-items-center">
+                <div class="col-sm mb-2 mb-sm-0">
+                    <h1 class="page-header-title">订单列表 <i class="bi-cash-coin nav-icon"></i>
+                    </h1>
+
+                </div>
+                <!-- End Col -->
+                <div class="col-sm-auto">
+                    <button type="button" class="btn btn-primary" onclick="oneButtonPay()">
+                        一键余额支付
+                    </button>
+                </div>
+                <div class="col-sm-auto">
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                            data-bs-target="#collectExampleModalCenter" onclick="getCollectOrder()">
+                        汇总信息
+                    </button>
+                </div>
+            </div>
+            <!-- End Row -->
+        </div>
+        <!-- End Page Header -->
+
+        <!-- Card -->
+        <div class="card mb-3 mb-lg-5">
+            <!-- Header -->
+            <div class="card-header">
+                <div class="row justify-content-between align-items-center flex-grow-1">
+                    <div class="col-md">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <form>
+                                <!-- Search -->
+                                <div class="input-group input-group-merge input-group-flush">
+                                    <div class="input-group-prepend input-group-text">
+                                        <i class="bi-search"></i>
+                                    </div>
+                                    <input id="datatableSearch" type="search" class="form-control" maxlength="30"
+                                           placeholder="关键词搜索">
+                                </div>
+                                <!-- End Search -->
+                            </form>
+                            <!-- End Col -->
+                        </div>
+                    </div>
+                    <!-- End Col -->
+
+                    <div class="col-auto">
+                        <!-- Filter -->
+                        <div class="row align-items-sm-center">
+
+                            <div class="col-sm-auto" th:hidden="${!isAdmin}">
+                                <div class="row align-items-center gx-0">
+                                    <div class="col">
+                                        <span class="text-secondary me-2" style="font-weight: bold">用户：</span>
+                                    </div>
+                                    <!-- End Col -->
+
+                                    <div class="col-auto">
+                                        <!-- Select -->
+                                        <div class="tom-select-custom tom-select-custom-end">
+                                            <select class="js-select js-datatable-filter form-select form-select-sm form-select-borderless"
+                                                    data-target-column-index="0" data-target-table="datatable"
+                                                    autocomplete="off" data-hs-tom-select-options='{
+                                                  "dropdownWidth": "20rem"
+                                                }'>
+                                                <option value="all">全部</option>
+                                                <th:block th:each="user: ${users}">
+                                                    <option th:value="${user.id}">[[${user.userName}]] [[${user.phone}]]
+                                                        [[${user.email}]]
+                                                    </option>
+                                                </th:block>
+                                            </select>
+                                        </div>
+                                        <!-- End Select -->
+                                    </div>
+                                    <!-- End Col -->
+                                </div>
+                                <!-- End Row -->
+                            </div>
+                            <!-- End Col -->
+
+                            <div class="col-sm-auto">
+                                <div class="row align-items-center gx-0">
+                                    <div class="col">
+                                        <span class="text-secondary me-2" style="font-weight: bold">订单类型：</span>
+                                    </div>
+                                    <!-- End Col -->
+
+                                    <div class="col-auto">
+                                        <!-- Select -->
+                                        <div class="tom-select-custom tom-select-custom-end">
+                                            <select class="js-select js-datatable-filter form-select form-select-sm form-select-borderless"
+                                                    data-target-column-index="3" data-target-table="datatable"
+                                                    autocomplete="off" data-hs-tom-select-options='{
+                                                      "searchInDropdown": false,
+                                                      "hideSearch": true,
+                                                      "dropdownWidth": "10rem"
+                                                    }'>
+                                                <option value="all">全部</option>
+                                                <option value="flow_package">流量包购买</option>
+                                                <option value="balance_deduction">余额扣款</option>
+                                                <option value="balance_withdrawal">余额提现</option>
+                                                <option value="balance_recharge">余额充值</option>
+                                                <option value="admin_balance_recharge">管理员充值</option>
+                                                <option value="admin_balance_deduction">管理员扣款</option>
+                                                <option value="flow_deduction">流量账单扣款</option>
+                                                <option value="recommendation_reward">注册推荐奖励</option>
+                                                <option value="flow_package_profit">流量包分润</option>
+                                                <option value="flow_order_profit">流量订单分润</option>
+
+                                            </select>
+                                        </div>
+                                        <!-- End Select -->
+                                    </div>
+                                    <!-- End Col -->
+                                </div>
+                                <!-- End Row -->
+                            </div>
+                            <!-- End Col -->
+
+                            <div class="col-sm-auto">
+                                <div class="row align-items-center gx-0">
+                                    <div class="col">
+                                        <span class="text-secondary me-2" style="font-weight: bold">状态：</span>
+                                    </div>
+                                    <!-- End Col -->
+
+                                    <div class="col-auto">
+                                        <!-- Select -->
+                                        <div class="tom-select-custom tom-select-custom-end">
+                                            <select class="js-select js-datatable-filter form-select form-select-sm form-select-borderless"
+                                                    data-target-column-index="5" data-target-table="datatable"
+                                                    autocomplete="off" data-hs-tom-select-options='{
+                                                      "searchInDropdown": false,
+                                                      "hideSearch": true,
+                                                      "dropdownWidth": "10rem"
+                                                    }'>
+                                                <option value="all" selected>全部</option>
+                                                <option value="TRADE_SUCCESS">支付成功</option>
+                                                <option value="WAIT_BUYER_PAY">等待支付</option>
+                                                <option value="REFUND">已退款</option>
+                                                <option value="REFUNDING">退款中</option>
+                                                <option value="expired">已取消</option>
+                                            </select>
+                                        </div>
+                                        <!-- End Select -->
+                                    </div>
+                                    <!-- End Col -->
+                                </div>
+                                <!-- End Row -->
+                            </div>
+                            <!-- End Col -->
+                        </div>
+                    </div>
+                </div>
+                <!-- End Row -->
+            </div>
+            <!-- End Header -->
+
+            <!-- Table -->
+            <div class="table-responsive datatable-custom" style="min-height: 350px;">
+                <table id="datatable" style="width: 100%"
+                       class="table table-borderless table-thead-bordered table-nowrap table-align-middle card-table table-hover"
+                       data-hs-datatables-options='{
+                   "columnDefs": [{
+                      "targets": [0,1,2,3,4,5,6],
+                      "orderable": false
+                    }],
+                   "order": [[7, "desc"]],
+                   "info": {
+                     "totalQty": "#datatableWithPaginationInfoTotalQty"
+                   },
+                   "search": "#datatableSearch",
+                   "entries": "#datatableEntries",
+                   "pageLength": 10,
+                   "isResponsive": false,
+                   "isShowPaging": false,
+                   "pagination": "datatablePagination",
+                   "paginationPrevLinkMarkup": "<span aria-hidden=\"true\">前一页</span>",
+                   "paginationNextLinkMarkup": "<span aria-hidden=\"true\">后一页</span>"
+                 }'>
+                    <thead class="thead-light">
+                    <tr>
+                        <th>用户</th>
+                        <th class="table-column-pe-0">订单编号
+                        </th>
+                        <th>订单标题
+                        </th>
+                        <th>订单类型
+                        </th>
+                        <th>订单金额
+                        </th>
+                        <th>状态
+                        </th>
+                        <th>支付方式
+                        </th>
+                        <th>创建时间
+                        </th>
+                        <th>操作
+                        </th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+
+                    <tr>
+
+                    </tr>
+
+                    </tbody>
+                </table>
+            </div>
+            <!-- End Table -->
+
+            <!-- Footer -->
+            <div class="card-footer">
+                <div class="row justify-content-center justify-content-sm-between align-items-sm-center">
+                    <div class="col-sm mb-2 mb-sm-0">
+                        <div class="d-flex justify-content-center justify-content-sm-start align-items-center">
+                            <span class="me-2">每页显示</span>
+
+                            <!-- Select -->
+                            <div class="tom-select-custom">
+                                <select id="datatableEntries"
+                                        class="js-select form-select form-select-borderless" autocomplete="off"
+                                        data-hs-tom-select-options='{
+                                            "searchInDropdown": false,
+                                            "hideSearch": true,
+                                            "dropdownWidth": "6rem"
+                                          }'>
+                                    <option value="10" selected>10</option>
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                    <option value="80">80</option>
+                                </select>
+                            </div>
+                            <!-- End Select -->
+
+                            <span class="text-secondary me-2">条，</span>
+                            共
+                            <!-- Pagination Quantity -->
+                            <span id="datatableWithPaginationInfoTotalQty" style="margin: 0px 5px"></span>
+                            条
+                        </div>
+                    </div>
+                    <!-- End Col -->
+
+                    <div class="col-sm-auto">
+                        <div class="d-flex justify-content-center justify-content-sm-end">
+                            <!-- Pagination -->
+                            <nav id="datatablePagination" aria-label="Activity pagination"></nav>
+                        </div>
+                    </div>
+                    <!-- End Col -->
+                </div>
+                <!-- End Row -->
+            </div>
+            <!-- End Footer -->
+        </div>
+        <!-- End Card -->
+    </div>
+    <!-- End Content -->
+
+    <!-- Footer -->
+    <div th:replace="common/common-dashboard::#footer(curPage='transaction-order-list')"></div>
+    <!-- End Footer -->
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- ========== SECONDARY CONTENTS ========== -->
+
+<div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='transaction-order-list')"></div>
+
+<!-- Modal -->
+<div id="collectExampleModalCenter" class="modal fade" tabindex="-1" role="dialog"
+     aria-labelledby="collectExampleModalCenterTitle"
+     aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="collectExampleModalCenterTitle">汇总信息</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div id="collectExampleModalCenterDetailBody" class="modal-body">
+                <div class="row mb-3" th:hidden="!${session.loginUser.isAdmin()}">
+                    <div class="input-group col-sm-9 tom-select-custom">
+                        <label class="col-sm-3 col-form-label">用户</label>
+                        <select class="js-select form-select" autocomplete="off" id="userId"
+                                data-hs-tom-select-options='{
+                                "dropdownWidth": "20rem"
+                                        }' onchange="getCollectOrder(true)">
+                            <option th:value="${u.id}"
+                                    th:each="u:${users}">[[${u.userName}]] [[${u.phone}]] [[${u.email}]]
+                            </option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="input-group col-sm-6">
+                        <!--                        <input id="nowAmount" type="text" class="form-control-plaintext" readonly>-->
+                        <label for="nowAmount" class="col-sm-3 col-form-label">今日消费</label>
+                        <input max="100" min="10" type="number" id="nowAmount"
+                               name="nowAmount"
+                               class="form-control" readonly>
+                        <span class="input-group-text">元</span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="input-group col-sm-9">
+                        <label for="yesterdayAmount" class="col-sm-3 col-form-label">昨日消费</label>
+                        <input max="100" min="10" type="number" id="yesterdayAmount"
+                               name="yesterdayAmount"
+                               class="form-control" readonly>
+                        <span class="input-group-text">元</span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="input-group col-sm-9">
+                        <label for="sevenAmount" class="col-sm-3 col-form-label">近7天消费</label>
+                        <input max="100" min="10" type="number" id="sevenAmount"
+                               name="sevenAmount"
+                               class="form-control" readonly>
+                        <span class="input-group-text">元</span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="input-group col-sm-9">
+                        <label for="thirtyAmount" class="col-sm-3 col-form-label">近30天消费</label>
+                        <input max="100" min="10" type="number" id="thirtyAmount"
+                               name="thirtyAmount"
+                               class="form-control" readonly>
+                        <span class="input-group-text">元</span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="input-group col-sm-9">
+                        <label for="allAmount" class="col-sm-3 col-form-label">总消费</label>
+                        <input max="100" min="10" type="number" id="allAmount"
+                               name="allAmount"
+                               class="form-control" readonly>
+                        <span class="input-group-text">元</span>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-white" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="exampleModalCenter" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle"
+     aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalCenterTitle">订单详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div id="detailBody" class="modal-body">
+                <div class="row mb-3">
+                    <label class="col-sm-3 col-form-label">创建时间</label>
+                    <div class="col-sm-9">
+                        <input id="createTime" type="text" class="form-control-plaintext" readonly>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <label class="col-sm-3 col-form-label">支付时间</label>
+                    <div class="col-sm-9">
+                        <input id="payTime" type="text" class="form-control-plaintext" readonly>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <label class="col-sm-3 col-form-label">详情</label>
+                    <div class="col-sm-9">
+                        <textarea id="detail" class="form-control text-secondary form-control-borderless"
+                                  style="padding: 0px;resize: none" placeholder="Textarea field" rows="5"
+                                  readonly></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-white" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End Import Products Modal -->
+
+<div id="hasMoneyModal" class="modal fade bd-example-modal-sm" tabindex="-1" role="dialog"
+     aria-labelledby="exampleModalCenterTitle"
+     aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+        <div class="modal-content">
+            <input type="hidden" name="" id="hiddenToId">
+            <div class="modal-header">
+                <h3 class="modal-title" id="ehasMoneyModalCenterTitle">
+                    确认支付</h3>
+            </div>
+            <div class="modal-body">
+                <span>当前余额：<span style="color: orangered;">¥ [[${balance}]]</span></span>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary"
+                        th:onclick="useBalance2PayTransactionOrder()">确认
+                </button>
+                <button type="button" class="btn btn-white" data-bs-dismiss="modal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="noMoneyModal" class="modal fade bd-example-modal-sm" tabindex="-1" role="dialog"
+     aria-labelledby="exampleModalCenterTitle"
+     aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="noMoneyModalCenterTitle">
+                    余额不足,前往充值</h3>
+            </div>
+            <div class="modal-body">
+                <span>当前余额：<span style="color: orangered;">¥ [[${balance}]]</span></span>
+            </div>
+
+            <div class="modal-footer">
+                <a class="btn btn-primary"
+                   href="recharge">确认
+                </a>
+                <button type="button" class="btn btn-white" data-bs-dismiss="modal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== END SECONDARY CONTENTS ========== -->
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery/dist/utf.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.qrcode.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+<!-- JS Implementing Plugins -->
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-nav-scroller/dist/hs-nav-scroller.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/clipboard/dist/clipboard.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/datatables/media/js/jquery.dataTables.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/datatables.net.extensions/select/select.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/dropzone/dist/min/dropzone.min.js}"></script>
+
+<!-- JS Front -->
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/util/reg.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom_ceo.js}"></script>
+<script th:src="@{common/custom_cmo.js}"></script>
+<script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+
+<!-- JS Plugins Init. -->
+<script>
+    $(document).on('ready', function () {
+        // INITIALIZATION OF DATATABLES
+        // =======================================================
+        HSCore.components.HSDatatables.init($('#datatable'), {
+            select: {
+                style: 'multi',
+                selector: 'td:first-child input[type="checkbox"]',
+                classMap: {
+                    checkAll: '#datatableCheckAll',
+                    counter: '#datatableCounter',
+                    counterInfo: '#datatableCounterInfo'
+                }
+            },
+            language: {
+                zeroRecords: `<div class="text-center p-4">
+                              <img class="mb-3" src="dashboard/assets/svg/illustrations/oc-error.svg" alt="Image Description" style="width: 10rem;" data-hs-theme-appearance="default">
+                              <img class="mb-3" src="dashboard/assets/svg/illustrations-light/oc-error.svg" alt="Image Description" style="width: 10rem;" data-hs-theme-appearance="dark">
+                            <p class="mb-0">无数据</p>
+                            </div>`
+            },
+            serverSide: true,
+            ajax: {
+                type: "POST",
+                url: 'TransactionOrder/queryForDatatables',
+                contentType: "application/json",
+                data: function (d) {
+                    if (d.order.length > 0) {
+                        console.log(d.order);
+                        let o = d.order[0];
+                        let index = o.column;
+                        let name = d.columns[index].data;
+                        o.column = name;
+                    }
+                    d.search.columns = ['order_num', 'user_name', 'order_type', 'pay_type', 'title', 'pay_time', 'amount', 'status']
+                    return JSON.stringify(d);
+                },
+                dataFilter: function (data) {
+                    let json = jQuery.parseJSON(data);
+                    return JSON.stringify(json.data);
+                }
+            },
+            columns: [
+                {width: '10%', data: 'userId'},
+                {width: '10%', data: 'orderNum'},
+                {width: '15%', data: 'title'},
+                {width: '15%', data: null, defaultContent: ''},
+                {width: '10%', data: 'amount'},
+                {width: '10%', data: 'status'},
+                {width: '10%', data: 'payType'},
+                {width: '10%', data: 'createTime'},
+                {width: '20%', data: null},
+            ],
+            columnDefs: [
+                {
+                    targets: 0,
+                    render: function (data, type, row, meta) {
+                        return `
+                        <span class="avatar avatar-sm avatar-circle">
+                          <img class="avatar-img" src="${row.imgUrl}" alt="Image Description">
+                        </span>
+                        <span style="font-weight: bold">
+                            ${row.userName}
+                        </span>
+                        `;
+                    }
+                },
+                {
+                    targets: 3,
+                    render: function (data, type, row, meta) {
+                        data = (row && (row.orderType || row.order_type)) || data || '';
+                        if (data === 'edgeone_domain_quota') {
+                            return 'EdgeOne根域名额度';
+                        }
+                        if (data === 'flow_package') {
+                            return '流量包购买';
+                        } else if (data === 'balance_deduction') {
+                            return '余额扣款';
+                        } else if (data === 'balance_withdrawal') {
+                            return '余额提现';
+                        } else if (data === 'balance_recharge') {
+                            return '余额充值';
+                        } else if (data === 'admin_balance_recharge') {
+                            return '管理员充值';
+                        } else if (data === 'admin_balance_deduction') {
+                            return '管理员扣款';
+                        } else if (data === 'flow_deduction') {
+                            return '流量账单扣款';
+                        } else if (data === 'recommendation_reward') {
+                            return '注册推荐奖励'
+                        } else if (data === 'flow_package_profit') {
+                            return '流量包分润';
+                        } else if (data === 'flow_order_profit') {
+                            return '流量订单分润';
+                        }
+                    }
+                },
+                {
+                    targets: 5,
+                    render: function (data, type, row, meta) {
+                        if (data === 'TRADE_SUCCESS') {
+                            return '<span class="badge bg-success">成功</span>';
+                        } else if (data === 'WAIT_BUYER_PAY') {
+                            return '<span class="badge bg-primary">等待</span>';
+                        } else if (data === 'expired') {
+                            return '<span class="badge bg-danger">取消</span>';
+                        } else if (data === 'REFUND') {
+                            return '<span class="badge bg-danger">退款</span>';
+                        } else if (data === 'REFUNDING') {
+                            return '<span class="badge bg-danger">退款中</span>';
+                        }
+                    }
+                },
+                {
+                    targets: 6,
+                    render: function (data, type, row, meta) {
+                        if (data === 'balance_pay') {
+                            return '余额支付';
+                        } else if (data === 'alipay') {
+                            return '支付宝支付';
+                        } else if (data === 'wechat_pay') {
+                            return '微信支付';
+                        } else {
+                            return '系统操作'
+                        }
+                    }
+                },
+                {
+                    targets: 8,
+                    render: function (data, type, row, meta) {
+                        let dataStr = JSON.stringify(data).replace(/"/g, "&quot;");
+                        let btn = `
+                            <button class="btn btn-white btn-sm" onclick="openOrderModal('${dataStr}')">
+                                <i class="bi bi-eye-fill"></i> 详情
+                            </button>
+                            `
+                        if ((row.orderType || row.order_type) === 'flow_deduction') {
+                            let t = data.status === 'TRADE_SUCCESS' ? '<button disabled class="btn btn-white btn-sm text-success"> <i class="bi bi-check-circle-fill"></i> 已支付</button>'
+                                : (((data.status === 'expired' ? '<button disabled class="btn btn-white btn-sm text-danger"> <i class="bi bi-hourglass-bottom"></i> 已过期</button>'
+                                    : ((data.status === 'REFUND' ? '<button disabled class="btn btn-white btn-sm text-danger"> <i class="bi bi-hourglass-bottom"></i> 已退款</button>'
+                                        : (data.status === 'REFUNDING' ? '<button disabled class="btn btn-white btn-sm text-danger"> <i class="bi bi-hourglass-bottom"></i> 退款中</button>'
+                                            : '<button class="btn btn-white btn-sm text-primary" onclick=toPayFlowDeduction(' + '"' + data.id + '","' + [[${balance}]] + '","' + data.amount + '"' + ')> <i class="bi bi-arrow-right-circle-fill"></i> 去支付</button>'))))));
+                            return btn + t;
+                        } else {
+                            let t = data.status === 'TRADE_SUCCESS' ? '<button disabled class="btn btn-white btn-sm text-success"> <i class="bi bi-check-circle-fill"></i> 已支付</button>'
+                                : (((data.status === 'expired' ? '<button disabled class="btn btn-white btn-sm text-danger"> <i class="bi bi-hourglass-bottom"></i> 已过期</button>'
+                                    : ((data.status === 'REFUND' ? '<button disabled class="btn btn-white btn-sm text-danger"> <i class="bi bi-hourglass-bottom"></i> 已退款</button>'
+                                        : (data.status === 'REFUNDING' ? '<button disabled class="btn btn-white btn-sm text-danger"> <i class="bi bi-hourglass-bottom"></i> 退款中</button>'
+                                            : '<button class="btn btn-white btn-sm text-primary" onclick=toPay(' + '"' + data.id + '","' + data.payType + '"' + ')> <i class="bi bi-arrow-right-circle-fill"></i> 去支付</button>'))))));
+                            return btn + t;
+                        }
+
+                    }
+                },
+                {"orderable": false, "targets": [0, 1, 2, 3, 5, 6, 8]},
+            ],
+        });
+
+        const datatable = HSCore.components.HSDatatables.getItem('datatable')
+
+        $('.js-datatable-filter').on('change', function () {
+            var $this = $(this),
+                elVal = $this.val(),
+                targetColumnIndex = $this.data('target-column-index');
+
+            datatable.column(targetColumnIndex).search(elVal).draw();
+        });
+
+        $('#datatableSearch').on('mouseup', function (e) {
+            var $input = $(this),
+                oldValue = $input.val();
+
+            if (oldValue == "") return;
+
+            setTimeout(function () {
+                var newValue = $input.val();
+
+                if (newValue == "") {
+                    // Gotcha
+                    datatable.search('').draw();
+                }
+            }, 1);
+        });
+
+        $('#toggleColumn_product').change(function (e) {
+            datatable.columns(1).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_type').change(function (e) {
+            datatable.columns(2).visible(e.target.checked)
+        })
+
+
+        $('#toggleColumn_vendor').change(function (e) {
+            datatable.columns(3).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_stocks').change(function (e) {
+            datatable.columns(4).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_sku').change(function (e) {
+            datatable.columns(5).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_price').change(function (e) {
+            datatable.columns(6).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_quantity').change(function (e) {
+            datatable.columns(7).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_variants').change(function (e) {
+            datatable.columns(8).visible(e.target.checked)
+        })
+    });
+</script>
+
+<!-- JS Plugins Init. -->
+<script>
+    (function () {
+        window.onload = function () {
+
+
+            // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+            // =======================================================
+            new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+            // INITIALIZATION OF FORM SEARCH
+            // =======================================================
+            new HSFormSearch('.js-form-search')
+
+
+            // INITIALIZATION OF BOOTSTRAP DROPDOWN
+            // =======================================================
+            HSBsDropdown.init()
+
+
+            // INITIALIZATION OF SELECT
+            // =======================================================
+            HSCore.components.HSTomSelect.init('.js-select')
+
+
+            // INITIALIZATION OF NAV SCROLLER
+            // =======================================================
+            new HsNavScroller('.js-nav-scroller')
+
+
+            // INITIALIZATION OF DROPZONE
+            // =======================================================
+            HSCore.components.HSDropzone.init('.js-dropzone')
+
+            HSCore.components.HSClipboard.init('.js-clipboard')
+        }
+    })()
+</script>
+
+<!-- Style Switcher JS -->
+
+<script>
+    (function () {
+        // STYLE SWITCHER
+        // =======================================================
+        const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+        const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+        // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+        const setActiveStyle = function () {
+            $variants.forEach($item => {
+                if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                    $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                    return $item.classList.add('active')
+                }
+
+                $item.classList.remove('active')
+            })
+        }
+
+        // Add a click event to all items of the dropdown to set the style
+        $variants.forEach(function ($item) {
+            $item.addEventListener('click', function () {
+                HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+            })
+        })
+
+        // Call the setActiveStyle on load page
+        setActiveStyle()
+
+        // Add event listener on change style to call the setActiveStyle function
+        window.addEventListener('on-hs-appearance-change', function () {
+            setActiveStyle()
+        })
+
+    })()
+</script>
+
+<!-- End Style Switcher JS -->
+</body>
+</html>
+<div th:replace="common/common-dashboard::#agent"></div>

@@ -1,0 +1,51 @@
+﻿<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title th:text="${websiteBaseConfig.websiteName} + ' Open Source CDN'">KuocaiCDN Open Source</title>
+    <link rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+    <link rel="stylesheet" href="front/assets/vendor/bootstrap-icons/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="front/assets/vendor/hs-mega-menu/dist/hs-mega-menu.min.css">
+    <link rel="stylesheet" href="front/assets/css/theme.min.css">
+</head>
+<body>
+<div th:replace="common/common-front::#header"></div>
+
+<main id="content" role="main">
+    <div class="bg-primary">
+        <div class="container content-space-3 content-space-lg-4 text-center">
+            <h1 class="display-4 text-white mb-4" th:text="${websiteBaseConfig.websiteName}">KuocaiCDN</h1>
+            <p class="lead text-white-70 mb-5">
+                Open source CDN management with all vendor integrations enabled and metered balance billing.
+            </p>
+            <a class="btn btn-light btn-transition px-6" href="dashboard">Open Console</a>
+            <a class="btn text-white" href="product_price">Pricing <i class="bi-chevron-right small ms-1"></i></a>
+        </div>
+    </div>
+
+    <div class="container content-space-2">
+        <div class="row justify-content-lg-center">
+            <div class="col-md-4 mb-5">
+                <h3>All Vendors</h3>
+                <p>CDN vendor integrations are available without license authorization checks.</p>
+            </div>
+            <div class="col-md-4 mb-5">
+                <h3>Metered Billing</h3>
+                <p>Traffic usage creates internal balance orders. Users can enable automatic balance payment.</p>
+            </div>
+            <div class="col-md-4 mb-5">
+                <h3>Open Source Scope</h3>
+                <p>License, online payment, proxy, withdrawal, and traffic package features are removed.</p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div th:replace="common/common-front::#footer"></div>
+<script src="front/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="front/assets/vendor/hs-mega-menu/dist/hs-mega-menu.min.js"></script>
+<script src="front/assets/js/theme.min.js"></script>
+</body>
+</html>

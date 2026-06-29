@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title th:if="${!openAgent}">[[${websiteBaseConfig.websiteName}]] 域名列表</title>
+    <title th:if="${openAgent}">[[${agentConfig.websiteName}]] 域名列表</title>
+
+    <!-- Favicon -->
+    <link th:if="${!openAgent}" rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:if="${openAgent}" rel="shortcut icon" th:href="${agentConfig.icon}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {"switcherSupport": true},
+                "header": {"layoutMode": "default", "containerMode": "container-fluid"},
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {"100": "#f9fafc", "900": "#1e2022"}
+                    }, "font": "Inter"
+                }
+            },
+            "languageDirection": {"lang": "en"},
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {"*assets/js/theme-custom.js": ""},
+                "build": {"*assets/js/theme-custom.js": "", "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"}
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {"src": "./src", "dist": "./dist", "build": "./build"},
+            "fileNames": {
+                "dist": {"js": "theme.min.js", "css": "theme.min.css"},
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl   footer-offset">
+
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+<!-- ========== HEADER ========== -->
+
+<div th:replace="common/common-dashboard::header(curPage='domain-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<!-- Navbar Vertical -->
+
+<div th:replace="common/common-dashboard::aside(curPage='domain-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- End Navbar Vertical -->
+<main id="content" role="main" class="main">
+    <!-- Content -->
+    <div class="content container-fluid">
+        <!-- Page Header -->
+        <div class="page-header" style="padding-bottom: 5px;margin-bottom: 10px">
+            <div class="row align-items-center">
+                <div class="col-sm mb-2 mb-sm-0">
+                    <h1 class="page-header-title">我的域名 <i class="bi-diagram-3 nav-icon"></i>
+                    </h1>
+                </div>
+                <!-- End Col -->
+                <div class="col-sm-auto">
+                    <a type="button" class="btn btn-primary" href="domain-create"
+                       th:if="${session.loginUser.status == 'certified'}">
+                        添加域名
+                    </a>
+                    <a type="button" class="btn btn-danger" href="authentication-real-name"
+                       th:if="${session.loginUser.status != 'certified'}">
+                        立即实名
+                    </a>
+                </div>
+            </div>
+            <!-- End Row -->
+        </div>
+        <!-- End Page Header -->
+
+        <!-- Card -->
+        <div class="card mb-3 mb-lg-5">
+            <!-- Header -->
+            <div class="card-header">
+                <div class="row justify-content-between align-items-center flex-grow-1">
+                    <div class="col-md">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <form>
+                                <!-- Search -->
+                                <div class="input-group input-group-merge input-group-flush">
+                                    <div class="input-group-prepend input-group-text">
+                                        <i class="bi-search"></i>
+                                    </div>
+                                    <input id="datatableSearch" type="search" class="form-control"
+                                           placeholder="关键词搜索">
+                                </div>
+                                <!-- End Search -->
+                            </form>
+                            <!-- End Col -->
+                        </div>
+                    </div>
+                    <!-- End Col -->
+
+                    <div class="col-auto">
+                        <!-- Filter -->
+                        <div class="row align-items-sm-center">
+
+                            <div class="col-sm-auto">
+                                <div class="row align-items-center gx-0">
+                                    <div class="col">
+                                        <span class="text-secondary me-2" style="font-weight: bold">业务类型：</span>
+                                    </div>
+                                    <!-- End Col -->
+
+                                    <div class="col-auto">
+                                        <!-- Select -->
+                                        <div class="tom-select-custom tom-select-custom-end">
+                                            <select class="js-select js-datatable-filter form-select form-select-sm form-select-borderless"
+                                                    data-target-column-index="4" data-target-table="datatable"
+                                                    autocomplete="off"
+                                                    data-hs-tom-select-options='{"searchInDropdown": false,"hideSearch": true,"dropdownWidth": "10rem"}'>
+                                                <option value="all" selected>全部</option>
+                                                <option value="web">网站加速</option>
+                                                <option value="download">下载加速</option>
+                                                <option value="video">点播加速</option>
+                                            </select>
+                                        </div>
+                                        <!-- End Select -->
+                                    </div>
+                                    <!-- End Col -->
+                                </div>
+                                <!-- End Row -->
+                            </div>
+                            <!-- End Col -->
+
+
+                            <div class="col-sm-auto">
+                                <div class="row align-items-center gx-0">
+                                    <div class="col">
+                                        <span class="text-secondary me-2" style="font-weight: bold">服务范围：</span>
+                                    </div>
+                                    <!-- End Col -->
+
+                                    <div class="col-auto">
+                                        <!-- Select -->
+                                        <div class="tom-select-custom tom-select-custom-end">
+                                            <select class="js-select js-datatable-filter form-select form-select-sm form-select-borderless"
+                                                    data-target-column-index="5" data-target-table="datatable"
+                                                    autocomplete="off"
+                                                    data-hs-tom-select-options='{"searchInDropdown": false,"hideSearch": true,"dropdownWidth": "10rem"}'>
+                                                <option value="all" selected>全部</option>
+                                                <option value="mainland_china">中国大陆</option>
+                                                <option value="outside_mainland_china">中国境外</option>
+                                                <option value="global">全球</option>
+                                            </select>
+                                        </div>
+                                        <!-- End Select -->
+                                    </div>
+                                    <!-- End Col -->
+                                </div>
+                                <!-- End Row -->
+                            </div>
+                            <!-- End Col -->
+
+                            <div class="col-sm-auto">
+                                <div class="row align-items-center gx-0">
+                                    <div class="col">
+                                        <span class="text-secondary me-2" style="font-weight: bold">域名状态：</span>
+                                    </div>
+                                    <!-- End Col -->
+
+                                    <div class="col-auto">
+                                        <!-- Select -->
+                                        <div class="tom-select-custom tom-select-custom-end">
+                                            <select class="js-select js-datatable-filter form-select form-select-sm form-select-borderless"
+                                                    data-target-column-index="6" data-target-table="datatable"
+                                                    autocomplete="off"
+                                                    data-hs-tom-select-options='{"searchInDropdown": false,"hideSearch": true,"dropdownWidth": "10rem"}'>
+                                                <option value="all" selected>全部</option>
+                                                <option value="configuring">配置中</option>
+                                                <option value="configure_failed">配置失败</option>
+                                                <option value="online">已开启</option>
+                                                <option value="deleting">删除中</option>
+                                                <option value="offline">已停用</option>
+                                                <option value="checking">审核中</option>
+                                                <option value="check_failed">审核未通过</option>
+                                            </select>
+                                        </div>
+                                        <!-- End Select -->
+                                    </div>
+                                    <!-- End Col -->
+                                </div>
+                                <!-- End Row -->
+                            </div>
+                            <!-- End Col -->
+                        </div>
+                        <!-- End Filter -->
+                    </div>
+                    <!-- End Col -->
+                </div>
+                <!-- End Row -->
+            </div>
+            <!-- End Header -->
+
+            <!-- Table -->
+            <div class="table-responsive datatable-custom" style="min-height: 350px;">
+                <table id="datatable" style="width: 100%"
+                       class="table table-borderless table-thead-bordered table-nowrap table-align-middle card-table table-hover"
+                       data-hs-datatables-options='{
+                   "columnDefs": [{
+                      "targets": [0],
+                      "orderable": false
+                    }],
+                   "order": [],
+                   "info": {
+                     "totalQty": "#datatableWithPaginationInfoTotalQty"
+                   },
+                   "search": "#datatableSearch",
+                   "entries": "#datatableEntries",
+                   "pageLength": 10,
+                   "isResponsive": false,
+                   "isShowPaging": false,
+                   "pagination": "datatablePagination",
+                   "paginationPrevLinkMarkup": "<span aria-hidden=\"true\">前一页</span>",
+                   "paginationNextLinkMarkup": "<span aria-hidden=\"true\">后一页</span>"
+                 }'>
+                    <thead class="thead-light">
+                    <tr>
+                        <th class="table-column-pe-0">用户</th>
+                        <th>域名</th>
+                        <th>厂商</th>
+                        <th>CNAME</th>
+                        <th>业务类型</th>
+                        <th>服务范围</th>
+                        <th>状态</th>
+                        <th>更新时间</th>
+                        <th>操作</th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+
+                    </tbody>
+                </table>
+            </div>
+            <!-- End Table -->
+
+            <!-- Footer -->
+            <div class="card-footer">
+                <!-- Pagination -->
+                <div class="row justify-content-center justify-content-sm-between align-items-sm-center">
+                    <div class="col-sm mb-2 mb-sm-0">
+                        <div class="d-flex justify-content-center justify-content-sm-start align-items-center">
+                            <span class="me-2">每页显示</span>
+
+                            <!-- Select -->
+                            <div class="tom-select-custom">
+                                <select id="datatableEntries"
+                                        class="js-select form-select form-select-borderless" autocomplete="off"
+                                        data-hs-tom-select-options='{
+                                            "searchInDropdown": false,
+                                            "hideSearch": true,
+                                            "dropdownWidth": "6rem"
+                                          }'>
+                                    <option value="10" selected>10</option>
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                    <option value="80">80</option>
+                                </select>
+                            </div>
+                            <!-- End Select -->
+
+                            <span class="text-secondary me-2">条，共</span>
+                            <!-- Pagination Quantity -->
+                            <span id="datatableWithPaginationInfoTotalQty"></span>
+
+                            <span class="text-secondary me-2" style="margin-left: 10px"> 条</span>
+                        </div>
+                    </div>
+                    <!-- End Col -->
+
+                    <div class="col-sm-auto">
+                        <div class="d-flex justify-content-center justify-content-sm-end">
+                            <!-- Pagination -->
+                            <nav id="datatablePagination" aria-label="Activity pagination"></nav>
+                        </div>
+                    </div>
+                    <!-- End Col -->
+                </div>
+                <!-- End Pagination -->
+            </div>
+            <!-- End Footer -->
+        </div>
+        <!-- End Card -->
+    </div>
+    <!-- End Content -->
+
+    <!-- Footer -->
+    <div th:replace="common/common-dashboard::#footer(curPage='domain-list')"></div>
+    <!-- End Footer -->
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- ========== SECONDARY CONTENTS ========== -->
+
+<div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='domain-list')"></div>
+
+<!-- End Modal -->
+<!-- End Import Products Modal -->
+
+<!-- ========== END SECONDARY CONTENTS ========== -->
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+<!-- JS Implementing Plugins -->
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-nav-scroller/dist/hs-nav-scroller.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/clipboard/dist/clipboard.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/datatables/media/js/jquery.dataTables.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/datatables.net.extensions/select/select.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/dropzone/dist/min/dropzone.min.js}"></script>
+
+<!-- JS Front -->
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/util/reg.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom_ceo.js}"></script>
+<script th:src="@{common/custom_cmo.js}"></script>
+<script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+
+<!-- JS Plugins Init. -->
+<script>
+    function routeDisplayName(route) {
+        const routeNames = {
+            huawei: '华为云 CDN',
+            volcengine: '火山引擎 CDN',
+            huawei_volcengine: '华为/火山融合',
+            qiniu: '七牛云 CDN',
+            baishan: '白山云 CDN',
+            yifan: '易帆 CDN',
+            tencent: '腾讯云 CDN',
+            tencent_edgeone: '腾讯云 EdgeOne',
+            cdnetworks: '网宿 CDN',
+            aliyun: '阿里云 CDN',
+            baidu: '百度云 CDN',
+            wangsu: '网宿 CDN',
+            kingsoft: '金山云 CDN'
+        };
+        return routeNames[route] || route || '-';
+    }
+
+    $(document).on('ready', function () {
+        // INITIALIZATION OF DATATABLES
+        // =======================================================
+        HSCore.components.HSDatatables.init($('#datatable'), {
+            select: {
+                style: 'multi',
+                selector: 'td:first-child input[type="checkbox"]',
+                classMap: {
+                    checkAll: '#datatableCheckAll',
+                    counter: '#datatableCounter',
+                    counterInfo: '#datatableCounterInfo'
+                }
+            },
+            language: {
+                zeroRecords: `<div class="text-center p-4">
+                              <img class="mb-3" src="dashboard/assets/svg/illustrations/oc-error.svg" alt="Image Description" style="width: 10rem;" data-hs-theme-appearance="default">
+                              <img class="mb-3" src="dashboard/assets/svg/illustrations-light/oc-error.svg" alt="Image Description" style="width: 10rem;" data-hs-theme-appearance="dark">
+                            <p class="mb-0">无数据</p>
+                            </div>`
+            },
+            serverSide: true,
+            ajax: {
+                type: "POST",
+                url: 'CdnDomain/queryForDatatables',
+                contentType: "application/json",
+                data: function (d) {
+                    if (d.order.length > 0) {
+                        console.log(d.order);
+                        let o = d.order[0];
+                        let index = o.column;
+                        let name = d.columns[index].data;
+                        o.column = name;
+                    }
+                    d.search.columns = ['domain_name', 'cname']
+                    return JSON.stringify(d);
+                },
+                dataFilter: function (data) {
+                    let json = jQuery.parseJSON(data);
+                    return JSON.stringify(json.data);
+                }
+            },
+            columns: [
+                {data: 'userId', width: '8%'},
+                {data: 'domainName', width: '22%'},
+                {data: 'route', width: '10%'},
+                {data: 'cname', width: '22%'},
+                {data: 'businessType', width: '10%'},
+                {data: 'serviceArea', width: '10%'},
+                {data: 'domainStatus', width: '10%'},
+                {data: 'updateTime', width: '10%'},
+                {data: null, width: '15%'},
+            ],
+            columnDefs: [
+                {
+                    targets: 0,
+                    render: function (data, type, row, meta) {
+                        return `
+                        <span class="avatar avatar-sm avatar-circle">
+                          <img class="avatar-img" src="${row.userImg}" alt="Image Description">
+                        </span>
+                        <span style="font-weight: bold">
+                            ${row.userName}
+                        </span>
+                        `;
+                    }
+                },
+                {
+                    targets: 1,
+                    render: function (data, type, row, meta) {
+                        return '<div class="input-group input-group-merge" style="min-width: 250px">\n' +
+                            '                                <input style="color: #697786; font-size: 12px" type="text" id="tooltipExample' + row.id + '"' +
+                            '                                       class="form-control"\n' +
+                            '                                       value="' + data + '" readonly>\n' +
+                            '                                <button class="js-clipboard input-group-append input-group-text" onclick="copy(\'tooltipExample' + row.id + '\')"\n' +
+                            '                                   data-bs-toggle="tooltip" title="复制到剪切板"\n' +
+                            '                                   data-hs-clipboard-options=\'{"type": "tooltip","successText": "复制成功！","contentTarget": "#tooltipExample' + row.id + '"}\'>\n' +
+                            '                                    <i class="bi-clipboard"></i>\n' +
+                            '                                </button>\n' +
+                            '                            </div>';
+                    }
+                },
+                {
+                    targets: 2,
+                    render: function (data, type, row, meta) {
+                        return '<span class="badge bg-soft-info text-info">' + routeDisplayName(row.route) + '</span>';
+                    }
+                },
+                {
+                    targets: 3,
+                    render: function (data, type, row, meta) {
+                        return '<div class="input-group input-group-merge" style="min-width: 250px">\n' +
+                            '                                <input style="color: #697786; font-size: 12px" type="text" id="tooltipExample1' + row.id + '"' +
+                            '                                       class="form-control"\n' +
+                            '                                       value="' + data + '" readonly>\n' +
+                            '                                <button class="js-clipboard input-group-append input-group-text" onclick="copy(\'tooltipExample1' + row.id + '\')"\n' +
+                            '                                   data-bs-toggle="tooltip" title="复制到剪切板"\n' +
+                            '                                   data-hs-clipboard-options=\'{"type": "tooltip","successText": "复制成功！","contentTarget": "#tooltipExample1' + row.id + '"}\'>\n' +
+                            '                                    <i class="bi-clipboard"></i>\n' +
+                            '                                </button>\n' +
+                            '                            </div>';
+                    }
+                },
+                {
+                    targets: 4,
+                    render: function (data, type, row, meta) {
+                        return '<span class="badge bg-soft-primary text-primary">' + row.businessTypeName + '</span>';
+                    }
+                },
+                {
+                    targets: 5,
+                    render: function (data, type, row, meta) {
+                        if (row.serviceAreaName === '中国大陆') {
+                            return '<span class="badge bg-soft-danger text-danger">' + row.serviceAreaName + '</span>';
+                        } else {
+                            return '<span class="badge bg-soft-success text-success">' + row.serviceAreaName + '</span>';
+                        }
+                    }
+                },
+                {
+                    targets: 6,
+                    render: function (data, type, row, meta) {
+                        var curStatus = row.domainStatusName;
+                        if (curStatus === '已停用') {
+                            // 将时间字符串转换为时间戳
+                            const targetDate = new Date(row.updateTime);
+                            // 获取当前时间
+                            const currentDate = new Date();
+                            // 计算时间差
+                            const timeDiff = currentDate.getTime() - targetDate.getTime();
+                            // 将时间差转换为天数
+                            const daysDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
+                            return `
+                                <span class="badge bg-soft-danger text-danger" >${curStatus}</span>
+                                <span class="badge bg-soft-danger text-danger" >于${7-daysDiff}天后自动删除</span>
+
+                            `;
+                        } else if (curStatus === '已开启') {
+                            return `
+                                <span class="badge bg-soft-success text-success">${curStatus}</span>
+                            `;
+                        } else if (curStatus === '配置中') {
+                            return `
+                                <span class="badge bg-soft-primary text-primary">${curStatus}</span>
+                            `;
+                        } else {
+                            return `
+                                <span class="badge bg-soft-warning text-warning">${curStatus}</span>
+                            `;
+                        }
+                    }
+                },
+                {
+                    targets: 8,
+                    render: function (data, type, row, meta) {
+                        let s = row.domainStatus;
+                        let btn = ``;
+                        if (row.domainStatus === 'offline') {
+                            btn = `
+                                    <button onclick="deleteDomain('${row.id}')" class="dropdown-item">
+                                        <i class="bi-trash dropdown-item-icon"></i> 删除
+                                    </button>
+                                    <button onclick="enableDomain('${row.id}')" class="dropdown-item">
+                                        <i class="bi bi-skip-start-circle dropdown-item-icon"></i> 启用
+                                    </button>`;
+                        }
+                        if (row.domainStatus === 'online') {
+                            btn = `
+                                    <button onclick="disableDomain('${row.id}')" class="dropdown-item" title="域名停用7天后将会被系统自动删除">
+                                        <i class="bi bi-stop-circle dropdown-item-icon"></i> 停用
+                                    </button>
+                                    <button onclick="layerWarn('请先停用域名再操作');" class="dropdown-item">
+                                        <i class="bi-trash dropdown-item-icon"></i> 删除
+                                    </button>`;
+                        }
+                        let canConfigure = row.domainStatus === 'online' || row.domainStatus === 'offline';
+                        let configButton = canConfigure
+                            ? `<a class="btn btn-white btn-sm" href="domain-setting-basic?id=${row.id}">
+                                    <i class="bi-gear-fill"></i> 配置
+                               </a>`
+                            : `<button type="button" class="btn btn-white btn-sm" disabled title="域名正在配置中，请稍后刷新后再配置">
+                                    <i class="bi-hourglass-split"></i> 配置中
+                               </button>`;
+                        let configMenu = canConfigure
+                            ? `<a class="dropdown-item" href="domain-setting-basic?id=${row.id}">
+                                    <i class="bi-gear-fill dropdown-item-icon"></i> 配置
+                               </a>`
+                            : `<button type="button" class="dropdown-item" onclick="layerWarn('域名正在配置中，请稍后刷新后再配置')">
+                                    <i class="bi-hourglass-split dropdown-item-icon"></i> 配置中
+                               </button>`;
+
+                        return `
+                            <a class="btn btn-white btn-sm" href="statistics-resource?id=${row.id}">
+                                <i class="bi bi-bar-chart-fill"></i> 统计
+                            </a>
+                            <div class="btn-group" role="group">
+                                ${configButton}
+
+                                <div class="btn-group">
+                                    <button type="button"
+                                            class="btn btn-white btn-icon btn-sm dropdown-toggle dropdown-toggle-empty"
+                                            id="productsEditDropdown1" data-bs-toggle="dropdown"
+                                            aria-expanded="false"></button>
+
+                                    <div class="dropdown-menu dropdown-menu-end mt-1"
+                                         aria-labelledby="productsEditDropdown1">
+                                        ${configMenu}
+                                        ${btn}
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    }
+                },
+                {"orderable": false, "targets": [0, 1, 2, 3, 4, 5, 6, 8]},
+            ],
+        });
+
+        const datatable = HSCore.components.HSDatatables.getItem('datatable')
+
+        $('.js-datatable-filter').on('change', function () {
+            var $this = $(this),
+                elVal = $this.val(),
+                targetColumnIndex = $this.data('target-column-index');
+
+            datatable.column(targetColumnIndex).search(elVal).draw();
+        });
+
+        $('#datatableSearch').on('mouseup', function (e) {
+            var $input = $(this),
+                oldValue = $input.val();
+
+            if (oldValue == "") return;
+
+            setTimeout(function () {
+                var newValue = $input.val();
+
+                if (newValue == "") {
+                    // Gotcha
+                    datatable.search('').draw();
+                }
+            }, 1);
+        });
+
+        $('#toggleColumn_product').change(function (e) {
+            datatable.columns(1).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_type').change(function (e) {
+            datatable.columns(2).visible(e.target.checked)
+        })
+
+
+        $('#toggleColumn_vendor').change(function (e) {
+            datatable.columns(3).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_stocks').change(function (e) {
+            datatable.columns(4).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_sku').change(function (e) {
+            datatable.columns(5).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_price').change(function (e) {
+            datatable.columns(6).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_quantity').change(function (e) {
+            datatable.columns(7).visible(e.target.checked)
+        })
+
+        $('#toggleColumn_variants').change(function (e) {
+            datatable.columns(8).visible(e.target.checked)
+        })
+    });
+</script>
+
+<!-- JS Plugins Init. -->
+<script>
+    (function () {
+        window.onload = function () {
+
+
+            // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+            // =======================================================
+            new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+            // INITIALIZATION OF FORM SEARCH
+            // =======================================================
+            new HSFormSearch('.js-form-search')
+
+
+            // INITIALIZATION OF BOOTSTRAP DROPDOWN
+            // =======================================================
+            HSBsDropdown.init()
+
+
+            // INITIALIZATION OF SELECT
+            // =======================================================
+            HSCore.components.HSTomSelect.init('.js-select')
+
+
+            // INITIALIZATION OF NAV SCROLLER
+            // =======================================================
+            new HsNavScroller('.js-nav-scroller')
+
+
+            // INITIALIZATION OF DROPZONE
+            // =======================================================
+            HSCore.components.HSDropzone.init('.js-dropzone')
+
+            HSCore.components.HSClipboard.init('.js-clipboard')
+        }
+    })()
+</script>
+
+<!-- Style Switcher JS -->
+
+<script>
+    (function () {
+        // STYLE SWITCHER
+        // =======================================================
+        const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+        const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+        // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+        const setActiveStyle = function () {
+            $variants.forEach($item => {
+                if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                    $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                    return $item.classList.add('active')
+                }
+
+                $item.classList.remove('active')
+            })
+        }
+
+        // Add a click event to all items of the dropdown to set the style
+        $variants.forEach(function ($item) {
+            $item.addEventListener('click', function () {
+                HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+            })
+        })
+
+        // Call the setActiveStyle on load page
+        setActiveStyle()
+
+        // Add event listener on change style to call the setActiveStyle function
+        window.addEventListener('on-hs-appearance-change', function () {
+            setActiveStyle()
+        })
+
+    })()
+</script>
+
+<!-- End Style Switcher JS -->
+</body>
+</html>
+
+<div th:replace="common/common-dashboard::#agent"></div>

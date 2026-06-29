@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title>[[${websiteBaseConfig.websiteName}]] 支付配置</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/quill/dist/quill.snow.css}" as="style">
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {"switcherSupport": true},
+                "header": {"layoutMode": "default", "containerMode": "container-fluid"},
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {"100": "#f9fafc", "900": "#1e2022"}
+                    }, "font": "Inter"
+                }
+            },
+            "languageDirection": {"lang": "en"},
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {"*assets/js/theme-custom.js": ""},
+                "build": {"*assets/js/theme-custom.js": "", "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"}
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {"src": "./src", "dist": "./dist", "build": "./build"},
+            "fileNames": {
+                "dist": {"js": "theme.min.js", "css": "theme.min.css"},
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl   footer-offset">
+
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+<!-- ========== HEADER ========== -->
+
+<div th:replace="common/common-dashboard::header(curPage='pay-setting', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<!-- Navbar Vertical -->
+
+<div th:replace="common/common-dashboard::aside(curPage='pay-setting', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<main id="content" role="main" class="main">
+    <!-- Content -->
+    <div class="content container-fluid">
+        <!-- Page Header -->
+        <div class="page-header" style="padding-bottom: 5px;margin-bottom: 10px">
+            <div class="row align-items-end">
+                <div class="col-sm mb-2 mb-sm-0">
+
+
+                    <h1 class="page-header-title">支付配置 <i class="bi-gear nav-icon"></i></h1>
+                </div>
+                <!-- End Col -->
+            </div>
+            <!-- End Row -->
+        </div>
+        <!-- End Page Header -->
+
+        <div class="row">
+            <div class="col-lg-3">
+                <!-- Navbar -->
+                <div class="navbar-expand-lg navbar-vertical mb-3 mb-lg-5">
+                    <!-- Navbar Toggle -->
+                    <!-- Navbar Toggle -->
+                    <div class="d-grid">
+                        <button type="button" class="navbar-toggler btn btn-white mb-3" data-bs-toggle="collapse"
+                                data-bs-target="#navbarVerticalNavMenu" aria-label="Toggle navigation"
+                                aria-expanded="false" aria-controls="navbarVerticalNavMenu">
+                <span class="d-flex justify-content-between align-items-center">
+                  <span class="text-dark">菜单</span>
+
+                  <span class="navbar-toggler-default">
+                    <i class="bi-list"></i>
+                  </span>
+
+                  <span class="navbar-toggler-toggled">
+                    <i class="bi-x"></i>
+                  </span>
+                </span>
+                        </button>
+                    </div>
+                    <!-- End Navbar Toggle -->
+                    <!-- End Navbar Toggle -->
+
+                    <!-- Navbar 折叠 -->
+                    <div id="navbarVerticalNavMenu" class="collapse navbar-collapse">
+                        <ul id="navbarSettings"
+                            class="js-sticky-block js-scrollspy card card-navbar-nav nav nav-tabs nav-lg nav-vertical"
+                            data-hs-sticky-block-options='{
+                     "parentSelector": "#navbarVerticalNavMenu",
+                     "targetSelector": "#header",
+                     "breakpoint": "lg",
+                     "startPoint": "#navbarVerticalNavMenu",
+                     "endPoint": "#stickyBlockEndPoint",
+                     "stickyOffsetTop": 20
+                   }'>
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#wechatPayPart">
+                                    <i class="bi-person nav-icon"></i> 微信支付
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#aliPayPart">
+                                    <i class="bi-at nav-icon"></i> 支付宝支付
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#aliWithdrawPart">
+                                    <i class="bi-at nav-icon"></i> 支付宝提现
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <!-- End Navbar 折叠 -->
+                </div>
+                <!-- End Navbar -->
+            </div>
+
+            <div class="col-lg-9">
+                <div class="d-grid gap-3 gap-lg-5">
+
+                    <!-- Card -->
+                    <div id="wechatPayPart" class="card">
+                        <div class="card-header">
+                            <h2 class="card-title h4">微信支付</h2>
+                        </div>
+                        <!-- Body -->
+                        <div class="card-body">
+                            <!-- Form -->
+                            <form>
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="appIdWechat" class="col-sm-3 col-form-label form-label">APPID
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="绑定支付的APPID"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${wechatPayConfig} eq null ? '' : ${wechatPayConfig.appIdWechat}"
+                                               type="text" class="form-control" id="appIdWechat"
+                                               maxlength="30"
+                                               placeholder="请输入APPID">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="merchantIdWechat" class="col-sm-3 col-form-label form-label">商户号(MCHID)
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="商户号"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${wechatPayConfig} eq null ? '' : ${wechatPayConfig.merchantIdWechat}"
+                                               type="text" class="form-control" id="merchantIdWechat"
+                                               maxlength="50"
+                                               placeholder="请输入商户号(MCHID)">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="wechatKeyWechat" class="col-sm-3 col-form-label form-label">商户支付秘钥(key)
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="商户支付秘钥，登录商户平台自行设置，妥善保管，防止泄露"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${wechatPayConfig} eq null ? '' : ${wechatPayConfig.wechatKeyWechat}"
+                                               type="text" class="form-control" id="wechatKeyWechat"
+                                               maxlength="300"
+                                               placeholder="请输入商户支付秘钥(key)">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="merchantSerialNumberWechat" class="col-sm-3 col-form-label form-label">序列号
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="证书序列号"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${wechatPayConfig} eq null ? '' : ${wechatPayConfig.merchantSerialNumberWechat}"
+                                               type="text" class="form-control" id="merchantSerialNumberWechat"
+                                               maxlength="300"
+                                               placeholder="请输入序列号">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="notifyUrlWechat" class="col-sm-3 col-form-label form-label">回调地址
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="回调地址必须是线上地址"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${wechatPayConfig} eq null ? '' : ${wechatPayConfig.notifyUrlWechat}"
+                                               type="text" class="form-control" id="notifyUrlWechat"
+                                               maxlength="300"
+                                               placeholder="请输入回调地址">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="privateKeyPathWechat" class="col-sm-3 col-form-label form-label">私钥路径
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="私钥存放的路径(.pem文件)"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <input th:value="${wechatPayConfig} eq null ? '' : ${wechatPayConfig.privateKeyPathWechat}"
+                                               type="text" class="form-control" id="privateKeyPathWechat"
+                                               maxlength="300"
+                                               placeholder="请输入私钥路径">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label
+                                           class="col-sm-3 col-form-label form-label">状态
+                                    </label>
+
+                                    <div class="col-sm-9" th:if="${wechatPayConfig} ne null">
+                                        <div class="form-check form-switch form-control border-0"
+                                             th:if="${wechatPayConfig.wechatStatus == 0 || wechatPayConfig.wechatStatus == null}">
+                                            <input type="checkbox" class="form-check-input" id="wechatStatus">
+                                            <label class="form-check-label" for="wechatStatus">当前处于停用状态</label>
+                                        </div>
+                                        <div class="form-check form-switch form-control border-0"
+                                             th:if="${wechatPayConfig.wechatStatus == 1}">
+                                            <input type="checkbox" class="form-check-input" id="wechatStatus" checked>
+                                            <label class="form-check-label" for="wechatStatus">当前处于启用状态</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                            </form>
+                            <div class="d-flex justify-content-end">
+                                <button onclick="saveWechatConfig()" class="btn btn-primary">保存更改
+                                </button>
+                            </div>
+                            <!-- End Form -->
+                        </div>
+                        <!-- End Body -->
+                    </div>
+                    <!-- End Card -->
+
+                    <!-- Card -->
+                    <div id="aliPayPart" class="card">
+                        <div class="card-header">
+                            <h4 class="card-title">支付宝支付</h4>
+                        </div>
+                        <!-- Body -->
+                        <div class="card-body">
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="appIdAlipay" class="col-sm-3 col-form-label form-label">APPID
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="绑定支付的APPID"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <input th:value="${aliPayConfig} eq null ? '' : ${aliPayConfig.appIdAlipay}"
+                                           type="text" class="form-control" id="appIdAlipay"
+                                           maxlength="30"
+                                           placeholder="请输入APPID">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="signTypeAlipay" class="col-sm-3 col-form-label form-label">签名方式
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="签名方式"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <input th:value="${aliPayConfig} eq null ? '' : ${aliPayConfig.signTypeAlipay}"
+                                           type="text" class="form-control" id="signTypeAlipay"
+                                           maxlength="30"
+                                           placeholder="请输入签名方式">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="charsetAlipay" class="col-sm-3 col-form-label form-label">字符编码格式
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="字符编码格式，例如utf-8"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <input th:value="${aliPayConfig} eq null ? '' : ${aliPayConfig.charsetAlipay}"
+                                           type="text" class="form-control" id="charsetAlipay"
+                                           maxlength="30"
+                                           placeholder="请输入字符编码格式">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="gatewayUrlAlipay" class="col-sm-3 col-form-label form-label">支付宝网关
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="沙箱网关和实际网关不同"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <input th:value="${aliPayConfig} eq null ? '' : ${aliPayConfig.gatewayUrlAlipay}"
+                                           type="text" class="form-control" id="gatewayUrlAlipay"
+                                           maxlength="30"
+                                           placeholder="请输入支付宝网关">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="notifyUrlAlipay" class="col-sm-3 col-form-label form-label">回调地址
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="回调地址必须是线上地址"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <input th:value="${aliPayConfig != null and !#strings.isEmpty(aliPayConfig.notifyUrlAlipay)} ? ${aliPayConfig.notifyUrlAlipay} : 'https://52luobo.com/alipay/success'"
+                                           type="text" class="form-control" id="notifyUrlAlipay"
+                                           maxlength="300"
+                                           placeholder="https://52luobo.com/alipay/success">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="privateKeyAlipay" class="col-sm-3 col-form-label form-label">商户私钥
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="商户私钥"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                        <textarea
+                                                th:value="${aliPayConfig} eq null ? '' : ${aliPayConfig.privateKeyAlipay}"
+                                                id="privateKeyAlipay" class="form-control"
+                                                placeholder="请输入商户私钥" rows="4">[[${aliPayConfig} eq null ? '' : ${aliPayConfig.privateKeyAlipay}]]</textarea>
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="publicKeyAlipay" class="col-sm-3 col-form-label form-label">支付宝公钥
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="支付宝公钥"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                        <textarea
+                                                th:value="${aliPayConfig} eq null ? '' : ${aliPayConfig.publicKeyAlipay}"
+                                                id="publicKeyAlipay" class="form-control"
+                                                placeholder="请输入支付宝公钥" rows="4">[[${aliPayConfig} eq null ? '' : ${aliPayConfig.publicKeyAlipay}]]</textarea>
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4" th:if="${aliPayConfig} ne null">
+                                <label
+                                        class="col-sm-3 col-form-label form-label">状态
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <div class="form-check form-switch form-control border-0"
+                                         th:if="${aliPayConfig.alipayStatus == 0 || aliPayConfig.alipayStatus == null}">
+                                        <input type="checkbox" class="form-check-input" id="alipayStatus">
+                                        <label class="form-check-label" for="wechatStatus">当前处于停用状态</label>
+                                    </div>
+                                    <div class="form-check form-switch form-control border-0"
+                                         th:if="${aliPayConfig.alipayStatus == 1}">
+                                        <input type="checkbox" class="form-check-input" id="alipayStatus" checked>
+                                        <label class="form-check-label" for="wechatStatus">当前处于启用状态</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <div class="d-flex justify-content-end">
+                                <button onclick="saveAlipayConfig()" class="btn btn-primary">保存更改
+                                </button>
+                            </div>
+                        </div>
+                        <!-- End Body -->
+                    </div>
+                    <!-- End Card -->
+
+                    <!-- Card -->
+                    <div id="aliWithdrawPart" class="card">
+                        <div class="card-header">
+                            <h4 class="card-title">支付宝提现</h4>
+                        </div>
+                        <!-- Body -->
+                        <div class="card-body">
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="appIdAliWithdraw" class="col-sm-3 col-form-label form-label">APPID
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="绑定提现的APPID"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <input th:value="${aliWithdrawConfig} eq null ? '' : ${aliWithdrawConfig.appIdAliWithdraw}"
+                                           type="text" class="form-control" id="appIdAliWithdraw"
+                                           maxlength="30"
+                                           placeholder="请输入APPID">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="signTypeAliWithdraw" class="col-sm-3 col-form-label form-label">签名方式
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="签名方式"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <input th:value="${aliWithdrawConfig} eq null ? '' : ${aliWithdrawConfig.signTypeAliWithdraw}"
+                                           type="text" class="form-control" id="signTypeAliWithdraw"
+                                           maxlength="30"
+                                           placeholder="请输入签名方式">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="charsetAliWithdraw" class="col-sm-3 col-form-label form-label">字符编码格式
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="字符编码格式，例如utf-8"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <input th:value="${aliWithdrawConfig} eq null ? '' : ${aliWithdrawConfig.charsetAliWithdraw}"
+                                           type="text" class="form-control" id="charsetAliWithdraw"
+                                           maxlength="30"
+                                           placeholder="请输入字符编码格式">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="gatewayUrlAliWithdraw" class="col-sm-3 col-form-label form-label">支付宝网关
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="沙箱网关和实际网关不同"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <input th:value="${aliWithdrawConfig} eq null ? '' : ${aliWithdrawConfig.gatewayUrlAliWithdraw}"
+                                           type="text" class="form-control" id="gatewayUrlAliWithdraw"
+                                           maxlength="100"
+                                           placeholder="请输入支付宝网关">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="privateKeyAliWithdraw" class="col-sm-3 col-form-label form-label">商户私钥
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="商户私钥"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                        <textarea
+                                                th:value="${aliWithdrawConfig} eq null ? '' : ${aliWithdrawConfig.privateKeyAliWithdraw}"
+                                                id="privateKeyAliWithdraw" class="form-control"
+                                                placeholder="请输入商户私钥" rows="4">[[${aliWithdrawConfig} eq null ? '' : ${aliWithdrawConfig.privateKeyAliWithdraw}]]</textarea>
+                                </div>
+                            </div>
+                            <!-- End Form -->
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="appCertPublicKeyPath" class="col-sm-3 col-form-label form-label">应用公钥路径
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="应用公钥存放的路径(appCertPublicKey_2021003199682589.crt文件)"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <input th:value="${aliWithdrawConfig} eq null ? '' : ${aliWithdrawConfig.appCertPublicKeyPath}"
+                                           type="text" class="form-control" id="appCertPublicKeyPath"
+                                           maxlength="300"
+                                           placeholder="请输入应用公钥路径">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="alipayCertPublicKeyPath" class="col-sm-3 col-form-label form-label">支付宝公钥路径
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="支付宝公钥存放的路径(alipayCertPublicKey_RSA2.crt文件)"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <input th:value="${aliWithdrawConfig} eq null ? '' : ${aliWithdrawConfig.alipayCertPublicKeyPath}"
+                                           type="text" class="form-control" id="alipayCertPublicKeyPath"
+                                           maxlength="300"
+                                           placeholder="请输入支付宝公钥路径">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <!-- Form -->
+                            <div class="row mb-4">
+                                <label for="alipayRootCertPath" class="col-sm-3 col-form-label form-label">支付宝根证书路径
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="支付宝根证书存放的路径(alipayRootCert.crt文件)"></i>
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <input th:value="${aliWithdrawConfig} eq null ? '' : ${aliWithdrawConfig.alipayRootCertPath}"
+                                           type="text" class="form-control" id="alipayRootCertPath"
+                                           maxlength="300"
+                                           placeholder="请输入支付宝根证书路径">
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+
+                            <!-- Form -->
+                            <div class="row mb-4" th:if="${aliWithdrawConfig} ne null">
+                                <label
+                                        class="col-sm-3 col-form-label form-label">状态
+                                </label>
+
+                                <div class="col-sm-9">
+                                    <div class="form-check form-switch form-control border-0"
+                                         th:if="${aliWithdrawConfig.aliWithdrawStatus == 0 || aliWithdrawConfig.aliWithdrawStatus == null}">
+                                        <input type="checkbox" class="form-check-input" id="aliWithdrawStatus">
+                                        <label class="form-check-label" for="aliWithdrawStatus">当前处于停用状态</label>
+                                    </div>
+                                    <div class="form-check form-switch form-control border-0"
+                                         th:if="${aliWithdrawConfig.aliWithdrawStatus == 1}">
+                                        <input type="checkbox" class="form-check-input" id="aliWithdrawStatus" checked>
+                                        <label class="form-check-label" for="aliWithdrawStatus">当前处于启用状态</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- End Form -->
+
+                            <div class="d-flex justify-content-end">
+                                <button onclick="saveWithdrawConfig()" class="btn btn-primary">保存更改
+                                </button>
+                            </div>
+                        </div>
+                        <!-- End Body -->
+                    </div>
+                    <!-- End Card -->
+                </div>
+
+                <!-- Sticky Block End Point -->
+                <div id="stickyBlockEndPoint"></div>
+            </div>
+        </div>
+        <!-- End Row -->
+    </div>
+    <!-- End Content -->
+
+    <!-- Footer -->
+
+    <div th:replace="common/common-dashboard::#footer(curPage='pay-setting')"></div>
+
+    <!-- End Footer -->
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- Activity -->
+<div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='pay-setting')"></div>
+<!-- End Activity -->
+
+<!-- ========== END SECONDARY CONTENTS ========== -->
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+<!-- JS Implementing Plugins -->
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-file-attach/dist/hs-file-attach.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-sticky-block/dist/hs-sticky-block.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-scrollspy/dist/hs-scrollspy.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/imask/dist/imask.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/quill/dist/quill.min.js}"></script>
+
+<!-- JS Front -->
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/util/reg.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom_ceo.js}"></script>
+<script th:src="@{common/custom_cmo.js}"></script>
+<script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+<!-- JS Plugins Init. -->
+<script>
+    (function () {
+        window.onload = function () {
+
+            // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+            // =======================================================
+            new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+            // INITIALIZATION OF FORM SEARCH
+            // =======================================================
+            new HSFormSearch('.js-form-search')
+
+
+            // INITIALIZATION OF BOOTSTRAP DROPDOWN
+            // =======================================================
+            HSBsDropdown.init()
+
+
+            // INITIALIZATION OF SELECT
+            // =======================================================
+            HSCore.components.HSTomSelect.init('.js-select')
+
+            // INITIALIZATION OF QUILLJS EDITOR
+            // =======================================================
+            HSCore.components.HSQuill.init('.js-quill')
+
+
+            // INITIALIZATION OF INPUT MASK
+            // =======================================================
+            HSCore.components.HSMask.init('.js-input-mask')
+
+            // INITIALIZATION OF FILE ATTACHMENT
+            // =======================================================
+            new HSFileAttach('.js-file-attach')
+
+
+            // INITIALIZATION OF STICKY BLOCKS
+            // =======================================================
+            new HSStickyBlock('.js-sticky-block', {
+                targetSelector: document.getElementById('header').classList.contains('navbar-fixed') ? '#header' : null
+            })
+
+            // SCROLLSPY
+            // =======================================================
+            new bootstrap.ScrollSpy(document.body, {
+                target: '#navbarSettings',
+                offset: 100
+            })
+
+            new HSScrollspy('#navbarVerticalNavMenu', {
+                breakpoint: 'lg',
+                scrollOffset: -20
+            })
+        }
+    })()
+</script>
+
+<!-- Style Switcher JS -->
+
+<script>
+    (function () {
+        // STYLE SWITCHER
+        // =======================================================
+        const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+        const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+        // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+        const setActiveStyle = function () {
+            $variants.forEach($item => {
+                if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                    $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                    return $item.classList.add('active')
+                }
+
+                $item.classList.remove('active')
+            })
+        }
+
+        // Add a click event to all items of the dropdown to set the style
+        $variants.forEach(function ($item) {
+            $item.addEventListener('click', function () {
+                HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+            })
+        })
+
+        // Call the setActiveStyle on load page
+        setActiveStyle()
+
+        // Add event listener on change style to call the setActiveStyle function
+        window.addEventListener('on-hs-appearance-change', function () {
+            setActiveStyle()
+        })
+    })()
+</script>
+
+<!-- End Style Switcher JS -->
+</body>
+</html>
+

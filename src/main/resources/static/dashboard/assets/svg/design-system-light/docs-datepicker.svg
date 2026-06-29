@@ -1,0 +1,29 @@
+<svg width="200" height="144" viewBox="0 0 200 144" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M196 0H4C1.79086 0 0 1.79086 0 4V140C0 142.209 1.79086 144 4 144H196C198.209 144 200 142.209 200 140V4C200 1.79086 198.209 0 196 0Z" fill="#1E2022"/>
+<rect x="30.5" y="15.5" width="139" height="19" rx="3.5" fill="#17181A" stroke="#D9DDEA"/>
+<rect x="30.5" y="45.5" width="139" height="80" rx="3.5" fill="#17181A" stroke="#E7EAF3"/>
+<rect x="31" y="65" width="139" height="1" fill="#E7EAF3"/>
+<rect x="31" y="85" width="139" height="1" fill="#E7EAF3"/>
+<rect x="30" y="105" width="139" height="1" fill="#E7EAF3"/>
+<rect x="49" y="46" width="1" height="79" fill="#E7EAF3"/>
+<rect x="69" y="46" width="1" height="79" fill="#E7EAF3"/>
+<rect x="89" y="46" width="1" height="79" fill="#E7EAF3"/>
+<rect x="110" y="46" width="1" height="79" fill="#E7EAF3"/>
+<rect x="130" y="46" width="1" height="79" fill="#E7EAF3"/>
+<rect x="150" y="46" width="1" height="79" fill="#E7EAF3"/>
+<rect x="53" y="68" width="3" height="3" rx="1.5" fill="#DDE0EC"/>
+<rect x="35" y="54" width="9" height="3" rx="1.5" fill="#DDE0EC"/>
+<rect x="55" y="54" width="9" height="3" rx="1.5" fill="#DDE0EC"/>
+<rect x="76" y="54" width="8" height="3" rx="1.5" fill="#DDE0EC"/>
+<rect x="96" y="54" width="9" height="3" rx="1.5" fill="#DDE0EC"/>
+<rect x="116" y="54" width="8" height="3" rx="1.5" fill="#DDE0EC"/>
+<rect x="137" y="54" width="9" height="3" rx="1.5" fill="#DDE0EC"/>
+<rect x="156" y="54" width="9" height="3" rx="1.5" fill="#DDE0EC"/>
+<rect x="59" y="68" width="4" height="3" rx="1.5" fill="#71869D"/>
+<rect x="93" y="89" width="3" height="3" rx="1.5" fill="#71869D"/>
+<rect x="73" y="109" width="3" height="3" rx="1.5" fill="#71869D"/>
+<rect x="99" y="89" width="5" height="3" rx="1.5" fill="#DDE0EC"/>
+<rect x="93" y="96" width="3" height="3" rx="1.5" fill="#DDE0EC"/>
+<rect x="133" y="109" width="5" height="3" rx="1.5" fill="#DDE0EC"/>
+<path d="M160.781 22.2197C161.06 21.9268 161.512 21.9268 161.791 22.2197C162.07 22.5126 162.07 22.9874 161.791 23.2803L157.505 27.7803C157.235 28.0643 156.799 28.0742 156.517 27.8029L152.232 23.6779C151.941 23.398 151.921 22.9235 152.188 22.6182C152.454 22.3129 152.906 22.2922 153.197 22.5721L156.979 26.2119L160.781 22.2197Z" fill="#D9DDEA"/>
+</svg>

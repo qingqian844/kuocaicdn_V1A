@@ -1,0 +1,23 @@
+services:
+  server:
+    container_name: kuocaicdn
+    image: registry.cn-hongkong.aliyuncs.com/truimo/kuocaicdn:latest
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    ports:
+      - "8000:8000"
+    volumes:
+      - /www/projects/kuocaicdn/logs:/app/logs
+      - /www/projects/kuocaicdn/env:/etc/kuocaicdn
+    environment:
+      TZ: Asia/Shanghai
+    networks:
+      - kuocai
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: on-failure
+
+networks:
+  kuocai:
+    driver: bridge
+    external: true

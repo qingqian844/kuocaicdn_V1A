@@ -1,0 +1,7 @@
+.dataTables_scrollBody thead tr[role="row"] {
+    visibility: collapse !important;
+}
+
+.DTFC_LeftBodyWrapper thead tr[role="row"] {
+    visibility: collapse !important;
+}

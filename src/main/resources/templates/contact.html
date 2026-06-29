@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title th:if="${!openAgent}">
+        [[${websiteBaseConfig.websiteName}]]-联系我们</title>
+    <title th:if="${openAgent}">[[${agentConfig.websiteName}]]-联系我们</title>
+    <!-- Favicon -->
+    <link th:if="${!openAgent}" rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:if="${openAgent}" rel="shortcut icon" th:href="${agentConfig.icon}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" href="front/assets/vendor/bootstrap-icons/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="front/assets/vendor/hs-mega-menu/dist/hs-mega-menu.min.css">
+    <link rel="stylesheet" href="front/assets/vendor/aos/dist/aos.css">
+
+    <!-- CSS Front Template -->
+    <link rel="stylesheet" href="front/assets/css/theme.min.css">
+</head>
+
+<body>
+<!-- ========== HEADER ========== -->
+<div th:replace="common/common-front::#header"></div>
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<main id="content" role="main">
+
+    <!-- Hero -->
+    <div class="position-relative bg-primary overflow-hidden">
+        <div class="container position-relative zi-2 content-space-3 content-space-md-4">
+            <div class="w-md-75 w-xl-65 text-center mx-md-auto">
+                <!-- Heading -->
+                <div class="mb-4">
+                    <h1 class="display-4 text-white mb-4"> 联系我们 </h1>
+                    <p class="lead text-white mb-2">
+                        客户第一，您的满意是我们追求的目标。
+                    </p>
+                </div>
+                <!-- End Title & Description -->
+            </div>
+        </div>
+        <!-- Background Shape -->
+        <figure class="position-absolute top-0 start-0 w-65">
+            <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 1246 1078">
+                <g opacity=".4">
+                    <linearGradient id="doubleEllipseTopLeftID1" gradientUnits="userSpaceOnUse" x1="2073.5078"
+                                    y1="1.7251" x2="2273.4375" y2="1135.5818"
+                                    gradientTransform="matrix(-1 0 0 1 2600 0)">
+                        <stop offset="0.4976" style="stop-color:#559bff"></stop>
+                        <stop offset="1" style="stop-color:#377dff"></stop>
+                    </linearGradient>
+                    <polygon fill="url(#doubleEllipseTopLeftID1)"
+                             points="519.8,0.6 0,0.6 0,1078 863.4,1078   "></polygon>
+                    <linearGradient id="doubleEllipseTopLeftID2" gradientUnits="userSpaceOnUse" x1="1717.1648"
+                                    y1="3.779560e-05" x2="1717.1648" y2="644.0417"
+                                    gradientTransform="matrix(-1 0 0 1 2600 0)">
+                        <stop offset="1.577052e-06" style="stop-color:#559bff"></stop>
+                        <stop offset="1" style="stop-color:#377dff"></stop>
+                    </linearGradient>
+                    <polygon fill="url(#doubleEllipseTopLeftID2)"
+                             points="519.7,0 1039.4,0.6 1246,639.1 725.2,644   "></polygon>
+                </g>
+            </svg>
+        </figure>
+        <!-- End Background Shape -->
+
+        <!-- Shape -->
+        <div class="shape shape-bottom zi-1" style="margin-bottom: -.125rem">
+            <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 1920 100.1">
+                <path fill="#fff" d="M0,0c0,0,934.4,93.4,1920,0v100.1H0L0,0z"></path>
+            </svg>
+        </div>
+        <!-- End Shape -->
+    </div>
+    <!-- End Hero -->
+
+    <!-- Icon Blocks -->
+    <div class="container content-space-1 content-space-t-lg-1 content-space-b-lg-1">
+        <!-- Heading -->
+        <div class="w-md-75 w-lg-50 text-center mx-md-auto mb-1 mb-md-1">
+            <h2 class="h1">服务与合作</h2>
+            <div class="mt-5 mb-0">
+                <span th:if="${!openAgent}">电子邮箱：baixiong@88.com</span>
+                <span th:if="${openAgent}">电子邮箱：[[${agentConfig.email}]]</span>
+                &ensp;
+                <span th:if="${!openAgent}">联系电话：0459-6662886</span>
+                <span th:if="${openAgent}">联系电话：[[${agentConfig.phone}]]</span>
+            </div>
+        </div>
+        <!-- End Heading -->
+
+        <div class="container content-space-t-1 content-space-t-lg-3">
+            <div class="row text-center mb-3 mb-md-7" th:if="${!openAgent}">
+                <div class="col-6" data-aos="fade-up">
+                    <p>扫码加入QQ群</p>
+                    <div style="max-width: 240px" class="mx-auto">
+                        <img src="https://spc.neihanfly.com/user_files/14784/publish/post/4583752_1709117981.jpeg" alt="QQ群：78269558" class="img-fluid">
+                    </div>
+                </div>
+                <div class="col-6" data-aos="fade-up">
+                    <p>扫码联系微信客服</p>
+                    <div style="max-width: 240px" class="mx-auto">
+                        <img src="https://spc.neihanfly.com/user_files/14784/publish/post/87137608_1707142700.jpeg" alt="微信客服" class="img-fluid">
+                    </div>
+                </div>
+            </div>
+            <div class="row justify-content-lg-center">
+                <div class="col-md-6 col-lg-4 mb-3 mb-md-7">
+                    <!-- Icon Blocks -->
+                    <div class="d-flex pe-lg-5" data-aos="fade-up">
+                        <div class="flex-shrink-0">
+                          <span class="svg-icon text-primary">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                 xmlns="http://www.w3.org/2000/svg">
+                                <path d="M15.6 5.59998L20.9 10.9C21.3 11.3 21.3 11.9 20.9 12.3L17.6 15.6L11.6 9.59998L15.6 5.59998ZM2.3 12.3L7.59999 17.6L11.6 13.6L5.59999 7.59998L2.3 10.9C1.9 11.3 1.9 11.9 2.3 12.3Z"
+                                      fill="#035A4B"/>
+                                <path opacity="0.3"
+                                      d="M17.6 15.6L12.3 20.9C11.9 21.3 11.3 21.3 10.9 20.9L7.59998 17.6L13.6 11.6L17.6 15.6ZM10.9 2.3L5.59998 7.6L9.59998 11.6L15.6 5.6L12.3 2.3C11.9 1.9 11.3 1.9 10.9 2.3Z"
+                                      fill="#035A4B"/>
+                            </svg>
+                          </span>
+                        </div>
+                        <div class="flex-grow-1 ms-4">
+                            <h4>售前服务</h4>
+                            <p>提供云服务产品咨询服务，平台会提供技术专家或工程师来为客户解答任何与CDN相关的问题，包括架构设计、性能优化、安全等方面的咨询。</p>
+                        </div>
+                    </div>
+                    <!-- End Icon Blocks -->
+                </div>
+                <!-- End Col -->
+
+                <div class="col-md-6 col-lg-4 mb-3 mb-md-7">
+                    <!-- Icon Blocks -->
+                    <div class="d-flex ps-lg-5" data-aos="fade-up" data-aos-delay="100">
+                        <div class="flex-shrink-0">
+              <span class="svg-icon text-primary">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17.5 11H6.5C4 11 2 9 2 6.5C2 4 4 2 6.5 2H17.5C20 2 22 4 22 6.5C22 9 20 11 17.5 11ZM15 6.5C15 7.9 16.1 9 17.5 9C18.9 9 20 7.9 20 6.5C20 5.1 18.9 4 17.5 4C16.1 4 15 5.1 15 6.5Z"
+                      fill="#035A4B"/>
+                <path opacity="0.3"
+                      d="M17.5 22H6.5C4 22 2 20 2 17.5C2 15 4 13 6.5 13H17.5C20 13 22 15 22 17.5C22 20 20 22 17.5 22ZM4 17.5C4 18.9 5.1 20 6.5 20C7.9 20 9 18.9 9 17.5C9 16.1 7.9 15 6.5 15C5.1 15 4 16.1 4 17.5Z"
+                      fill="#035A4B"/>
+                </svg>
+
+              </span>
+                        </div>
+                        <div class="flex-grow-1 ms-4">
+                            <h4>售后服务</h4>
+                            <p>提供 7 * 24 小时技术支持服务，平台会提供专业的技术支持团队，为客户解答在使用CDN服务过程中遇到的问题。技术支持团队会协助客户诊断和解决故障，并提供及时的响应和解决方案。</p>
+                        </div>
+                    </div>
+                    <!-- End Icon Blocks -->
+                </div>
+                <!-- End Col -->
+
+                <div class="col-md-6 col-lg-4 mb-3 mb-md-7">
+                    <!-- Icon Blocks -->
+                    <div class="d-flex pe-lg-5" data-aos="fade-up" data-aos-delay="200">
+                        <div class="flex-shrink-0">
+              <span class="svg-icon text-primary">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path opacity="0.3"
+                                  d="M14 3V21H10V3C10 2.4 10.4 2 11 2H13C13.6 2 14 2.4 14 3ZM7 14H5C4.4 14 4 14.4 4 15V21H8V15C8 14.4 7.6 14 7 14Z"
+                                  fill="#035A4B"/>
+                            <path d="M21 20H20V8C20 7.4 19.6 7 19 7H17C16.4 7 16 7.4 16 8V20H3C2.4 20 2 20.4 2 21C2 21.6 2.4 22 3 22H21C21.6 22 22 21.6 22 21C22 20.4 21.6 20 21 20Z"
+                                  fill="#035A4B"/>
+                        </svg>
+
+              </span>
+                        </div>
+                        <div class="flex-grow-1 ms-4">
+                            <h4>品牌、媒体合作服务</h4>
+                            <p>提供企业和客户合作往来服务，平台与各种品牌和媒体合作，为其提供内容分发和加速服务，以提升用户体验。</p>
+                        </div>
+                    </div>
+                    <!-- End Icon Blocks -->
+                </div>
+
+                <!-- End Col -->
+                <div class="col-md-6 col-lg-4 mb-3 mb-md-7">
+                    <!-- Icon Blocks -->
+                    <div class="d-flex pe-lg-5" data-aos="fade-up">
+                        <div class="flex-shrink-0">
+                          <span class="svg-icon text-primary">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                 xmlns="http://www.w3.org/2000/svg">
+                            <path d="M6 21C6 21.6 6.4 22 7 22H17C17.6 22 18 21.6 18 21V20H6V21Z" fill="#035A4B"/>
+                            <path opacity="0.3" d="M17 2H7C6.4 2 6 2.4 6 3V20H18V3C18 2.4 17.6 2 17 2Z" fill="#035A4B"/>
+                            <path d="M12 4C11.4 4 11 3.6 11 3V2H13V3C13 3.6 12.6 4 12 4Z" fill="#035A4B"/>
+                            </svg>
+                          </span>
+                        </div>
+                        <div class="flex-grow-1 ms-4">
+                            <h4>违规内容举报</h4>
+                            <p>
+                                欢迎举报不良内容，如网络诈骗、传播恶意软件、侵权和盗版行为、恶意或低质量内容等，有助于维护网络环境的安全和健康。
+                            </p>
+                        </div>
+                    </div>
+                    <!-- End Icon Blocks -->
+                </div>
+                <!-- End Col -->
+
+                <div class="col-md-6 col-lg-4 mb-3 mb-md-7">
+                    <!-- Icon Blocks -->
+                    <div class="d-flex ps-lg-5" data-aos="fade-up" data-aos-delay="100">
+                        <div class="flex-shrink-0">
+              <span class="svg-icon text-primary">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path opacity="0.3"
+                                  d="M12.5 22C11.9 22 11.5 21.6 11.5 21V3C11.5 2.4 11.9 2 12.5 2C13.1 2 13.5 2.4 13.5 3V21C13.5 21.6 13.1 22 12.5 22Z"
+                                  fill="#035A4B"/>
+                            <path d="M17.8 14.7C17.8 15.5 17.6 16.3 17.2 16.9C16.8 17.6 16.2 18.1 15.3 18.4C14.5 18.8 13.5 19 12.4 19C11.1 19 10 18.7 9.10001 18.2C8.50001 17.8 8.00001 17.4 7.60001 16.7C7.20001 16.1 7 15.5 7 14.9C7 14.6 7.09999 14.3 7.29999 14C7.49999 13.8 7.80001 13.6 8.20001 13.6C8.50001 13.6 8.69999 13.7 8.89999 13.9C9.09999 14.1 9.29999 14.4 9.39999 14.7C9.59999 15.1 9.8 15.5 10 15.8C10.2 16.1 10.5 16.3 10.8 16.5C11.2 16.7 11.6 16.8 12.2 16.8C13 16.8 13.7 16.6 14.2 16.2C14.7 15.8 15 15.3 15 14.8C15 14.4 14.9 14 14.6 13.7C14.3 13.4 14 13.2 13.5 13.1C13.1 13 12.5 12.8 11.8 12.6C10.8 12.4 9.99999 12.1 9.39999 11.8C8.69999 11.5 8.19999 11.1 7.79999 10.6C7.39999 10.1 7.20001 9.39998 7.20001 8.59998C7.20001 7.89998 7.39999 7.19998 7.79999 6.59998C8.19999 5.99998 8.80001 5.60005 9.60001 5.30005C10.4 5.00005 11.3 4.80005 12.3 4.80005C13.1 4.80005 13.8 4.89998 14.5 5.09998C15.1 5.29998 15.6 5.60002 16 5.90002C16.4 6.20002 16.7 6.6 16.9 7C17.1 7.4 17.2 7.69998 17.2 8.09998C17.2 8.39998 17.1 8.7 16.9 9C16.7 9.3 16.4 9.40002 16 9.40002C15.7 9.40002 15.4 9.29995 15.3 9.19995C15.2 9.09995 15 8.80002 14.8 8.40002C14.6 7.90002 14.3 7.49995 13.9 7.19995C13.5 6.89995 13 6.80005 12.2 6.80005C11.5 6.80005 10.9 7.00005 10.5 7.30005C10.1 7.60005 9.79999 8.00002 9.79999 8.40002C9.79999 8.70002 9.9 8.89998 10 9.09998C10.1 9.29998 10.4 9.49998 10.6 9.59998C10.8 9.69998 11.1 9.90002 11.4 9.90002C11.7 10 12.1 10.1 12.7 10.3C13.5 10.5 14.2 10.7 14.8 10.9C15.4 11.1 15.9 11.4 16.4 11.7C16.8 12 17.2 12.4 17.4 12.9C17.6 13.4 17.8 14 17.8 14.7Z"
+                                  fill="#035A4B"/>
+                        </svg>
+              </span>
+                        </div>
+                        <div class="flex-grow-1 ms-4">
+                            <h4>数据安全和网络安全</h4>
+                            <p>数据安全合规风险反馈与网络安全问题咨询</p>
+                        </div>
+                    </div>
+                    <!-- End Icon Blocks -->
+                </div>
+                <!-- End Col -->
+
+                <div class="col-md-6 col-lg-4 mb-3 mb-md-7">
+                    <!-- Icon Blocks -->
+                    <div class="d-flex pe-lg-5" data-aos="fade-up" data-aos-delay="200">
+                        <div class="flex-shrink-0">
+              <span class="svg-icon text-primary">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path opacity="0.3" fill-rule="evenodd" clip-rule="evenodd"
+                      d="M4 4L11.6314 2.56911C11.875 2.52343 12.125 2.52343 12.3686 2.56911L20 4V11.9033C20 15.696 18.0462 19.2211 14.83 21.2313L12.53 22.6687C12.2057 22.8714 11.7943 22.8714 11.47 22.6687L9.17001 21.2313C5.95382 19.2211 4 15.696 4 11.9033L4 4Z"
+                      fill="#035A4B"/>
+                <path fill-rule="evenodd" clip-rule="evenodd"
+                      d="M11.175 14.75C10.9354 14.75 10.6958 14.6542 10.5042 14.4625L8.58749 12.5458C8.20415 12.1625 8.20415 11.5875 8.58749 11.2042C8.97082 10.8208 9.59374 10.8208 9.92915 11.2042L11.175 12.45L14.3375 9.2875C14.7208 8.90417 15.2958 8.90417 15.6792 9.2875C16.0625 9.67083 16.0625 10.2458 15.6792 10.6292L11.8458 14.4625C11.6542 14.6542 11.4146 14.75 11.175 14.75Z"
+                      fill="#035A4B"/>
+                </svg>
+
+              </span>
+                        </div>
+                        <div class="flex-grow-1 ms-4">
+                            <h4>其他服务</h4>
+                            <p>
+                                提供上述服务以外的其他服务
+                            </p>
+                        </div>
+                    </div>
+                    <!-- End Icon Blocks -->
+                </div>
+                <!-- End Col -->
+
+            </div>
+            <!-- End Row -->
+        </div>
+        <!-- End Icon Blocks -->
+    </div>
+    <!-- End Icon Blocks -->
+
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- ========== FOOTER ========== -->
+<div th:replace="common/common-front::#footer"></div>
+
+<!-- ========== END FOOTER ========== -->
+
+<!-- ========== SECONDARY CONTENTS ========== -->
+<!-- Sign Up -->
+<div class="modal fade" id="signupModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <!-- Header -->
+            <div class="modal-close">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <!-- End Header -->
+
+            <!-- Body -->
+            <div class="modal-body">
+                <!-- Log in -->
+                <div id="signupModalFormLogin" style="display: none; opacity: 0;">
+                    <!-- Heading -->
+                    <div class="text-center mb-7">
+                        <h2>Log in</h2>
+                        <p>Don't have an account yet?
+                            <a class="js-animation-link link" href="javascript:;" role="button"
+                               data-hs-show-animation-options='{
+                         "targetSelector": "#signupModalFormSignup",
+                         "groupName": "idForm"
+                       }'>Sign up</a>
+                        </p>
+                    </div>
+                    <!-- End Heading -->
+
+                    <div class="d-grid gap-2">
+                        <a class="btn btn-white btn-lg" href="#">
+                <span class="d-flex justify-content-center align-items-center">
+                  <img class="avatar avatar-xss me-2" src="front/assets/svg/brands/google-icon.svg"
+                       alt="Image Description">
+                  Log in with Google
+                </span>
+                        </a>
+
+                        <a class="js-animation-link btn btn-primary btn-lg" href="#"
+                           data-hs-show-animation-options='{
+                       "targetSelector": "#signupModalFormLoginWithEmail",
+                       "groupName": "idForm"
+                     }'>Log in with Email</a>
+                    </div>
+                </div>
+                <!-- End Log in -->
+
+                <!-- Log in with Modal -->
+                <div id="signupModalFormLoginWithEmail" style="display: none; opacity: 0;">
+                    <!-- Heading -->
+                    <div class="text-center mb-7">
+                        <h2>Log in</h2>
+                        <p>Don't have an account yet?
+                            <a class="js-animation-link link" href="javascript:;" role="button"
+                               data-hs-show-animation-options='{
+                         "targetSelector": "#signupModalFormSignup",
+                         "groupName": "idForm"
+                       }'>Sign up</a>
+                        </p>
+                    </div>
+                    <!-- End Heading -->
+
+                    <form class="js-validate needs-validation" novalidate>
+                        <!-- Form -->
+                        <div class="mb-3">
+                            <label class="form-label" for="signupModalFormLoginEmail">Your email</label>
+                            <input type="email" class="form-control form-control-lg" name="email"
+                                   id="signupModalFormLoginEmail" placeholder="email@site.com"
+                                   aria-label="email@site.com" required>
+                            <span class="invalid-feedback">Please enter a valid email address.</span>
+                        </div>
+                        <!-- End Form -->
+
+                        <!-- Form -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <label class="form-label" for="signupModalFormLoginPassword">Password</label>
+
+                                <a class="js-animation-link form-label-link" href="javascript:;"
+                                   data-hs-show-animation-options='{
+                       "targetSelector": "#signupModalFormResetPassword",
+                       "groupName": "idForm"
+                     }'>Forgot Password?</a>
+                            </div>
+
+                            <input type="password" class="form-control form-control-lg" name="password"
+                                   id="signupModalFormLoginPassword" placeholder="8+ characters required"
+                                   aria-label="8+ characters required" required minlength="8">
+                            <span class="invalid-feedback">Please enter a valid password.</span>
+                        </div>
+                        <!-- End Form -->
+
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary form-control-lg">Log in</button>
+                        </div>
+                    </form>
+                </div>
+                <!-- End Log in with Modal -->
+
+                <!-- Sign up -->
+                <div id="signupModalFormSignup">
+                    <!-- Heading -->
+                    <div class="text-center mb-7">
+                        <h2>Sign up</h2>
+                        <p>Already have an account?
+                            <a class="js-animation-link link" href="javascript:;" role="button"
+                               data-hs-show-animation-options='{
+                         "targetSelector": "#signupModalFormLogin",
+                         "groupName": "idForm"
+                       }'>Log in</a>
+                        </p>
+                    </div>
+                    <!-- End Heading -->
+
+                    <div class="d-grid gap-3">
+                        <a class="btn btn-white btn-lg" href="#">
+                <span class="d-flex justify-content-center align-items-center">
+                  <img class="avatar avatar-xss me-2" src="front/assets/svg/brands/google-icon.svg"
+                       alt="Image Description">
+                  Sign up with Google
+                </span>
+                        </a>
+
+                        <a class="js-animation-link btn btn-primary btn-lg" href="#"
+                           data-hs-show-animation-options='{
+                       "targetSelector": "#signupModalFormSignupWithEmail",
+                       "groupName": "idForm"
+                     }'>Sign up with Email</a>
+
+                        <div class="text-center">
+                            <p class="small mb-0">By continuing you agree to our <a href="#">Terms and Conditions</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <!-- End Sign up -->
+
+                <!-- Sign up with Modal -->
+                <div id="signupModalFormSignupWithEmail" style="display: none; opacity: 0;">
+                    <!-- Heading -->
+                    <div class="text-center mb-7">
+                        <h2>Sign up</h2>
+                        <p>Already have an account?
+                            <a class="js-animation-link link" href="javascript:;" role="button"
+                               data-hs-show-animation-options='{
+                         "targetSelector": "#signupModalFormLogin",
+                         "groupName": "idForm"
+                       }'>Log in</a>
+                        </p>
+                    </div>
+                    <!-- End Heading -->
+
+                    <form class="js-validate need-validate" novalidate>
+                        <!-- Form -->
+                        <div class="mb-3">
+                            <label class="form-label" for="signupModalFormSignupEmail">Your email</label>
+                            <input type="email" class="form-control form-control-lg" name="email"
+                                   id="signupModalFormSignupEmail" placeholder="email@site.com"
+                                   aria-label="email@site.com" required>
+                            <span class="invalid-feedback">Please enter a valid email address.</span>
+                        </div>
+                        <!-- End Form -->
+
+                        <!-- Form -->
+                        <div class="mb-3">
+                            <label class="form-label" for="signupModalFormSignupPassword">Password</label>
+                            <input type="password" class="form-control form-control-lg" name="password"
+                                   id="signupModalFormSignupPassword" placeholder="8+ characters required"
+                                   aria-label="8+ characters required" required>
+                            <span class="invalid-feedback">Your password is invalid. Please try again.</span>
+                        </div>
+                        <!-- End Form -->
+
+                        <!-- Form -->
+                        <div class="mb-3" data-hs-validation-validate-class>
+                            <label class="form-label" for="signupModalFormSignupConfirmPassword">Confirm
+                                password</label>
+                            <input type="password" class="form-control form-control-lg" name="confirmPassword"
+                                   id="signupModalFormSignupConfirmPassword" placeholder="8+ characters required"
+                                   aria-label="8+ characters required" required
+                                   data-hs-validation-equal-field="#signupModalFormSignupPassword">
+                            <span class="invalid-feedback">Password does not match the confirm password.</span>
+                        </div>
+                        <!-- End Form -->
+
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary form-control-lg">Sign up</button>
+                        </div>
+
+                        <div class="text-center">
+                            <p class="small mb-0">By continuing you agree to our <a href="#">Terms and Conditions</a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+                <!-- End Sign up with Modal -->
+
+                <!-- Reset Password -->
+                <div id="signupModalFormResetPassword" style="display: none; opacity: 0;">
+                    <!-- Heading -->
+                    <div class="text-center mb-7">
+                        <h2>Forgot password?</h2>
+                        <p>Enter the email address you used when you joined and we'll send you instructions to reset
+                            your password.</p>
+                    </div>
+                    <!-- En dHeading -->
+
+                    <form class="js-validate need-validate" novalidate>
+                        <div class="mb-3">
+                            <!-- Form -->
+                            <div class="d-flex justify-content-between align-items-center">
+                                <label class="form-label" for="signupModalFormResetPasswordEmail" tabindex="0">Your
+                                    email</label>
+
+                                <a class="js-animation-link form-label-link" href="javascript:;"
+                                   data-hs-show-animation-options='{
+                         "targetSelector": "#signupModalFormLogin",
+                         "groupName": "idForm"
+                       }'>
+                                    <i class="bi-chevron-left small"></i> Back to Log in
+                                </a>
+                            </div>
+
+                            <input type="email" class="form-control form-control-lg" name="email"
+                                   id="signupModalFormResetPasswordEmail" tabindex="1"
+                                   placeholder="Enter your email address" aria-label="Enter your email address"
+                                   required>
+                            <span class="invalid-feedback">Please enter a valid email address.</span>
+                            <!-- End Form -->
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary form-control-lg">Submit</button>
+                        </div>
+                    </form>
+                </div>
+                <!-- End Reset Password -->
+            </div>
+            <!-- End Body -->
+
+            <!-- Footer -->
+            <div class="modal-footer d-block text-center py-sm-5">
+                <small class="text-cap mb-4">Trusted by the world's best teams</small>
+
+                <div class="w-85 mx-auto">
+                    <div class="row justify-content-between">
+                        <div class="col">
+                            <img class="img-fluid" src="front/assets/svg/brands/gitlab-gray.svg" alt="Logo">
+                        </div>
+                        <!-- End Col -->
+
+                        <div class="col">
+                            <img class="img-fluid" src="front/assets/svg/brands/fitbit-gray.svg" alt="Logo">
+                        </div>
+                        <!-- End Col -->
+
+                        <div class="col">
+                            <img class="img-fluid" src="front/assets/svg/brands/flow-xo-gray.svg" alt="Logo">
+                        </div>
+                        <!-- End Col -->
+
+                        <div class="col">
+                            <img class="img-fluid" src="front/assets/svg/brands/layar-gray.svg" alt="Logo">
+                        </div>
+                        <!-- End Col -->
+                    </div>
+                </div>
+                <!-- End Row -->
+            </div>
+            <!-- End Footer -->
+        </div>
+    </div>
+</div>
+
+<!-- Go To -->
+<a class="js-go-to go-to position-fixed" href="javascript:;" style="visibility: hidden;"
+   data-hs-go-to-options='{
+       "offsetTop": 700,
+       "position": {
+         "init": {
+           "right": "2rem"
+         },
+         "show": {
+           "bottom": "2rem"
+         },
+         "hide": {
+           "bottom": "-2rem"
+         }
+       }
+     }'>
+    <i class="bi-chevron-up"></i>
+</a>
+<!-- ========== END SECONDARY CONTENTS ========== -->
+
+<!-- JS Global Compulsory  -->
+<script src="front/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- JS Implementing Plugins -->
+<script src="front/assets/vendor/hs-header/dist/hs-header.min.js"></script>
+<script src="front/assets/vendor/hs-mega-menu/dist/hs-mega-menu.min.js"></script>
+<script src="front/assets/vendor/hs-show-animation/dist/hs-show-animation.min.js"></script>
+<script src="front/assets/vendor/hs-go-to/dist/hs-go-to.min.js"></script>
+<script src="front/assets/vendor/aos/dist/aos.js"></script>
+<script src="front/assets/vendor/hs-toggle-switch/dist/hs-toggle-switch.min.js"></script>
+
+<!-- JS Front -->
+<script src="front/assets/js/theme.min.js"></script>
+
+<!-- JS Plugins Init. -->
+<script>
+    (function () {
+        // INITIALIZATION OF HEADER
+        // =======================================================
+        new HSHeader('#header').init()
+
+
+        // INITIALIZATION OF MEGA MENU
+        // =======================================================
+        new HSMegaMenu('.js-mega-menu', {
+            desktop: {
+                position: 'left'
+            }
+        })
+
+
+        // INITIALIZATION OF SHOW ANIMATIONS
+        // =======================================================
+        new HSShowAnimation('.js-animation-link')
+
+
+        // INITIALIZATION OF BOOTSTRAP VALIDATION
+        // =======================================================
+        HSBsValidation.init('.js-validate', {
+            onSubmit: data => {
+                data.event.preventDefault()
+                alert('Submited')
+            }
+        })
+
+
+        // INITIALIZATION OF BOOTSTRAP DROPDOWN
+        // =======================================================
+        HSBsDropdown.init()
+
+
+        // INITIALIZATION OF GO TO
+        // =======================================================
+        new HSGoTo('.js-go-to')
+
+
+        // INITIALIZATION OF AOS
+        // =======================================================
+        AOS.init({
+            duration: 650,
+            once: true
+        });
+
+
+        // INITIALIZATION OF TOGGLE SWITCH
+        // =======================================================
+        new HSToggleSwitch('.js-toggle-switch')
+
+
+    })()
+</script>
+
+</body>
+</html>
+
+<div th:replace="common/common-dashboard::#agent"></div>

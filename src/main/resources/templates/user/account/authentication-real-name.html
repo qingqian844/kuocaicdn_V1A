@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title th:if="${!openAgent}">[[${websiteBaseConfig.websiteName}]] 实名认证</title>
+    <title th:if="${openAgent}">[[${agentConfig.websiteName}]] 实名认证</title>
+
+    <!-- Favicon -->
+    <link th:if="${!openAgent}" rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:if="${openAgent}" rel="shortcut icon" th:href="${agentConfig.icon}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/daterangepicker/daterangepicker.css}">
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {"switcherSupport": true},
+                "header": {"layoutMode": "default", "containerMode": "container-fluid"},
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {"100": "#f9fafc", "900": "#1e2022"}
+                    }, "font": "Inter"
+                }
+            },
+            "languageDirection": {"lang": "en"},
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {"*assets/js/theme-custom.js": ""},
+                "build": {"*assets/js/theme-custom.js": "", "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"}
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {"src": "./src", "dist": "./dist", "build": "./build"},
+            "fileNames": {
+                "dist": {"js": "theme.min.js", "css": "theme.min.css"},
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl footer-offset">
+
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+<!-- ========== HEADER ========== -->
+
+<div th:replace="common/common-dashboard::header(curPage='authentication-real-name', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<!-- Navbar Vertical -->
+
+<div th:replace="common/common-dashboard::aside(curPage='authentication-real-name', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- End Navbar Vertical -->
+
+<main id="content" role="main" class="main">
+    <!-- Content -->
+    <div class="content container-fluid">
+        <!-- Page Header -->
+        <div class="page-header" style="padding-bottom: 5px;margin-bottom: 10px">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="page-header-title">实名认证 <i class="bi-person nav-icon"></i>
+
+                    </h1>
+                    <div class="alert alert-soft-danger" role="alert"
+                         th:if="${loginUser.status == 'register_not_certified'}">
+                        <i class="bi bi-exclamation-diamond"></i> 根据相关法规和政策要求，必须完成账号实名认证才能使用相关功能。<br/>
+                        <i class="bi bi-exclamation-diamond"></i> 请尽快完成实名认证，否则可能会影响部分功能的使用。
+                    </div>
+                    <!-- <div class="alert alert-soft-danger" role="alert">
+                        <i class="bi bi-exclamation-diamond"></i> 系统后台正在调整，自动实名认证程序暂不可用，预计7天左右(2024年10月25日0时)恢复，在此期间请您通过提交工单方式，以人工方式进行实名认证。
+                    </div> -->
+                    <div class="alert alert-soft-success" role="alert"
+                         th:if="${loginUser.status == 'certified'}">
+                        <i class="bi bi-check-circle-fill"></i> 恭喜你，已成功通过认证！
+                    </div>
+                </div>
+                <!-- End Col -->
+            </div>
+            <!-- End Row -->
+        </div>
+        <!-- End Page Header -->
+        <div class="row justify-content-lg-center">
+            <div class="col-lg-12">
+                <div class="d-grid gap-3 gap-lg-5">
+                    <!-- Card -->
+                    <div class="card">
+                        <!-- Header -->
+                        <div class="card-header card-header-content-between border-bottom">
+                            <h4 class="card-header-title">身份认证
+                            </h4>
+                            <h5 class="text-muted">
+                                <span th:if="${loginUser.status == 1}" class="text-success">
+                                    [ <i class="bi bi-check-circle-fill"></i> 已认证 ]
+                                </span>
+                            </h5>
+                        </div>
+                        <!-- End Header -->
+                        <!--                        <form id="certificationForm" method="get" action="alipay-authentication">-->
+                        <!-- Body -->
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="realNameLabel"
+                                           class="col-sm-3 col-form-label form-label">真实姓名</label>
+
+                                    <div class="col-sm-9"
+                                         th:if="${loginUser.status == 'register_not_certified'}">
+                                        <input id="realNameLabel" type="text" class="form-control" name="realName"
+                                               required maxlength="20"
+                                               placeholder="输入实名名称"
+                                               aria-label="">
+                                    </div>
+                                    <div class="col-sm-9" th:if="${loginUser.status == 'certified'}">
+                                        <input type="text" class="form-control"
+                                               th:value="${loginUser.getEncryptName()}" disabled
+                                               aria-label="">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4">
+                                    <label for="idCardNumLabel"
+                                           class="col-sm-3 col-form-label form-label">证件号码</label>
+
+                                    <div class="col-sm-9"
+                                         th:if="${loginUser.status == 'register_not_certified'}">
+                                        <input type="text" class="form-control" id="idCardNumLabel" name="idCardNum"
+                                               required
+                                               placeholder="输入真实证件号码"
+                                               aria-label="">
+                                    </div>
+                                    <div class="col-sm-9" th:if="${loginUser.status == 'certified'}">
+                                        <input type="text" class="form-control" maxlength="18"
+                                               th:value="${loginUser.getEncryptCardNum()}" disabled
+                                               aria-label="">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4" th:if="${loginUser.status == 'register_not_certified'}">
+                                    <label for="idCardNumLabel"
+                                           class="col-sm-3 col-form-label form-label">手机号码</label>
+
+                                    <div class="col-sm-9">
+                                        <input type="tel" class="form-control" id="phoneLabel" name="phone"
+                                               required maxlength="11"
+                                               placeholder="输入手机号码"
+                                               aria-label="">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                                <!-- Form -->
+                                <div class="row mb-4" id="aliCode" style="display: none">
+                                    <label for="idCardNumLabel"
+                                           class="col-sm-3 col-form-label form-label">请使用手机支付宝扫码认证</label>
+
+                                    <div class="col-sm-9" id="qrCode">
+                                    </div>
+                                </div>
+                                <!-- End Form -->
+
+                            </div>
+                            <!-- End Row -->
+                        </div>
+                        <!-- End Body -->
+
+                        <hr class="my-3">
+
+                        <!-- Body -->
+                        <div class="card-body">
+                            <div class="d-flex justify-content-end" th:if="${canSubmit}">
+                                <div class="row gx-3">
+                                    <div class="col-sm mb-2 mb-sm-0"
+                                         th:if="${loginUser.status == 'register_not_certified'}" id="enterpriseAuthDiv">
+                                        <div class="d-grid">
+                                            <a class="btn btn-success" href="authentication-real-name-manual-check">去企业认证</a>
+                                        </div>
+                                    </div>
+                                    <!-- End Col -->
+
+                                    <div class="col-sm" th:if="${loginUser.status == 'register_not_certified'}">
+                                        <div class="d-grid" id="codeBtn">
+                                            <button onclick="getAuthCode()" class="btn btn-primary">支付宝认证</button>
+                                        </div>
+                                    </div>
+                                    <!-- End Col -->
+
+                                    <div class="col-sm" style="display: none" id="faceVerifyDiv">
+                                        <div class="d-grid">
+                                            <button onclick="faceVerify()" class="btn btn-primary">点击完成认证</button>
+                                        </div>
+                                    </div>
+                                    <!-- End Col -->
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end" th:if="${!canSubmit}">
+                                <div class="row gx-3">
+                                    <div class="col-sm mb-2 mb-sm-0"
+                                         th:if="${loginUser.status == 'register_not_certified'}">
+                                        <div class="d-grid">
+                                            <a class="btn btn-success" href="authentication-real-name-list">认证记录</a>
+                                        </div>
+                                    </div>
+                                    <!-- End Col -->
+                                </div>
+                            </div>
+                        </div>
+                        <!--                        </form>-->
+                        <!-- End Body -->
+                    </div>
+                    <!-- End Card -->
+
+
+                </div>
+            </div>
+            <!-- End Col -->
+        </div>
+    </div>
+    <!-- End Content -->
+
+    <!-- Footer -->
+
+    <div th:replace="common/common-dashboard::#footer(curPage='authentication-real-name')"></div>
+
+    <!-- End Footer -->
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- ========== SECONDARY CONTENTS ========== -->
+
+<div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='authentication-real-name')"></div>
+
+<!-- ========== END SECONDARY CONTENTS ========== -->
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery/dist/utf.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.qrcode.js}"></script>
+
+
+<!-- JS Implementing Plugins -->
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/chart.js/dist/Chart.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/chartjs-chart-matrix/dist/chartjs-chart-matrix.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/daterangepicker/moment.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/daterangepicker/daterangepicker.js}"></script>
+<script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/clipboard/dist/clipboard.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/datatables/media/js/jquery.dataTables.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/datatables.net.extensions/select/select.min.js}"></script>
+
+<!-- JS Front -->
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+<script th:src="@{dashboard/assets/js/hs.theme-appearance-charts.js}"></script>
+
+
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/util/reg.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom_ceo.js}"></script>
+<script th:src="@{common/custom_cmo.js}"></script>
+<script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+
+<!-- JS Plugins Init. -->
+<script>
+    (function () {
+        localStorage.removeItem('hs_theme')
+
+        window.onload = function () {
+
+            // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+            // =======================================================
+            new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+            // INITIALIZATION OF BOOTSTRAP DROPDOWN
+            // =======================================================
+            HSBsDropdown.init()
+
+            // INITIALIZATION OF CHARTJS
+            // =======================================================
+            HSCore.components.HSChartJS.init('.js-chart')
+
+            // INITIALIZATION OF SELECT
+            // =======================================================
+            HSCore.components.HSTomSelect.init('.js-select')
+
+
+            // INITIALIZATION OF CLIPBOARD
+            // =======================================================
+            HSCore.components.HSClipboard.init('.js-clipboard')
+        }
+    })()
+</script>
+
+<!-- Style Switcher JS -->
+
+<script>
+    (function () {
+        // STYLE SWITCHER
+        // =======================================================
+        const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+        const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+        // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+        const setActiveStyle = function () {
+            $variants.forEach($item => {
+                if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                    $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                    return $item.classList.add('active')
+                }
+
+                $item.classList.remove('active')
+            })
+        }
+
+        // Add a click event to all items of the dropdown to set the style
+        $variants.forEach(function ($item) {
+            $item.addEventListener('click', function () {
+                HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+            })
+        })
+
+        // Call the setActiveStyle on load page
+        setActiveStyle()
+
+        // Add event listener on change style to call the setActiveStyle function
+        window.addEventListener('on-hs-appearance-change', function () {
+            setActiveStyle()
+        })
+
+    })()
+</script>
+
+<!-- End Style Switcher JS -->
+</body>
+
+</html>
+<div th:replace="common/common-dashboard::#agent"></div>

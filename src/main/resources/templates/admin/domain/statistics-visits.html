@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title th:if="${!openAgent}">[[${websiteBaseConfig.websiteName}]] 访问情况</title>
+    <title th:if="${openAgent}">[[${agentConfig.websiteName}]] 访问情况</title>
+
+    <!-- Favicon -->
+    <link th:if="${!openAgent}" rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:if="${openAgent}" rel="shortcut icon" th:href="${agentConfig.icon}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/daterangepicker/daterangepicker.css}">
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+
+    <!-- 弹框依赖-->
+    <link rel="stylesheet" th:href="@{dashboard/assets/css/style.css}">
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {
+                    "switcherSupport": true
+                },
+                "header": {
+                    "layoutMode": "default",
+                    "containerMode": "container-fluid"
+                },
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {
+                            "100": "#f9fafc",
+                            "900": "#1e2022"
+                        }
+                    },
+                    "font": "Inter"
+                }
+            },
+            "languageDirection": {
+                "lang": "en"
+            },
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {
+                    "*assets/js/theme-custom.js": ""
+                },
+                "build": {
+                    "*assets/js/theme-custom.js": "",
+                    "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"
+                }
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {
+                "src": "./src",
+                "dist": "./dist",
+                "build": "./build"
+            },
+            "fileNames": {
+                "dist": {
+                    "js": "theme.min.js",
+                    "css": "theme.min.css"
+                },
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl   footer-offset">
+
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+<!-- ========== HEADER ========== -->
+
+<div th:replace="common/common-dashboard::header(curPage='domain-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- ========== END HEADER ========== -->
+
+<!-- ========== MAIN CONTENT ========== -->
+<!-- Navbar Vertical -->
+
+<div th:replace="common/common-dashboard::aside(curPage='domain-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+<!-- End Navbar Vertical -->
+<main id="content" role="main" class="main">
+    <!-- Content -->
+    <div class="content container-fluid">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col-sm mb-sm-0">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb breadcrumb-no-gutter">
+                            <li class="breadcrumb-item"><a class="breadcrumb-link" href="domain-list">域名管理</a>
+                            </li>
+                            <li class="breadcrumb-item active" aria-current="page">域名统计</li>
+                        </ol>
+                    </nav>
+                </div>
+
+                <div class="col-sm-auto">
+                    <div class="h1"><span class="badge bg-secondary" th:text="${cdnDomain.domainName}"></span></div>
+                </div>
+                <!-- End Col -->
+            </div>
+
+            <div class="row align-items-center">
+                <div class="col-sm mb-sm-0">
+                    <!-- Nav -->
+                    <ul class="nav nav-tabs page-header-tabs" id="pageHeaderTab" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{statistics-resource(id=${cdnDomain.id})}" tabindex="-1" aria-disabled="true">网络资源消耗</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" th:href="@{statistics-visits(id=${cdnDomain.id})}" tabindex="-1" aria-disabled="true">访问情况</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{statistics-status(id=${cdnDomain.id})}" tabindex="-1" aria-disabled="true">HTTP状态码</a>
+                        </li>
+                    </ul>
+                    <!-- End Nav -->
+                </div>
+                <div class="col-sm-auto">
+                    <i class="bi-calendar-week"></i> 查询区间：
+                    <!-- Daterangepicker -->
+                    <button id="daterangepicker-predefined" class="btn btn-ghost-secondary btn-sm dropdown-toggle">
+                        <i class="tio-date-range"></i>
+                        <span class="daterangepicker-predefined-preview ms-1"></span>
+                    </button>
+                    <!-- End Daterangepicker -->
+                </div>
+            </div>
+        </div>
+        <!-- End Page Header -->
+
+        <div class="row">
+            <div class="col-sm-12">
+                <!-- Card -->
+                <div class="card mb-3">
+                    <!-- Header -->
+                    <div class="card-header card-header-content-sm-between">
+                        <h4 class="card-header-title mb-2 mb-sm-0">访问情况数量统计</h4>
+                    </div>
+                    <!-- End Header -->
+
+                    <!-- Body -->
+                    <div class="card-body">
+                        <!-- Bar Chart -->
+                        <div class="chartjs-custom mb-3 mb-sm-5">
+                            <canvas id="visitsChart" class="js-chart" style="height: 15rem;" data-hs-chartjs-options='{
+                                          "type": "line",
+                                          "data": {
+                                            "labels": [],
+                                            "datasets": [{
+                                              "data": [],
+                                              "backgroundColor": "#377dff",
+                                              "hoverBackgroundColor": "#377dff",
+                                              "borderColor": "#377dff",
+                                              "maxBarThickness": "10"
+                                            },
+                                            {
+                                              "data": [],
+                                              "backgroundColor": "#31a3be",
+                                              "hoverBackgroundColor": "#31a3be",
+                                              "borderColor": "#31a3be",
+                                              "maxBarThickness": "10"
+                                            },
+                                             {
+                                              "data": [],
+                                              "backgroundColor": "#f1cc9a",
+                                              "hoverBackgroundColor": "#31a3be",
+                                              "borderColor": "#f1cc9a",
+                                              "maxBarThickness": "10"
+                                            },
+                                             {
+                                              "data": [],
+                                              "backgroundColor": "#e84f79",
+                                              "hoverBackgroundColor": "#e84f79",
+                                              "borderColor": "#e84f79",
+                                              "maxBarThickness": "10"
+                                            }]
+                                          },
+                                          "options": {
+                                            "scales": {
+                                              "y": {
+                                                "grid": {
+                                                  "color": "#e7eaf3",
+                                                  "drawBorder": false,
+                                                  "zeroLineColor": "#e7eaf3"
+                                                },
+                                                "ticks": {
+                                                  "beginAtZero": true,
+                                                  "stepSize": 100,
+                                                  "color": "#97a4af",
+                                                    "font": {
+                                                      "size": 12,
+                                                      "family": "Open Sans, sans-serif"
+                                                    },
+                                                  "padding": 10,
+                                                  "postfix": ""
+                                                }
+                                              },
+                                              "x": {
+                                                "grid": {
+                                                  "display": false,
+                                                  "drawBorder": false
+                                                },
+                                                "ticks": {
+                                                  "color": "#97a4af",
+                                                    "font": {
+                                                      "size": 12,
+                                                      "family": "Open Sans, sans-serif"
+                                                    },
+                                                  "padding": 5
+                                                },
+                                                "categoryPercentage": 0.5,
+                                                "maxBarThickness": "10"
+                                              }
+                                            },
+                                            "cornerRadius": 2,
+                                            "plugins": {
+                                              "tooltip": {
+                                                "prefix": "",
+                                                "postfix": "次",
+                                                "hasIndicator": true,
+                                                "mode": "index",
+                                                "intersect": false
+                                              }
+                                            },
+                                            "hover": {
+                                              "mode": "nearest",
+                                              "intersect": true
+                                            }
+                                          }
+                                        }'></canvas>
+                        </div>
+                        <!-- End Bar Chart -->
+                        <!-- Legend Indicators -->
+                        <div class="row justify-content-center">
+                            <div class="col-auto mb-3 mb-sm-0">
+                                <span class="legend-indicator bg-primary"></span> 请求总数 <small>(<small
+                                    class="text-primary" id="req_num">0</small> 次)</small>
+                            </div>
+
+                            <div class="col-auto mb-3 mb-sm-0">
+                                <span class="legend-indicator bg-info"></span> 请求命中次数 <small>(<small
+                                    class="text-info"
+                                    id="hit_num">0</small> 次)</small>
+                            </div>
+
+                            <!-- 回源总数和回源失败数暂时隐藏，后端实现不完整
+                        <div class="col-auto mb-3 mb-sm-0">
+                            <span class="legend-indicator bg-info"></span> 回源总数 <small>(<small
+                                class="text-info"
+                                id="bs_num">0</small> 次)</small>
+                        </div>
+
+                        <div class="col-auto mb-3 mb-sm-0">
+                            <span class="legend-indicator bg-info"></span> 回源失败数 <small>(<small
+                                class="text-info"
+                                id="bs_fail_num">0</small> 次)</small>
+                        </div>
+                        -->
+                        </div>
+                        <!-- End Legend Indicators -->
+                    </div>
+                    <!-- End Body -->
+                </div>
+                <!-- End Card -->
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12">
+                <!-- Card -->
+                <div class="card mb-3">
+                    <!-- Header -->
+                    <div class="card-header card-header-content-sm-between">
+                        <h4 class="card-header-title mb-2 mb-sm-0">访问情况</h4>
+                    </div>
+                    <!-- End Header -->
+
+                    <!-- Body -->
+                    <div class="card-body">
+                        <!-- Bar Chart -->
+                        <div class="chartjs-custom mb-3 mb-sm-5">
+                            <canvas id="visitsFluxChart" class="js-chart" style="height: 15rem;" data-hs-chartjs-options='{
+                                          "type": "line",
+                                          "data": {
+                                            "labels": [],
+                                            "datasets": [{
+                                              "data": [],
+                                              "backgroundColor": "#377dff",
+                                              "hoverBackgroundColor": "#377dff",
+                                              "borderColor": "#377dff",
+                                              "maxBarThickness": "10"
+                                            }]
+                                          },
+                                          "options": {
+                                            "scales": {
+                                              "y": {
+                                                "grid": {
+                                                  "color": "#e7eaf3",
+                                                  "drawBorder": false,
+                                                  "zeroLineColor": "#e7eaf3"
+                                                },
+                                                "ticks": {
+                                                  "beginAtZero": true,
+                                                  "stepSize": 100,
+                                                  "color": "#97a4af",
+                                                    "font": {
+                                                      "size": 12,
+                                                      "family": "Open Sans, sans-serif"
+                                                    },
+                                                  "padding": 10,
+                                                  "postfix": ""
+                                                }
+                                              },
+                                              "x": {
+                                                "grid": {
+                                                  "display": false,
+                                                  "drawBorder": false
+                                                },
+                                                "ticks": {
+                                                  "color": "#97a4af",
+                                                    "font": {
+                                                      "size": 12,
+                                                      "family": "Open Sans, sans-serif"
+                                                    },
+                                                  "padding": 5
+                                                },
+                                                "categoryPercentage": 0.5,
+                                                "maxBarThickness": "10"
+                                              }
+                                            },
+                                            "cornerRadius": 2,
+                                            "plugins": {
+                                              "tooltip": {
+                                                "prefix": "",
+                                                "postfix": "",
+                                                "hasIndicator": true,
+                                                "mode": "index",
+                                                "intersect": false
+                                              }
+                                            },
+                                            "hover": {
+                                              "mode": "nearest",
+                                              "intersect": true
+                                            }
+                                          }
+                                        }'></canvas>
+                        </div>
+                        <!-- End Bar Chart -->
+                        <!-- Legend Indicators -->
+                        <div class="row justify-content-center">
+                            <div class="col-auto mb-3 mb-sm-0">
+                                <span class="legend-indicator bg-primary"></span> 命中流量 <small>(<small
+                                    class="text-primary" id="hit_flux">0</small>)</small>
+                            </div>
+                        </div>
+                        <!-- End Legend Indicators -->
+                    </div>
+                    <!-- End Body -->
+                </div>
+                <!-- End Card -->
+            </div>
+        </div>
+
+    </div>
+    <!-- End Content -->
+
+    <!-- Footer -->
+    <div th:replace="common/common-dashboard::#footer(curPage='domain-list')"></div>
+    <!-- End Footer -->
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- ========== SECONDARY CONTENTS ========== -->
+
+<div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='domain-list')"></div>
+
+<!-- End Import Products Modal -->
+
+<!-- ========== END SECONDARY CONTENTS ========== -->
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+<!-- JS Implementing Plugins -->
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/hs-nav-scroller/dist/hs-nav-scroller.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/clipboard/dist/clipboard.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/datatables/media/js/jquery.dataTables.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/datatables.net.extensions/select/select.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/dropzone/dist/min/dropzone.min.js}"></script>
+
+<script th:src="@{dashboard/assets/vendor/daterangepicker/moment.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/chart.js/dist/chart.js}"></script>
+<script th:src="@{dashboard/assets/vendor/daterangepicker/daterangepicker.js}"></script>
+
+
+<!-- JS Front -->
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/util/reg.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom_ceo.js}"></script>
+<script th:src="@{common/custom_cmo.js}"></script>
+<script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+
+<!-- JS Plugins Init. -->
+<script>
+    $(document).on('ready', function() {
+        // INITIALIZATION OF CHARTJS
+        // =======================================================
+        HSCore.components.HSChartJS.init('.js-chart')
+
+        // INITIALIZATION OF DATERANGEPICKER
+        // =======================================================
+        $('.js-daterangepicker').daterangepicker();
+
+        $('.js-daterangepicker-times').daterangepicker({
+            timePicker: true,
+            startDate: moment().startOf('hour'),
+            endDate: moment().startOf('hour').add(32, 'hour'),
+            locale: {
+                format: 'M/DD hh:mm A'
+            }
+        });
+
+        async function cbFlux(start, end, lebel) {
+            $('#daterangepicker-predefined .daterangepicker-predefined-preview').html(start.format('YYYY/MM/DD') + ' - ' + end.format('YYYY/MM/DD'));
+            let startTime = start.format('YYYY-MM-DD') + ' 00:00:00';
+            let endTime = end.add(1, 'days').format('YYYY-MM-DD') + ' 00:00:00'
+            if (lebel === '自定义范围') {
+                if (end.diff(start, 'day') > 30) {
+                    layerWarn("最大支持查询天数为30天！");
+                    return;
+                }
+            }
+            let result = await queryVisitsStatistics('[[${cdnDomain.id}]]', startTime, endTime);
+            let req_num = result.visits_summary.req_num;
+            let hit_num = result.visits_summary.hit_num;
+            let bs_num = result.visits_summary.bs_num;
+            let bs_fail_num = result.visits_summary.bs_fail_num;
+            let hit_flux = result.visits_summary.hit_flux;
+            //
+            if (req_num === undefined) {
+                req_num = 0;
+            }
+            if (hit_num === undefined) {
+                hit_num = 0;
+            }
+            if (bs_num === undefined) {
+                bs_num = 0;
+            }
+            if (bs_fail_num === undefined) {
+                bs_fail_num = 0;
+            }
+            if (hit_flux === undefined) {
+                hit_flux = 0;
+            }
+            $('#req_num').text(req_num);
+            $('#hit_num').text(hit_num);
+            $('#bs_num').text(bs_num);
+            $('#bs_fail_num').text(bs_fail_num);
+            $('#hit_flux').text(hit_flux);
+            //
+            const visitsChart = HSCore.components.HSChartJS.getItem('visitsChart');
+            const visitsFluxChart = HSCore.components.HSChartJS.getItem('visitsFluxChart');
+            visitsChart.data.labels = result.labels;
+            visitsFluxChart.data.labels = result.labels;
+            visitsChart.data.datasets[0].data = result.visits_detail.req_num;
+            visitsChart.data.datasets[1].data = result.visits_detail.hit_num;
+            visitsChart.data.datasets[2].data = result.visits_detail.bs_num;
+            visitsChart.data.datasets[3].data = result.visits_detail.bs_fail_num;
+            visitsFluxChart.data.datasets[0].data = result.visits_detail.hit_flux.data;
+            visitsFluxChart.options.plugins.tooltip.postfix = result.visits_detail.hit_flux.unit;
+            visitsChart.update();
+            visitsFluxChart.update();
+        }
+
+        $('#daterangepicker-predefined').daterangepicker({
+            startDate: start,
+            endDate: end,
+            "locale": { //汉化
+                format: "YYYY-MM-DD",
+                separator: " 至 ",
+                applyLabel: "应用",
+                cancelLabel: "取消",
+                customRangeLabel: "自定义范围",
+                daysOfWeek: ['日', '一', '二', '三', '四', '五', '六'],
+                monthNames: ['一月', '二月', '三月', '四月', '五月', '六月',
+                    '七月', '八月', '九月', '十月', '十一月', '十二月'
+                ],
+            },
+            ranges: {
+                '今天': [moment(), moment()],
+                '昨天': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                '最近7天': [moment().subtract(6, 'days'), moment()],
+                '最近30天': [moment().subtract(29, 'days'), moment()]
+            }
+        }, cbFlux);
+
+        var start = moment();
+        var end = moment();
+        cbFlux(start, end);
+    });
+</script>
+
+<!-- JS Plugins Init. -->
+<script>
+    (function() {
+        window.onload = function() {
+
+
+            // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+            // =======================================================
+            new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+            // INITIALIZATION OF FORM SEARCH
+            // =======================================================
+            new HSFormSearch('.js-form-search')
+
+
+            // INITIALIZATION OF BOOTSTRAP DROPDOWN
+            // =======================================================
+            HSBsDropdown.init()
+
+
+            // INITIALIZATION OF SELECT
+            // =======================================================
+            HSCore.components.HSTomSelect.init('.js-select')
+
+
+            // INITIALIZATION OF CLIPBOARD
+            // =======================================================
+            HSCore.components.HSClipboard.init('.js-clipboard')
+
+
+            // // INITIALIZATION OF CHARTJS
+            // // =======================================================
+            // HSCore.components.HSChartJS.init('.js-chart')
+        }
+    })()
+</script>
+
+<!-- Style Switcher JS -->
+
+<script>
+    (function() {
+        // STYLE SWITCHER
+        // =======================================================
+        const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+        const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+        // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+        const setActiveStyle = function() {
+            $variants.forEach($item => {
+                if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                    $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                    return $item.classList.add('active')
+                }
+
+                $item.classList.remove('active')
+            })
+        }
+
+        // Add a click event to all items of the dropdown to set the style
+        $variants.forEach(function($item) {
+            $item.addEventListener('click', function() {
+                HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+            })
+        })
+
+        // Call the setActiveStyle on load page
+        setActiveStyle()
+
+        // Add event listener on change style to call the setActiveStyle function
+        window.addEventListener('on-hs-appearance-change', function() {
+            setActiveStyle()
+        })
+
+    })()
+</script>
+
+<!-- End Style Switcher JS -->
+</body>
+
+</html>
+<div th:replace="common/common-dashboard::#agent"></div>

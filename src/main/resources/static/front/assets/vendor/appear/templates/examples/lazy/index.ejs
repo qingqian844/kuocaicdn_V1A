@@ -1,0 +1,77 @@
+<% include ../../header %>
+<style>
+<%- css.appearlazy %>
+</style>
+<script>
+<%- js.appear %>
+<%- js.appearlazy %>
+<% include ../../js/prismjs %>
+</script>
+</head>
+<body class="example-lazy">
+<%
+locals.message = 'the <img src=" ' + img.logo64 +  '" class="defer-logo" /> above lazyloaded after a one second timeout<br>lazyload images example "<i>appearlazy</i>"<br>all images from <a href="http://simpledesktops.com">simpledesktops.com</a> - scroll down';
+locals.delay = 'data-delay="1000" data-';
+%>
+<% include ../../cover %>
+
+<div class="content">
+<h3 class="intro">these images lazy loaded individually</h3>
+<img class="appear" data-src="img/ChristmasJumperPaper.png" />
+<img class="appear" data-src="img/cubechaos2.png" />
+<img class="appear" data-src="img/Figure8.png" />
+<img class="appear" data-src="img/flowerWhite.png" />
+<img class="appear" data-src="img/Hole.png" />
+<img class="appear" data-src="img/ineedsleep.png" />
+<img class="appear" data-src="img/Intersection.png" />
+<img class="appear" data-src="img/multilayeredeye.png" />
+<img class="appear" data-src="img/road.png" />
+<img class="appear" data-src="img/see-ya-there.png" />
+<img class="appear" data-src="img/Simple_Shapes_11.png" />
+<img class="appear" data-src="img/summer_2.png" />
+<img class="appear" data-src="img/void.png" />
+<img class="appear" data-src="img/wallpaper.png" />
+<img class="appear" data-src="img/Western_Wallpaper_No_Grit.png" />
+
+<h3 class="intro">the images in this parent container are loaded all at once</h3>
+<div class="appear small">
+<img data-src="img/ChristmasJumperPaper.png" />
+<img data-src="img/cubechaos2.png" />
+<img data-src="img/Figure8.png" />
+<img data-src="img/flowerWhite.png" />
+<img data-src="img/Hole.png" />
+<img data-src="img/ineedsleep.png" />
+<img data-src="img/Intersection.png" />
+<img data-src="img/multilayeredeye.png" />
+<img data-src="img/road.png" />
+<img data-src="img/see-ya-there.png" />
+<img data-src="img/Simple_Shapes_11.png" />
+<img data-src="img/summer_2.png" />
+<img data-src="img/void.png" />
+<img data-src="img/wallpaper.png" />
+<img data-src="img/Western_Wallpaper_No_Grit.png" />
+</div>
+
+<h2>appearlazy</h2>
+<p>appearlazy uses appear.js to lazy load images or divs that have an "appear" class. It works by switching a
+<code>data-src</code> attribute into the <code>src</code> as an image is identified as viewable.</p>
+<p>Background images can be configured with a <code>data-bkg</code> attribute.</p>
+<p>When applied to a div, appearlazy will search for elements within it with the right data-attribute
+or if none are found, on the div itself.</p>
+<p>Images can also be lazy loaded on a simple timeout, using the <code>data-delay</code> attribute.</p>
+<pre><code class="language-javascript">
+<%- js.appearlazy %>
+</pre></code>
+<p>"appeared" images can be fade transitioned into view using the following css</p>
+<pre><code class="language-css"><%- css.appearlazy %></pre></code>
+
+<h2>Download</h2>
+
+<p><a href="https://raw.githubusercontent.com/creativelive/appear/master/dist/appearlazy.js">source</a> or <a href="https://raw.githubusercontent.com/creativelive/appear/master/dist/appearlazy.min.js">minified</a></p>
+
+</div>
+
+
+
+</body>
+</html>

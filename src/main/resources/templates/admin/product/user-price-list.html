@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title>[[${websiteBaseConfig.websiteName}]] 用户产品</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+        
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {
+                    "switcherSupport": true
+                },
+                "header": {
+                    "layoutMode": "default",
+                    "containerMode": "container-fluid"
+                },
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {
+                            "100": "#f9fafc",
+                            "900": "#1e2022"
+                        }
+                    },
+                    "font": "Inter"
+                }
+            },
+            "languageDirection": {
+                "lang": "en"
+            },
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {
+                    "*assets/js/theme-custom.js": ""
+                },
+                "build": {
+                    "*assets/js/theme-custom.js": "",
+                    "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"
+                }
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {
+                "src": "./src",
+                "dist": "./dist",
+                "build": "./build"
+            },
+            "fileNames": {
+                "dist": {
+                    "js": "theme.min.js",
+                    "css": "theme.min.css"
+                },
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl   footer-offset">
+
+    <script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+    <script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+    <!-- ========== HEADER ========== -->
+
+    <div th:replace="common/common-dashboard::header(curPage='user-price-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+    <!-- ========== END HEADER ========== -->
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <!-- Navbar Vertical -->
+
+    <div th:replace="common/common-dashboard::aside(curPage='user-price-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+    <!-- End Navbar Vertical -->
+    <main id="content" role="main" class="main">
+        <!-- Content -->
+        <div class="content container-fluid">
+            <!-- Page Header -->
+            <div class="page-header" style="padding-bottom: 5px;margin-bottom: 10px">
+                <div class="row align-items-center">
+                    <div class="col-sm mb-2 mb-sm-0">
+                        <h1 class="page-header-title">用户产品 <i class="bi-bag-heart nav-icon"></i>
+                        </h1>
+                    </div>
+                </div>
+                <!-- End Row -->
+            </div>
+            <!-- End Page Header -->
+
+            <!-- Card -->
+            <div class="card mb-3 mb-lg-5">
+                <!-- Header -->
+                <div class="card-header">
+                    <div class="row justify-content-between align-items-center flex-grow-1">
+                        <div class="col-md">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <form>
+                                    <!-- Search -->
+                                    <div class="input-group input-group-merge input-group-flush">
+                                        <div class="input-group-prepend input-group-text">
+                                            <i class="bi-search"></i>
+                                        </div>
+                                        <input id="datatableSearch" type="search" class="form-control" maxlength="30" placeholder="关键词搜索">
+                                    </div>
+                                    <!-- End Search -->
+                                </form>
+                                <!-- End Col -->
+                            </div>
+                        </div>
+                        <!-- End Col -->
+
+                        <div class="col-auto">
+                            <!-- Filter -->
+                            <div class="row align-items-sm-center">
+                                <div class="col-sm-auto">
+                                    <div class="row align-items-center gx-0">
+                                        <div class="col">
+                                            <span class="text-secondary me-2" style="font-weight: bold">用户状态：</span>
+                                        </div>
+                                        <!-- End Col -->
+
+                                        <div class="col-auto">
+                                            <!-- Select -->
+                                            <div class="tom-select-custom tom-select-custom-end">
+                                                <select class="js-select js-datatable-filter form-select form-select-sm form-select-borderless" data-target-column-index="3" data-target-table="datatable" autocomplete="off" data-hs-tom-select-options='{
+                                  "searchInDropdown": false,
+                                  "hideSearch": true,
+                                  "dropdownWidth": "10rem"
+                                }'>
+                                                <option value="all" selected>全部</option>
+                                                <option value="certified">已实名认证</option>
+                                                <option value="register_not_certified">未实名认证</option>
+                                                <option value="banned">禁用</option>
+                                                <option value="cancellation">注销</option>
+                                            </select>
+                                            </div>
+                                            <!-- End Select -->
+                                        </div>
+                                        <!-- End Col -->
+                                    </div>
+                                    <!-- End Row -->
+                                </div>
+                                <!-- End Col -->
+                            </div>
+                            <!-- End Filter -->
+                        </div>
+                        <!-- End Col -->
+                    </div>
+                    <!-- End Row -->
+                </div>
+                <!-- End Header -->
+
+                <!-- Table -->
+                <div class="table-responsive datatable-custom">
+                    <table id="datatable" style="width: 100%" class="table table-borderless table-thead-bordered table-nowrap table-align-middle card-table table-hover" data-hs-datatables-options='{
+                   "columnDefs": [{
+                      "targets": [0],
+                      "orderable": false
+                    }],
+                   "order": [],
+                   "info": {
+                     "totalQty": "#datatableWithPaginationInfoTotalQty"
+                   },
+                   "search": "#datatableSearch",
+                   "entries": "#datatableEntries",
+                   "pageLength": 10,
+                   "isResponsive": false,
+                   "isShowPaging": false,
+                   "pagination": "datatablePagination",
+                   "paginationPrevLinkMarkup": "<span aria-hidden=\"true\">前一页</span>",
+                   "paginationNextLinkMarkup": "<span aria-hidden=\"true\">后一页</span>"
+
+                 }'>
+                        <thead class="thead-light">
+                            <tr>
+                                <th>用户名</th>
+                                <th>真实姓名</th>
+                                <th>联系方式</th>
+                                <th>当前状态</th>
+                                <th>账户余额</th>
+                                <th>累积充值</th>
+                                <th>角色</th>
+                                <th>流量单价</th>
+                                <th>域名额度</th>
+                                <th>路线</th>
+                                <th>海外</th>
+                                <th>全球</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                        </tbody>
+                    </table>
+                </div>
+                <!-- End Table -->
+
+                <!-- Footer -->
+                <div class="card-footer">
+                    <!-- Pagination -->
+                    <div class="row justify-content-center justify-content-sm-between align-items-sm-center">
+                        <div class="col-sm mb-2 mb-sm-0">
+                            <div class="d-flex justify-content-center justify-content-sm-start align-items-center">
+                                <span class="me-2">每页显示</span>
+
+                                <!-- Select -->
+                                <div class="tom-select-custom">
+                                    <select id="datatableEntries" class="js-select form-select form-select-borderless" autocomplete="off" data-hs-tom-select-options='{
+                                            "searchInDropdown": false,
+                                            "hideSearch": true,
+                                            "dropdownWidth": "6rem"
+                                          }'>
+                                    <option value="10" selected>10</option>
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                    <option value="80">80</option>
+                                </select>
+                                </div>
+                                <!-- End Select -->
+
+                                <span class="text-secondary me-2">条，共</span>
+                                <!-- Pagination Quantity -->
+                                <span id="datatableWithPaginationInfoTotalQty"></span>
+
+                                <span class="text-secondary me-2" style="margin-left: 10px"> 条</span>
+                            </div>
+                        </div>
+                        <!-- End Col -->
+
+                        <div class="col-sm-auto">
+                            <div class="d-flex justify-content-center justify-content-sm-end">
+                                <!-- Pagination -->
+                                <nav id="datatablePagination" aria-label="Activity pagination"></nav>
+                            </div>
+                        </div>
+                        <!-- End Col -->
+                    </div>
+                    <!-- End Pagination -->
+                </div>
+                <!-- End Footer -->
+            </div>
+            <!-- End Card -->
+        </div>
+        <!-- End Content -->
+
+        <!-- Footer -->
+        <div th:replace="common/common-dashboard::#footer(curPage='user-price-list')"></div>
+        <!-- End Footer -->
+    </main>
+    <!-- ========== END MAIN CONTENT ========== -->
+
+    <!-- ========== SECONDARY CONTENTS ========== -->
+
+    <div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='user-price-list')"></div>
+
+    <div id="exampleModalCenter1" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalCenterTitle1">修改流量价格</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">用户名称</label>
+                        <input type="text" id="userId" class="form-control" style="display:none;">
+                        <input type="text" id="userName" class="form-control" placeholder="请输入用户名称" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="flowPrice">价格（元/GB）</label>
+                        <input type="number" id="flowPrice" class="form-control" placeholder="请输入流量单价：X元/GB">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="maxDomainCount">域名额度</label>
+                        <input type="number" id="maxDomainCount" class="form-control" placeholder="请输入用户最大创建域名数量">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="route">CDN路线</label>
+                        <!-- Select -->
+                        <div class="tom-select-custom">
+                            <select class="js-select form-select" autocomplete="off" id="route" data-hs-tom-select-options='{
+                                                          "placeholder": "选择CDN路线",
+                                                        }'>
+                            <option th:each="vendor : ${authorizedVendors}" th:value="${vendor.code}" th:text="${vendor.name}"></option>
+                        </select>
+                        </div>
+                        <!-- End Select -->
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">开启海外</label>
+                        <div class="input-group input-group-sm-vertical">
+                            <label class="form-control" for="enableOverseas">
+                            <span class="form-check">
+                                <input type="radio" class="form-check-input" name="enableOverseas" id="enableOverseas" checked="" value="1">
+                                <span class="form-check-label">开启</span>
+                            </span>
+                        </label>
+                            <label class="form-control" for="disableOverseas">
+                            <span class="form-check">
+                                <input type="radio" class="form-check-input" name="enableOverseas" id="disableOverseas" value="0">
+                                <span class="form-check-label">关闭</span>
+                            </span>
+                        </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">全球加速</label>
+                        <div class="input-group input-group-sm-vertical">
+                            <label class="form-control" for="enableGlobal">
+                                <span class="form-check">
+                                    <input type="radio" class="form-check-input" name="enableGlobal" id="enableGlobal" value="1">
+                                    <label class="form-check-label" for="enableGlobal">开启</label>
+                            </span>
+                            </label>
+                            <label class="form-control" for="disableGlobal">
+                                <span class="form-check">
+                                    <input type="radio" class="form-check-input" name="enableGlobal" id="disableGlobal" value="0">
+                                    <label class="form-check-label" for="disableGlobal">关闭</label>
+                            </span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-white" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" onclick="updateUserPrice()" class="btn btn-primary">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Modal -->
+    <!-- End Import Products Modal -->
+
+    <!-- ========== END SECONDARY CONTENTS ========== -->
+
+    <!-- JS Global Compulsory  -->
+    <script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+    <!-- JS Implementing Plugins -->
+    <script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+    <script th:src="@{dashboard/assets/vendor/hs-nav-scroller/dist/hs-nav-scroller.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/clipboard/dist/clipboard.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/datatables/media/js/jquery.dataTables.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/datatables.net.extensions/select/select.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/dropzone/dist/min/dropzone.min.js}"></script>
+
+    <!-- JS Front -->
+    <script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+    <script th:src="@{common/layer/layer.js}"></script>
+    <script th:src="@{common/util/reg.js}"></script>
+    <script th:src="@{common/custom.js}"></script>
+    <script th:src="@{common/custom_ceo.js(v='20260623-no-virtual-rate')}"></script>
+    <script th:src="@{common/custom_cmo.js}"></script>
+    <script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+
+    <!-- JS Plugins Init. -->
+    <script th:inline="javascript">
+        const licenseVendorNameMap = /*[[${licenseVendorNameMap}]]*/ {};
+        const authorizedVendorCodes = /*[[${authorizedVendorCodes}]]*/ [];
+        function escapeHtml(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, function(ch) {
+                return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[ch];
+            });
+        }
+
+        $(document).on('ready', function() {
+            // INITIALIZATION OF DATATABLES
+            // =======================================================
+            HSCore.components.HSDatatables.init($('#datatable'), {
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child input[type="checkbox"]',
+                    classMap: {
+                        checkAll: '#datatableCheckAll',
+                        counter: '#datatableCounter',
+                        counterInfo: '#datatableCounterInfo'
+                    }
+                },
+                language: {
+                    zeroRecords: `<div class="text-center p-4">
+                              <img class="mb-3" src="dashboard/assets/svg/illustrations/oc-error.svg" alt="Image Description" style="width: 10rem;" data-hs-theme-appearance="default">
+                              <img class="mb-3" src="dashboard/assets/svg/illustrations-light/oc-error.svg" alt="Image Description" style="width: 10rem;" data-hs-theme-appearance="dark">
+                            <p class="mb-0">无数据</p>
+                            </div>`
+                },
+                serverSide: true,
+                ajax: {
+                    type: "POST",
+                    url: 'SysUser/queryUserForDatatables',
+                    contentType: "application/json",
+                    data: function(d) {
+                        if (d.order.length > 0) {
+                            let o = d.order[0];
+                            let index = o.column;
+                            let name = d.columns[index].data;
+                            o.column = name;
+                        }
+                        d.search.columns = ['user_name', 'real_name', 'id_card_num', 'my_website', 'phone', 'email']
+                        return JSON.stringify(d);
+                    },
+                    dataFilter: function(data) {
+                        let json = jQuery.parseJSON(data);
+                        return JSON.stringify(json.data);
+                    }
+                },
+                columns: [{
+                    data: null,
+                    width: '10%'
+                }, {
+                    data: 'user.realName',
+                    width: '10%'
+                }, {
+                    data: null,
+                    width: '10%'
+                }, {
+                    data: 'user.status',
+                    width: '10%'
+                }, {
+                    data: 'account.accountBalance',
+                    width: '5%'
+                }, {
+                    data: 'account.amassRecharge',
+                    width: '5%'
+                }, {
+                    data: 'roleName',
+                    width: '5%'
+                }, {
+                    data: null,
+                    width: '5%'
+                }, {
+                    data: null,
+                    width: '5%'
+                }, {
+                    data: 'route',
+                    width: '5%'
+                }, {
+                    data: null,
+                    width: '5%'
+                }, {
+                    data: null,
+                    width: '5%'
+                }, {
+                    data: null,
+                    width: '10%'
+                }, ],
+                columnDefs: [{
+                    targets: 0,
+                    render: function(data, type, row, meta) {
+                        return `
+                        <span class="avatar avatar-sm avatar-circle">
+                          <img class="avatar-img" src="${data.user.img}" alt="Image Description">
+                        </span>
+                        <span style="font-weight: bold">
+                            ${data.user.userName}
+                        </span>
+                        `;
+                    }
+                }, {
+                    targets: 2,
+                    render: function(data, type, row, meta) {
+                        let email = '-';
+                        let phone = '-';
+                        if (row.user.email) {
+                            email = row.user.email
+                        }
+                        if (row.user.phone) {
+                            phone = row.user.phone
+                        }
+                        return `
+                             <span class="d-block fs-5">${email}</span>
+                             <span class="d-block fs-5">${phone}</span>
+                        `;
+                    }
+                }, {
+                    targets: 7,
+                    render: function(data, type, row, meta) {
+                        // console.log(data);
+                        // console.log(type);
+                        // console.log(row);confirmDelete(function () {alert(1)})
+                        // console.log(meta);
+                        return '<span class="badge bg-primary">' + data.user.flowPrice + '元 / GB</span>';
+                    }
+                }, {
+                    targets: 8,
+                    render: function(data, type, row, meta) {
+                        // console.log(data);
+                        // console.log(type);
+                        // console.log(row);confirmDelete(function () {alert(1)})
+                        // console.log(meta);
+                        return '<span class="badge bg-warning">' + row.user.maxDomainCount + '</span>';
+                    }
+                }, {
+                    targets: 9,
+                    render: function(data, type, row, meta) {
+                        // console.log(data);
+                        // console.log(type);
+                        // console.log(row);confirmDelete(function () {alert(1)})
+                        // console.log(meta);
+                        let r = row.user.route;
+                        let name = licenseVendorNameMap[r] || r || '无';
+                        if (authorizedVendorCodes.indexOf(r) === -1) {
+                            return '<span class="badge bg-soft-danger text-danger">' + escapeHtml(name) + ' 未授权</span>';
+                        }
+                        return '<span class="badge bg-soft-primary text-primary">' + escapeHtml(name) + '</span>';
+                    }
+                }, {
+                    targets: 10,
+                    render: function(data, type, row, meta) {
+                        if (row.user.enableOverseas) {
+                            return '<span class="badge bg-soft-success text-success">是</span>';
+                        }
+                        return '<span class="badge bg-soft-dark text-dark">否</span>';
+                    }
+                }, {
+                    targets: 11,
+                    render: function(data, type, row, meta) {
+                        if (row.user.enableGlobal) {
+                            return '<span class="badge bg-soft-success text-success">是</span>';
+                        }
+                        return '<span class="badge bg-soft-dark text-dark">否</span>';
+                    }
+                }, {
+                    targets: 12,
+                    render: function(data, type, row, meta) {
+                        // 将data转为json字符串
+                        let dataStr = JSON.stringify(data).replace(/"/g, "&quot;");
+                        return `<button style="margin-right: 5px" type="button" class="btn btn-white btn-sm" onclick="openUserFlowPriceUpdateModal('${dataStr}')"> <i class="bi-gear-fill"></i> 配置</button>`;
+                    }
+                }, {
+                    targets: 3,
+                    render: function(data, type, row, meta) {
+                        if (data === 'banned') {
+                            return '禁用';
+                        } else if (data === 'register_not_certified') {
+                            return '未认证';
+                        } else if (data === 'certified') {
+                            return '已实名认证';
+                        } else if (data === 'cancellation') {
+                            return '已注销';
+                        }
+                    }
+                }, {
+                    "orderable": false,
+                    "targets": [0, 1, 2, 3, 4, 5, 6, 7, 8]
+                }, ],
+            });
+
+            const datatable = HSCore.components.HSDatatables.getItem('datatable')
+
+            $('.js-datatable-filter').on('change', function() {
+                var $this = $(this),
+                    elVal = $this.val(),
+                    targetColumnIndex = $this.data('target-column-index');
+
+                datatable.column(targetColumnIndex).search(elVal).draw();
+            });
+
+            $('#datatableSearch').on('mouseup', function(e) {
+                var $input = $(this),
+                    oldValue = $input.val();
+
+                if (oldValue == "") return;
+
+                setTimeout(function() {
+                    var newValue = $input.val();
+
+                    if (newValue == "") {
+                        // Gotcha
+                        datatable.search('').draw();
+                    }
+                }, 1);
+            });
+
+            $('#toggleColumn_product').change(function(e) {
+                datatable.columns(1).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_type').change(function(e) {
+                datatable.columns(2).visible(e.target.checked)
+            })
+
+
+            $('#toggleColumn_vendor').change(function(e) {
+                datatable.columns(3).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_stocks').change(function(e) {
+                datatable.columns(4).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_sku').change(function(e) {
+                datatable.columns(5).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_price').change(function(e) {
+                datatable.columns(6).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_quantity').change(function(e) {
+                datatable.columns(7).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_variants').change(function(e) {
+                datatable.columns(8).visible(e.target.checked)
+            })
+        });
+    </script>
+
+    <!-- JS Plugins Init. -->
+    <script>
+        (function() {
+            window.onload = function() {
+
+
+                // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+                // =======================================================
+                new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+                // INITIALIZATION OF FORM SEARCH
+                // =======================================================
+                new HSFormSearch('.js-form-search')
+
+
+                // INITIALIZATION OF BOOTSTRAP DROPDOWN
+                // =======================================================
+                HSBsDropdown.init()
+
+
+                // INITIALIZATION OF SELECT
+                // =======================================================
+                HSCore.components.HSTomSelect.init('.js-select')
+
+
+                // INITIALIZATION OF NAV SCROLLER
+                // =======================================================
+                new HsNavScroller('.js-nav-scroller')
+
+
+                // INITIALIZATION OF DROPZONE
+                // =======================================================
+                HSCore.components.HSDropzone.init('.js-dropzone')
+
+                HSCore.components.HSClipboard.init('.js-clipboard')
+            }
+        })()
+    </script>
+
+    <!-- Style Switcher JS -->
+
+    <script>
+        (function() {
+            // STYLE SWITCHER
+            // =======================================================
+            const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+            const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+            // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+            const setActiveStyle = function() {
+                $variants.forEach($item => {
+                    if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                        $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                        return $item.classList.add('active')
+                    }
+
+                    $item.classList.remove('active')
+                })
+            }
+
+            // Add a click event to all items of the dropdown to set the style
+            $variants.forEach(function($item) {
+                $item.addEventListener('click', function() {
+                    HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+                })
+            })
+
+            // Call the setActiveStyle on load page
+            setActiveStyle()
+
+            // Add event listener on change style to call the setActiveStyle function
+            window.addEventListener('on-hs-appearance-change', function() {
+                setActiveStyle()
+            })
+        })()
+    </script>
+
+    <!-- End Style Switcher JS -->
+</body>
+
+</html>
+

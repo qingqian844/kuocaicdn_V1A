@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title th:if="${!openAgent}">[[${websiteBaseConfig.websiteName}]] HTTPS配置</title>
+    <title th:if="${openAgent}">[[${agentConfig.websiteName}]] HTTPS配置</title>
+
+    <!-- Favicon -->
+    <link th:if="${!openAgent}" rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:if="${openAgent}" rel="shortcut icon" th:href="${agentConfig.icon}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+        
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {
+                    "switcherSupport": true
+                },
+                "header": {
+                    "layoutMode": "default",
+                    "containerMode": "container-fluid"
+                },
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {
+                            "100": "#f9fafc",
+                            "900": "#1e2022"
+                        }
+                    },
+                    "font": "Inter"
+                }
+            },
+            "languageDirection": {
+                "lang": "en"
+            },
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {
+                    "*assets/js/theme-custom.js": ""
+                },
+                "build": {
+                    "*assets/js/theme-custom.js": "",
+                    "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"
+                }
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {
+                "src": "./src",
+                "dist": "./dist",
+                "build": "./build"
+            },
+            "fileNames": {
+                "dist": {
+                    "js": "theme.min.js",
+                    "css": "theme.min.css"
+                },
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl   footer-offset">
+
+    <script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+    <script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+    <!-- ========== HEADER ========== -->
+
+    <div th:replace="common/common-dashboard::header(curPage='domain-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+    <!-- ========== END HEADER ========== -->
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <!-- Navbar Vertical -->
+
+    <div th:replace="common/common-dashboard::aside(curPage='domain-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+    <!-- End Navbar Vertical -->
+    <main id="content" role="main" class="main">
+        <!-- Content -->
+        <div class="content container-fluid">
+
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="row align-items-center">
+                    <div class="col-sm mb-sm-0">
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb breadcrumb-no-gutter">
+                                <li class="breadcrumb-item"><a class="breadcrumb-link" href="domain-list">域名管理</a>
+                                </li>
+                                <li class="breadcrumb-item active" aria-current="page">域名配置</li>
+                            </ol>
+                        </nav>
+                    </div>
+                    <!-- End Col -->
+                </div>
+
+                <!-- Nav -->
+                <ul class="nav nav-tabs page-header-tabs" id="pageHeaderTab" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-basic(id=${domain.id})}">基本配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-origin(id=${domain.id})}" tabindex="-1" aria-disabled="true">回源配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" th:href="@{domain-setting-https(id=${domain.id})}" tabindex="-1" aria-disabled="true">HTTPS配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-cache(id=${domain.id})}" tabindex="-1" aria-disabled="true">缓存配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-access(id=${domain.id})}" tabindex="-1" aria-disabled="true">访问配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-higher(id=${domain.id})}" tabindex="-1" aria-disabled="true">高级配置</a>
+                    </li>
+                </ul>
+                <!-- End Nav -->
+                <!-- End Row -->
+            </div>
+            <!-- End Page Header -->
+
+            <!-- Card HTTPS配置 -->
+            <div class="card mb-3 mb-lg-5">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">HTTPS配置</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-soft-primary" role="alert">
+                        使用加速域名的证书配置HTTPS，并将其部署在全网CDN节点，实现HTTPS安全加速。<br> ps. 更新域名证书请先关闭 HTTPS 配置保存后，再开启并配置。部分域名已支持快捷配置，请在 HTTPS 快捷配置处保存更新域名证书。
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <label class="form-label">状态</label>
+                                <div class="form-check form-switch mb-4">
+                                    <input id="origin_range_status" type="checkbox" class="form-check-input" checked name="httpsConfigurationInput" value="on" th:if="${domainConfig.get('https').get('https_status') == 'on'}">
+                                    <input id="origin_range_status" type="checkbox" class="form-check-input" name="httpsConfigurationInput" value="off" th:if="${domainConfig.get('https').get('https_status')  == 'off'}">
+                                    <label class="form-check-label" for="origin_range_status" th:if="${domainConfig.get('https').get('https_status')  == 'on'}">已开启</label>
+                                    <label class="form-check-label" for="origin_range_status" th:if="${domainConfig.get('https').get('https_status')  == 'off'}">已关闭</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <div class="mb-3">
+                                    <label class="form-label" for="exampleFormControlSelect1">证书来源</label>
+                                    <!-- Select -->
+                                    <div class="tom-select-custom">
+                                        <select id="exampleFormControlSelect1" class="form-select" autocomplete="off" data-hs-tom-select-options='{
+                                              "placeholder": "证书来源",
+                                              "hideSearch": true
+                                            }' th:disabled="${domainConfig.get('https').get('https_status') == 'on'}">
+                                        <option value="0">自有证书</option>
+                                    </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <div class="mb-3">
+                                    <label class="form-label" for="exampleFormControlInput1">证书名称</label>
+                                    <input type="text" id="exampleFormControlInput1" class="form-control" maxlength="30" th:value="${domainConfig.get('https').get('certificate_name')}" th:disabled="${domainConfig.get('https').get('https_status') == 'on'}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row" th:if="${domainConfig.get('https').get('https_status') == 'off'}">
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <div class="mb-3">
+                                    <label class="form-label" for="exampleFormControlTextarea1">证书内容</label>
+                                    <textarea id="exampleFormControlTextarea1" class="form-control" rows="3" th:text="${domainConfig.get('https').get('certificate_value')}"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <div class="mb-3">
+                                    <label class="form-label" for="exampleFormControlTextarea2">私钥内容</label>
+                                    <textarea id="exampleFormControlTextarea2" class="form-control" rows="3"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-end gap-3">
+                        <button class="btn btn-primary" th:onclick="httpsConfiguration('[[${domain.id}]]')">
+                        <i class="bi bi-check-circle-fill"></i> 保存
+                    </button>
+                    </div>
+                </div>
+            </div>
+            <!-- End Card -->
+
+            <!-- Card 证书快捷更新 -->
+            <div class="card mb-3 mb-lg-5">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">HTTPS 快捷配置</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-soft-primary" role="alert">
+                        快捷更新加速域名的 HTTPS 证书，更新域名证书信息会开启 HTTPS 访问。<br> ps. 当前仅支持部分域名，若当前域名不受支持，或者需要查看 HTTPS 状态或者关闭 HTTPS，请使用上面（HTTPS配置）的配置项。
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <div class="mb-3">
+                                    <label class="form-label" for="cert-name">证书名称</label>
+                                    <input type="text" id="cert-name" class="form-control" maxlength="30" value="">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <div class="mb-3">
+                                    <label class="form-label" for="cert-server">证书内容</label>
+                                    <textarea id="cert-server" class="form-control" rows="3"></textarea>
+                                </div>
+                                <div style="font-size: 0.75rem; line-height: 1;">
+                                    <p>-----BEGIN CERTIFICATE-----<br/>……<br/>-----END CERTIFICATE-----</p>
+                                    <p>须包含<b>证书链</b>，pem 编码</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <div class="mb-3">
+                                    <label class="form-label" for="cert-private">私钥内容</label>
+                                    <textarea id="cert-private" class="form-control" rows="3"></textarea>
+                                </div>
+                                <div style="font-size: 0.75rem; line-height: 1;">
+                                    <p>-----BEGIN PRIVATE KEY-----<br/>……<br/>-----END PRIVATE KEY-----</p>
+                                    <p>pem 编码</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-end gap-3">
+                        <button class="btn btn-primary" th:onclick="setCert('[[${domain.id}]]')">
+                        <i class="bi bi-check-circle-fill"></i> 提交
+                    </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card TLS版本配置 -->
+            <div class="card mb-3 mb-lg-5" th:if="${domain.route == 'kingsoft'}">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">TLS版本配置</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info" role="alert">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="bi-info-circle"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h5>需要提交工单配置</h5>
+                                <p class="mb-0">TLS版本配置需提交工单由技术人员协助配置。如需配置，请联系您的客户经理或提交工单。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Card -->
+
+            <!-- Card TLS版本配置 -->
+            <div class="card mb-3 mb-lg-5" th:unless="${domain.route == 'kingsoft'}">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">TLS版本配置</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-soft-primary" role="alert">
+                        <p class="mb-0">TLS（Transport Layer Security）是一种加密协议，用于在两个通信应用程序之间提供保密性和数据完整性。TLS 1.3是最新版本，具有更强的安全性和性能。</p>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="mb-3">
+                                <div class="form-check" th:each="version : ${ {'TLSv1.0', 'TLSv1.1', 'TLSv1.2', 'TLSv1.3'} }">
+                                    <input type="checkbox" class="form-check-input" name="tlsVersionConfigurationInput" th:value="${version}" th:checked="${domainConfig.get('https').get('tls_version') != null && #strings.contains(domainConfig.get('https').get('tls_version'), version)}">
+                                    <label class="form-check-label" th:text="${version}"></label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-end gap-3">
+                        <button class="btn btn-primary" th:onclick="tlsVersionConfiguration('[[${domain.id}]]')">
+                        <i class="bi bi-check-circle-fill"></i> 保存
+                    </button>
+                    </div>
+                </div>
+            </div>
+            <!-- End Card -->
+
+            <!-- Card 强制跳转 -->
+            <div class="card mb-3 mb-lg-5">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">强制跳转</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-soft-primary" role="alert">
+                        <p class="mb-0">将所有HTTP请求强制跳转到HTTPS请求。开启前请确保域名已配置有效证书并开启了HTTPS访问。</p>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <div class="mb-3">
+                                <label class="form-label">状态</label>
+                                <div class="form-check form-switch">
+                                    <input type="checkbox" class="form-check-input" id="force_redirect_status" th:checked="${domainConfig.get('force_redirect') != null && domainConfig.get('force_redirect').get('redirectType') == 'https'}" onchange="toggleRedirectCodeSelect()">
+                                    <label class="form-check-label" for="force_redirect_status" th:text="${domainConfig.get('force_redirect') != null && domainConfig.get('force_redirect').get('redirectType') == 'https' ? '已开启' : '已关闭'}">强制跳转</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row" id="forcedToJumpCode" th:style="${domainConfig.get('force_redirect') != null && domainConfig.get('force_redirect').get('redirectType') == 'https' ? '' : 'display: none'}">
+                        <div class="col-sm-12">
+                            <div class="mb-3">
+                                <label for="forcedToJumpCodeSelect" class="form-label">跳转状态码</label>
+                                <div class="tom-select-custom">
+                                    <select class="js-select form-select" id="forcedToJumpCodeSelect" autocomplete="off" data-hs-tom-select-options='{
+                                            "placeholder": "选择跳转状态码",
+                                            "hideSearch": true
+                                        }'>
+                                        <option value="301" th:selected="${domainConfig.get('force_redirect') != null && domainConfig.get('force_redirect').get('redirectCode') != null && domainConfig.get('force_redirect').get('redirectCode').toString().equals('301')}">301 - 永久重定向</option>
+                                        <option value="302" th:selected="${domainConfig.get('force_redirect') == null || domainConfig.get('force_redirect').get('redirectCode') == null || domainConfig.get('force_redirect').get('redirectCode').toString().equals('302')}">302 - 临时重定向</option>
+                                        <option value="303" th:selected="${domainConfig.get('force_redirect') != null && domainConfig.get('force_redirect').get('redirectCode') != null && domainConfig.get('force_redirect').get('redirectCode').toString().equals('303')}">303 - 查看其他位置</option>
+                                        <option value="307" th:selected="${domainConfig.get('force_redirect') != null && domainConfig.get('force_redirect').get('redirectCode') != null && domainConfig.get('force_redirect').get('redirectCode').toString().equals('307')}">307 - 临时重定向(保持方法)</option>
+                                        <option value="308" th:selected="${domainConfig.get('force_redirect') != null && domainConfig.get('force_redirect').get('redirectCode') != null && domainConfig.get('force_redirect').get('redirectCode').toString().equals('308')}">308 - 永久重定向(保持方法)</option>
+                                    </select>
+                                </div>
+                                <small class="form-text text-muted">
+                                    301和308为永久重定向，302、303和307为临时重定向。推荐使用302。
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-end gap-3">
+                        <button class="btn btn-primary" th:onclick="forcedToJump('[[${domain.id}]]')">
+                        <i class="bi bi-check-circle-fill"></i> 保存
+                    </button>
+                    </div>
+                </div>
+            </div>
+            <!-- End Card -->
+
+            <!-- Card HTTP/2 -->
+            <div class="card mb-3 mb-lg-5">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">HTTP/2</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-soft-primary" role="alert">
+                        <p class="mb-0">HTTP/2是下一代HTTP协议，相比HTTP/1.1，它提供了更快的加载速度和更低的延迟。</p>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <div class="form-check form-switch mb-4">
+                                    <input id="http2_status" type="checkbox" class="form-check-input" name="http2Input" th:checked="${domainConfig.get('https').get('http2_status') == 'on'}">
+                                    <label class="form-check-label" th:text="${domainConfig.get('https').get('http2_status') == 'on' ? '已开启' : '已关闭'}"></label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-end gap-3">
+                        <button class="btn btn-primary" th:onclick="saveHttp2('[[${domain.id}]]', $('#http2_status').is(':checked') ? 'on' : 'off')">
+                        <i class="bi bi-check-circle-fill"></i> 保存
+                    </button>
+                    </div>
+                </div>
+            </div>
+            <!-- End Card -->
+
+            <!-- Card OCSP Stapling -->
+            <div class="card mb-3 mb-lg-5" th:if="${domain.route == 'kingsoft'}">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">OCSP Stapling</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info" role="alert">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="bi-info-circle"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h5>需要提交工单配置</h5>
+                                <p class="mb-0">OCSP Stapling配置需提交工单由技术人员协助配置。如需配置，请联系您的客户经理或提交工单。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Card -->
+
+            <!-- Card OCSP Stapling -->
+            <div class="card mb-3 mb-lg-5" th:unless="${domain.route == 'kingsoft'}">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">OCSP Stapling</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-soft-primary" role="alert">
+                        <p class="mb-0">OCSP Stapling是一种用于在线检查SSL/TLS证书状态的机制，可以提高证书验证的效率和隐私性。</p>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="mb-3">
+                                <div class="form-check form-switch mb-4">
+                                    <input id="ocsp_stapling_status" type="checkbox" class="form-check-input" name="ocspStaplingInput" th:checked="${domainConfig.get('https').get('ocsp_stapling_status') == 'on'}">
+                                    <label class="form-check-label" th:text="${domainConfig.get('https').get('ocsp_stapling_status') == 'on' ? '已开启' : '已关闭'}"></label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-end gap-3">
+                        <button class="btn btn-primary" th:onclick="saveOcspStapling('[[${domain.id}]]', $('#ocsp_stapling_status').is(':checked') ? 'on' : 'off')">
+                            <i class="bi bi-check-circle-fill"></i> 保存
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- End Card -->
+        </div>
+        <!-- End Content -->
+
+        <!-- Footer -->
+        <div th:replace="common/common-dashboard::#footer(curPage='domain-list')"></div>
+        <!-- End Footer -->
+    </main>
+    <!-- ========== END MAIN CONTENT ========== -->
+
+    <!-- ========== SECONDARY CONTENTS ========== -->
+
+    <div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='domain-list')"></div>
+
+    <!-- End Import Products Modal -->
+
+    <!-- ========== END SECONDARY CONTENTS ========== -->
+
+    <!-- JS Global Compulsory  -->
+    <script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+    <!-- JS Implementing Plugins -->
+    <script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+    <script th:src="@{dashboard/assets/vendor/hs-nav-scroller/dist/hs-nav-scroller.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/clipboard/dist/clipboard.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/datatables/media/js/jquery.dataTables.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/datatables.net.extensions/select/select.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/dropzone/dist/min/dropzone.min.js}"></script>
+
+    <!-- JS Front -->
+    <script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+    <script th:src="@{common/layer/layer.js}"></script>
+    <script th:src="@{common/util/reg.js}"></script>
+    <script th:src="@{common/custom.js}"></script>
+    <script th:src="@{common/custom_ceo.js}"></script>
+    <script th:src="@{common/custom_cmo.js}"></script>
+    <script th:src="@{common/custom_cto.js(v='20260624-cert-fix')}"></script>
+
+
+    <!-- JS Plugins Init. -->
+    <script>
+        $(document).on('ready', function() {
+            // 初始化强制跳转状态
+            let forceRedirectEnabled = $("#force_redirect_status").is(':checked');
+            if (forceRedirectEnabled) {
+                $("#forcedToJumpCode").show();
+            } else {
+                $("#forcedToJumpCode").hide();
+            }
+
+            // 初始化Tom Select组件
+            HSCore.components.HSTomSelect.init('.js-select');
+
+            $('#toggleColumn_product').change(function(e) {
+                datatable.columns(1).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_type').change(function(e) {
+                datatable.columns(2).visible(e.target.checked)
+            })
+
+
+            $('#toggleColumn_vendor').change(function(e) {
+                datatable.columns(3).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_stocks').change(function(e) {
+                datatable.columns(4).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_sku').change(function(e) {
+                datatable.columns(5).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_price').change(function(e) {
+                datatable.columns(6).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_quantity').change(function(e) {
+                datatable.columns(7).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_variants').change(function(e) {
+                datatable.columns(8).visible(e.target.checked)
+            })
+        });
+    </script>
+
+    <!-- JS Plugins Init. -->
+    <script>
+        (function() {
+            window.onload = function() {
+
+
+                // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+                // =======================================================
+                new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+                // INITIALIZATION OF FORM SEARCH
+                // =======================================================
+                new HSFormSearch('.js-form-search')
+
+
+                // INITIALIZATION OF BOOTSTRAP DROPDOWN
+                // =======================================================
+                HSBsDropdown.init()
+
+
+                // INITIALIZATION OF SELECT
+                // =======================================================
+                HSCore.components.HSTomSelect.init('.js-select')
+
+
+                // INITIALIZATION OF NAV SCROLLER
+                // =======================================================
+                new HsNavScroller('.js-nav-scroller')
+
+
+                // INITIALIZATION OF DROPZONE
+                // =======================================================
+                HSCore.components.HSDropzone.init('.js-dropzone')
+
+                HSCore.components.HSClipboard.init('.js-clipboard')
+            }
+        })()
+    </script>
+
+    <!-- Style Switcher JS -->
+
+    <script>
+        (function() {
+            // STYLE SWITCHER
+            // =======================================================
+            const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+            const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+            // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+            const setActiveStyle = function() {
+                $variants.forEach($item => {
+                    if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                        $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                        return $item.classList.add('active')
+                    }
+
+                    $item.classList.remove('active')
+                })
+            }
+
+            // Add a click event to all items of the dropdown to set the style
+            $variants.forEach(function($item) {
+                $item.addEventListener('click', function() {
+                    HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+                })
+            })
+
+            // Call the setActiveStyle on load page
+            setActiveStyle()
+
+            // Add event listener on change style to call the setActiveStyle function
+            window.addEventListener('on-hs-appearance-change', function() {
+                setActiveStyle()
+            })
+
+        })()
+    </script>
+
+
+    <script>
+        window.onload = function() {
+            var originRangeStatus = document.getElementById('origin_range_status');
+            // 检查input是否被选中
+            if (originRangeStatus.checked) {
+                // 获取<textarea>元素
+                var textarea = document.getElementById("exampleFormControlTextarea1");
+                var textarea1 = document.getElementById("exampleFormControlTextarea2");
+                // 设置placeholder属性
+                textarea.setAttribute("placeholder", "证书内容以脱敏形式显示");
+                textarea1.setAttribute("placeholder", "私钥内容以脱敏形式显示");
+            } else {
+                console.log('origin_range_status input 未被选中');
+            }
+
+        };
+
+        function checkHasHttps() {
+            // data-bs-toggle="tooltip"
+            // data-bs-placement="top"
+            // title="请先配置HTTPS证书"
+            let status = '[[${domainConfig.https.https_status}]]'
+                //如果是关闭状态需要禁用按钮
+            if (status == 'off') {
+                let param1 = $(".hasCheckHttps")
+                param1.attr("disabled", "disabled")
+            }
+
+        }
+
+        checkHasHttps()
+
+        function changeValue() {
+            let val = $("#origin_range_status1").val()
+            let result = val == 'on' ? 'off' : 'on'
+            if (result == "off") {
+                $("#origin_range_statusLabel").html("已关闭")
+            } else {
+                $("#origin_range_statusLabel").html("已开启")
+            }
+            $("#origin_range_status1").val(result)
+                // 这里可以开启遮罩
+            if (result == 'off') {
+                $('#forcedToJumpTypeSelect').attr('disabled', 'disabled');
+                $('#forcedToJumpCodeSelect').attr('disabled', 'disabled');
+            }
+            if (result == 'on') {
+                $('#forcedToJumpTypeSelect').removeAttr('disabled');
+                $('#forcedToJumpCodeSelect').removeAttr('disabled');
+            }
+        }
+    </script>
+
+    <script>
+        async function setCert(id) {
+            const certName = $('#cert-name').val(),
+                certServer = $('#cert-server').val(),
+                certPrivate = $('#cert-private').val();
+
+            if (!certName || !certServer || !certPrivate) {
+                layerWarn('Certificate information is incomplete');
+                return;
+            }
+            if (!certServer.includes("-----BEGIN CERTIFICATE-----") || !certServer.includes("-----END CERTIFICATE-----")) {
+                layerWarn("证书内容格式不正确，请填写 PEM 格式证书");
+                return;
+            }
+            if ((!certPrivate.includes("-----BEGIN PRIVATE KEY-----") && !certPrivate.includes("-----BEGIN RSA PRIVATE KEY-----"))
+                || (!certPrivate.includes("-----END PRIVATE KEY-----") && !certPrivate.includes("-----END RSA PRIVATE KEY-----"))) {
+                layerWarn("私钥内容格式不正确，请填写 PEM 格式私钥");
+                return;
+            }
+
+            const response = await sendRequest("POST", "CdnDomainHttps/httpsConfiguration", JSON.stringify({
+                doMainId: id,
+                https: {
+                    https_status: 'on',
+                    certificate_source: '0',
+                    certificate_name: certName,
+                    certificate_value: certServer,
+                    private_key: certPrivate,
+                }
+            }), "application/json");
+            autoLayer(response);
+            if ('SUCCESS' === response.code) {
+                setTimeout(function() {
+                    reload();
+                }, 1e3);
+            }
+        }
+    </script>
+
+    <!-- End Style Switcher JS -->
+</body>
+
+</html>
+<div th:replace="common/common-dashboard::#agent"></div>
+

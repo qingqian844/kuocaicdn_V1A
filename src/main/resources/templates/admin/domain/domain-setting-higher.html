@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title th:if="${!openAgent}">[[${websiteBaseConfig.websiteName}]] 高级配置</title>
+    <title th:if="${openAgent}">[[${agentConfig.websiteName}]] 高级配置</title>
+
+    <!-- Favicon -->
+    <link th:if="${!openAgent}" rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:if="${openAgent}" rel="shortcut icon" th:href="${agentConfig.icon}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/tom-select/dist/css/tom-select.bootstrap5.css}">
+
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+        
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {
+                    "switcherSupport": true
+                },
+                "header": {
+                    "layoutMode": "default",
+                    "containerMode": "container-fluid"
+                },
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {
+                            "100": "#f9fafc",
+                            "900": "#1e2022"
+                        }
+                    },
+                    "font": "Inter"
+                }
+            },
+            "languageDirection": {
+                "lang": "en"
+            },
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {
+                    "*assets/js/theme-custom.js": ""
+                },
+                "build": {
+                    "*assets/js/theme-custom.js": "",
+                    "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"
+                }
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {
+                "src": "./src",
+                "dist": "./dist",
+                "build": "./build"
+            },
+            "fileNames": {
+                "dist": {
+                    "js": "theme.min.js",
+                    "css": "theme.min.css"
+                },
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl   footer-offset">
+
+    <script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+    <script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+    <!-- ========== HEADER ========== -->
+
+    <div th:replace="common/common-dashboard::header(curPage='domain-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+    <!-- ========== END HEADER ========== -->
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <!-- Navbar Vertical -->
+
+    <div th:replace="common/common-dashboard::aside(curPage='domain-list', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>
+
+    <!-- End Navbar Vertical -->
+    <main id="content" role="main" class="main">
+        <!-- Content -->
+        <div class="content container-fluid">
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="row align-items-center">
+                    <div class="col-sm mb-sm-0">
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb breadcrumb-no-gutter">
+                                <li class="breadcrumb-item"><a class="breadcrumb-link" href="domain-list">域名管理</a>
+                                </li>
+                                <li class="breadcrumb-item active" aria-current="page">域名配置</li>
+                            </ol>
+                        </nav>
+                    </div>
+                    <!-- End Col -->
+                </div>
+
+                <!-- Nav -->
+                <ul class="nav nav-tabs page-header-tabs" id="pageHeaderTab" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-basic(id=${domain.id})}">基本配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-origin(id=${domain.id})}" tabindex="-1" aria-disabled="true">回源配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-https(id=${domain.id})}" tabindex="-1" aria-disabled="true">HTTPS配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-cache(id=${domain.id})}" tabindex="-1" aria-disabled="true">缓存配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{domain-setting-access(id=${domain.id})}" tabindex="-1" aria-disabled="true">访问配置</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" th:href="@{domain-setting-higher(id=${domain.id})}" tabindex="-1" aria-disabled="true">高级配置</a>
+                    </li>
+                </ul>
+                <!-- End Nav -->
+                <!-- End Row -->
+            </div>
+            <!-- End Page Header -->
+
+            <!-- Card HTTP header配置 -->
+            <div class="card mb-3 mb-lg-5">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">HTTP header配置</h3>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        自定义HTTP响应头取值，影响浏览器的响应行为，限制恶意跨域请求等，<a href="javascript:void(0)" class="link-primary" data-bs-toggle="modal" data-bs-target="#addHttpHeader" onclick="clickRequestHeader()">点击添加</a>。
+                    </p>
+                    <!-- Table -->
+                    <div class="div table-responsive">
+                        <table class="table table-nowrap table-text-center">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th class="text-dark fw-bold" scope="col">参数</th>
+                                    <th class="text-dark fw-bold" scope="col">取值</th>
+                                    <th class="text-dark fw-bold" scope="col">响应头操作</th>
+                                    <th class="text-dark fw-bold" scope="col">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr scope="row" th:each="header, index: ${domainConfig.get('http_response_header')}">
+                                    <th class="col-sm-4" th:text="${header.name}"></th>
+                                    <td class="col-sm-3" th:text="${header.value}"></td>
+                                    <td class="col-sm-3">
+                                        <span th:if="${header.action == 'delete'}" class="badge bg-soft-danger text-danger">删除</span>
+                                        <span th:if="${header.action == 'set'}" class="badge bg-soft-info text-info">设置</span>
+                                    </td>
+                                    <td class="col-sm-2">
+                                        <a href="javascript:void(0)" th:onclick="updateHttpHeader('[[${header}]]', '[[${index.index}]]')">
+                                            <span class="icon icon-xs icon-primary">
+                                  <i class="bi bi-pencil-square"></i>
+                                </span>
+                                        </a>
+                                        <a href="javascript:void(0)" th:onclick="saveHttpHeader('[[${domain.id}]]','[[${domainConfig.get(\'http_response_header\')}]]', 3, '[[${index.index}]]')">
+                                            <span class="icon icon-xs icon-danger">
+                                    <i class="bi bi-trash"></i>
+                                </span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- End Table -->
+                </div>
+            </div>
+            <!-- End Card -->
+
+            <!-- Modal -->
+            <div id="addHttpHeader" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="originRequestHeader">添加HTTP header配置</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="checkOptionalType" class="form-label">响应头操作</label>
+                                <div class="input-group input-group-sm-vertical" id="checkOptionalType">
+                                    <!-- Radio Check -->
+                                    <label class="form-control" for="editUserModalAccountTypeModalRadioEg1_">
+                                    <span class="form-check">
+                                      <input type="radio" class="form-check-input"
+                                             name="editUserModalAccountTypeModalRadioEg1_"
+                                             id="editUserModalAccountTypeModalRadioEg1_" value="set" checked>
+                                      <span class="form-check-label">设置</span>
+                                    </span>
+                                </label>
+                                    <!-- End Radio Check -->
+
+                                    <!-- Radio Check -->
+                                    <label class="form-control" for="editUserModalAccountTypeModalRadioEg1_2">
+                                    <span class="form-check">
+                                      <input type="radio" class="form-check-input"
+                                             name="editUserModalAccountTypeModalRadioEg1_"
+                                             id="editUserModalAccountTypeModalRadioEg1_2" value="delete">
+                                      <span class="form-check-label">删除</span>
+                                    </span>
+                                </label>
+                                    <!-- End Radio Check -->
+                                </div>
+
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="responseHeaderParameter" class="form-label">参数</label>
+                                <div class="input-group input-group-merge" id="responseHeaderParameter">
+                                    <!-- Select -->
+                                    <select id="responseHeaderParameterSelect" class="form-select responseHeaderParameterSelect" onchange="isUseCustom()">
+                                    <option selected="Access-Control-Allow-Headers">Access-Control-Allow-Headers
+                                    </option>
+                                    <option value="Access-Control-Allow-Methods">Access-Control-Allow-Methods</option>
+                                    <option value="Access-Control-Allow-Origin">Access-Control-Allow-Origin</option>
+                                    <option value="Access-Control-Expose-Headers">Access-Control-Expose-Headers</option>
+                                    <option value="Access-Control-Max-Age">Access-Control-Max-Age</option>
+                                    <option value="Content-Disposition">Content-Disposition</option>
+                                    <option value="Content-Language">Content-Language</option>
+                                    <option value="customize">自定义</option>
+                                </select>
+                                    <!-- End Select -->
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3 customInput" hidden="hidden" id="customInput">
+                                <label for="responseHeaderParameterCustom" class="form-label">自定义参数</label>
+                                <div class="input-group input-group-merge">
+                                    <input type="text" class="form-control" id="responseHeaderParameterCustom" maxlength="300" placeholder="请输入自定义响应头参数">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+
+                            <!-- Input Group -->
+                            <div class="mb-3" id="responseHeaderValueDiv">
+                                <label for="responseHeaderValue" class="form-label">取值</label>
+
+                                <div class="input-group input-group-merge">
+                                    <input type="text" class="form-control" id="responseHeaderValue" maxlength="300" placeholder="响应头取值">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" th:onclick="saveHttpHeader('[[${domain.id}]]','[[${domainConfig.get(\'http_response_header\')}]]', 1, 0)">
+                            保存
+                        </button>
+                            <button type="button" class="btn btn-white" data-bs-dismiss="modal">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Modal -->
+
+            <!-- Modal -->
+            <div id="updateHttpHeader" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="originRequestHeade1r">修改HTTP header配置</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="hiddenHeader">
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="checkOptionalType1" class="form-label">响应头操作</label>
+                                <div class="input-group input-group-sm-vertical" id="checkOptionalType1">
+                                    <!-- Radio Check -->
+                                    <label class="form-control" for="editUserModalAccountTypeModalRadioEg1_3">
+                                    <span class="form-check">
+                                      <input type="radio" class="form-check-input"
+                                             name="editUserModalAccountTypeModalRadioEg2_"
+                                             id="editUserModalAccountTypeModalRadioEg1_3" value="set" checked>
+                                      <span class="form-check-label">设置</span>
+                                    </span>
+                                </label>
+                                    <!-- End Radio Check -->
+
+                                    <!-- Radio Check -->
+                                    <label class="form-control" for="editUserModalAccountTypeModalRadioEg1_4">
+                                    <span class="form-check">
+                                      <input type="radio" class="form-check-input"
+                                             name="editUserModalAccountTypeModalRadioEg2_"
+                                             id="editUserModalAccountTypeModalRadioEg1_4" value="delete">
+                                      <span class="form-check-label">删除</span>
+                                    </span>
+                                </label>
+                                    <!-- End Radio Check -->
+                                </div>
+
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="responseHeaderParameter1" class="form-label">参数</label>
+                                <div class="input-group input-group-merge" id="responseHeaderParameter1">
+                                    <!-- Select -->
+                                    <select id="responseHeaderParameterSelect1" class="form-select responseHeaderParameterSelect1" onchange="isUseCustom1()">
+                                    <option selected="Access-Control-Allow-Headers">Access-Control-Allow-Headers
+                                    </option>
+                                    <option value="Access-Control-Allow-Methods">Access-Control-Allow-Methods</option>
+                                    <option value="Access-Control-Allow-Origin">Access-Control-Allow-Origin</option>
+                                    <option value="Access-Control-Expose-Headers">Access-Control-Expose-Headers</option>
+                                    <option value="Access-Control-Max-Age">Access-Control-Max-Age</option>
+                                    <option value="Content-Disposition">Content-Disposition</option>
+                                    <option value="Content-Language">Content-Language</option>
+                                    <option value="customize">自定义</option>
+                                </select>
+                                    <!-- End Select -->
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3 customInput" hidden="hidden" id="customInput1">
+                                <label for="responseHeaderParameterCustom" class="form-label">自定义参数</label>
+                                <div class="input-group input-group-merge">
+                                    <input type="text" class="form-control" id="responseHeaderParameterCustom1" maxlength="300" placeholder="请输入自定义响应头参数">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3" id="responseHeaderValueDiv1">
+                                <label for="responseHeaderValue1" class="form-label">取值</label>
+
+                                <div class="input-group input-group-merge">
+                                    <input type="text" class="form-control" id="responseHeaderValue1" maxlength="300" placeholder="响应头取值">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                        </div>
+
+                        <div class="modal-footer">
+                            <a type="button" class="btn btn-primary" href="javascript:void(0)" th:onclick="saveHttpHeader('[[${domain.id}]]','[[${domainConfig.get(\'http_response_header\')}]]', 2, 0)">
+                            保存
+                        </a>
+                            <a type="button" class="btn btn-white" data-bs-dismiss="modal" href="javascript:void(0)">关闭</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Modal -->
+
+            <script>
+                function updateHttpHeader(source, index) {
+                    source = JSON.parse(source)
+                    if (source.action === "set") {
+                        $("#editUserModalAccountTypeModalRadioEg1_3").prop("checked", true);
+                    } else if (source.action === "delete") {
+                        $("#editUserModalAccountTypeModalRadioEg1_4").prop("checked", true);
+                    }
+
+                    $("#hiddenHeader").val(index)
+                    var selectElement = document.getElementById("responseHeaderParameterSelect1");
+                    var option = Array.from(selectElement.options).find(function(opt) {
+                        return opt.value === source.name;
+                    });
+                    if (option) {
+                        selectElement.value = source.name; // 选择匹配项
+                    } else {
+                        selectElement.selectedIndex = selectElement.options.length - 1; // 选择自定义选项
+                        isUseCustom()
+                    }
+                    $("#responseHeaderParameterCustom1").val(source.name)
+                    $("#responseHeaderValue1").val(source.value)
+                    clickRequestHeader()
+                    $("#updateHttpHeader").modal("show");
+                }
+            </script>
+
+            <!-- 自定义错误页面配置 -->
+            <div class="card mb-3 mb-lg-5" th:if="${domain.route == 'kingsoft'}">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">自定义错误页面配置</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-soft-primary" role="alert">
+                        自定义错误页面配置，支持状态码：400,403,404,405,406,414,416,500,501,502,503,504。
+                    </div>
+
+                    <!-- 隐藏域名ID -->
+                    <input type="hidden" id="domainId" th:value="${domain.id}" />
+
+                    <div class="d-flex justify-content-end mb-3">
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addKingsoftErrorPageConfiguration">
+                            <i class="bi bi-plus-circle me-1"></i> 添加
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover table-borderless table-thead-bordered table-nowrap table-align-middle">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>错误状态码</th>
+                                    <th>自定义页面URL</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kingsoftErrorPageTableBody">
+                                <!-- 表格内容将由JavaScript动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <!-- End Card -->
+
+            <!-- Modal 金山云自定义错误页面配置 -->
+            <div id="addKingsoftErrorPageConfiguration" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">添加自定义错误页面配置</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="kingsoftErrorCode" class="form-label">错误状态码</label>
+                                <i class="bi-question-circle text-body" data-bs-toggle="tooltip" data-bs-placement="top" title="支持状态码：400,403,404,405,406,414,416,500,501,502,503,504"></i>
+                                <div class="input-group input-group-merge">
+                                    <select class="form-select" id="kingsoftErrorCode">
+                                    <option value="">请选择错误状态码</option>
+                                    <option value="400">400</option>
+                                    <option value="403">403</option>
+                                    <option value="404">404</option>
+                                    <option value="405">405</option>
+                                    <option value="406">406</option>
+                                    <option value="414">414</option>
+                                    <option value="416">416</option>
+                                    <option value="500">500</option>
+                                    <option value="501">501</option>
+                                    <option value="502">502</option>
+                                    <option value="503">503</option>
+                                    <option value="504">504</option>
+                                </select>
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="kingsoftCustomPageUrl" class="form-label">自定义页面URL</label>
+                                <i class="bi-question-circle text-body" data-bs-toggle="tooltip" data-bs-placement="top" title="必须以 https:// 或 http:// 开头"></i>
+                                <div class="input-group input-group-merge">
+                                    <input type="text" class="form-control" id="kingsoftCustomPageUrl" maxlength="500" placeholder="例如：https://www.example.com/error404.html">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" onclick="saveKingsoftErrorPageConfiguration('add')">
+                            保存
+                        </button>
+                            <button type="button" class="btn btn-white" data-bs-dismiss="modal">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Modal -->
+
+            <!-- Modal 修改金山云自定义错误页面配置 -->
+            <div id="updateKingsoftErrorPageConfiguration" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">修改自定义错误页面配置</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="kingsoftErrorPageIndex">
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="kingsoftErrorCodeUpdate" class="form-label">错误状态码</label>
+                                <i class="bi-question-circle text-body" data-bs-toggle="tooltip" data-bs-placement="top" title="支持状态码：400,403,404,405,406,414,416,500,501,502,503,504"></i>
+                                <div class="input-group input-group-merge">
+                                    <select class="form-select" id="kingsoftErrorCodeUpdate">
+                                    <option value="">请选择错误状态码</option>
+                                    <option value="400">400</option>
+                                    <option value="403">403</option>
+                                    <option value="404">404</option>
+                                    <option value="405">405</option>
+                                    <option value="406">406</option>
+                                    <option value="414">414</option>
+                                    <option value="416">416</option>
+                                    <option value="500">500</option>
+                                    <option value="501">501</option>
+                                    <option value="502">502</option>
+                                    <option value="503">503</option>
+                                    <option value="504">504</option>
+                                </select>
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+
+                            <!-- Input Group -->
+                            <div class="mb-3">
+                                <label for="kingsoftCustomPageUrlUpdate" class="form-label">自定义页面URL</label>
+                                <i class="bi-question-circle text-body" data-bs-toggle="tooltip" data-bs-placement="top" title="必须以 https:// 或 http:// 开头"></i>
+                                <div class="input-group input-group-merge">
+                                    <input type="text" class="form-control" id="kingsoftCustomPageUrlUpdate" maxlength="500" placeholder="例如：https://www.example.com/error404.html">
+                                </div>
+                            </div>
+                            <!-- End Input Group -->
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" onclick="saveKingsoftErrorPageConfiguration('update')">
+                            保存
+                        </button>
+                            <button type="button" class="btn btn-white" data-bs-dismiss="modal">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Modal -->
+
+            <!-- 隐藏元素用于传递金山云错误页面配置数据 -->
+            <script type="application/json" id="kingsoftErrorPagesData" th:if="${domain.route == 'kingsoft' && domainConfig != null && domainConfig.get('error_pages') != null}" th:utext="${domainConfig.get('error_pages')}">
+            </script>
+
+            <!-- 直接将错误页面配置数据作为全局变量 -->
+            <script th:if="${domain.route == 'kingsoft' && domainConfig != null && domainConfig.get('error_pages') != null}">
+                // 直接设置全局变量
+                try {
+                    // 从隐藏元素读取数据
+                    const errorPagesData = document.getElementById('kingsoftErrorPagesData');
+                    if (errorPagesData && errorPagesData.textContent) {
+                        // 尝试解析JSON
+                        window.errorPagesData = JSON.parse(errorPagesData.textContent);
+                    }
+                } catch (e) {
+                    // 解析失败时不做处理
+                }
+            </script>
+
+            <!-- 调试信息 -->
+            <script th:if="${domain.route == 'kingsoft'}">
+                // 确保域名路由正确
+            </script>
+
+            <script>
+                function isUseCustom() {
+                    let checkedValue = $("#responseHeaderParameterSelect option:checked").val()
+                    console.log(checkedValue)
+                    if (checkedValue === "customize") {
+                        $("#customInput").attr("hidden", false)
+                    } else {
+                        $("#customInput").attr("hidden", true)
+                    }
+                }
+
+                function isUseCustom1() {
+                    let checkedValue = $("#responseHeaderParameterSelect1 option:checked").val()
+                    if (checkedValue === "customize") {
+                        $("#customInput1").attr("hidden", false)
+                    } else {
+                        $("#customInput1").attr("hidden", true)
+                    }
+                }
+            </script>
+
+            <!-- Card 智能压缩 -->
+            <div class="card mb-3 mb-lg-5" th:classappend="${domain.route == 'cdnetworks' ? 'd-none' : ''}">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">智能压缩</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-soft-primary" role="alert">
+                        自动压缩格式为 .js、.html、.css、.xml、.json、.shtml、.htm的文件，可减少用户传输内容大小，提升传输效率。
+                    </div>
+                    <div class="row">
+
+                        <div class="col-sm-6">
+                            <div class="mb-3" id="tlsVersionConfigurationDiv">
+                                <!-- Form Check -->
+                                <div class="form-check form-check-inline">
+                                    <input type="checkbox" id="formInlineCheck1" class="form-check-input" value="gzip" name="intelligentCompression" th:checked="${domainConfig.get('compress').get('status') == 'on' && #strings.contains(domainConfig.get('compress').get('type'),'gzip')}">
+                                    <label class="form-check-label" for="formInlineCheck1"> Gzip压缩</label>
+                                </div>
+                                <!-- End Form Check -->
+
+                                <!-- Form Check -->
+                                <div th:if="${domain.route != 'baishan'}" class="form-check form-check-inline">
+                                    <input type="checkbox" id="formInlineCheck2" class="form-check-input indeterminate-checkbox" value="br" name="intelligentCompression" th:checked="${domainConfig.get('compress').get('status') == 'on' && #strings.contains(domainConfig.get('compress').get('type'),'br')}">
+
+                                    <label class="form-check-label" for="formInlineCheck2">Brotli压缩</label>
+                                </div>
+                                <!-- End Form Check -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-end gap-3">
+                        <button class="btn btn-primary hasCheckHttps" th:onclick="saveCompress('[[${domain.id}]]')">
+                        <i class="bi bi-check-circle-fill"></i> 保存
+                    </button>
+                    </div>
+                </div>
+            </div>
+            <!-- End Card -->
+
+        </div>
+        <!-- End Content -->
+
+        <!-- Footer -->
+        <div th:replace="common/common-dashboard::#footer(curPage='domain-list')"></div>
+        <!-- End Footer -->
+    </main>
+    <!-- ========== END MAIN CONTENT ========== -->
+
+    <!-- ========== SECONDARY CONTENTS ========== -->
+
+    <div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='domain-list')"></div>
+
+    <!-- End Import Products Modal -->
+
+    <!-- ========== END SECONDARY CONTENTS ========== -->
+
+    <!-- JS Global Compulsory  -->
+    <script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+    <!-- JS Implementing Plugins -->
+    <script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/hs-form-search/dist/hs-form-search.min.js}"></script>
+
+    <script th:src="@{dashboard/assets/vendor/hs-nav-scroller/dist/hs-nav-scroller.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/tom-select/dist/js/tom-select.complete.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/clipboard/dist/clipboard.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/datatables/media/js/jquery.dataTables.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/datatables.net.extensions/select/select.min.js}"></script>
+    <script th:src="@{dashboard/assets/vendor/dropzone/dist/min/dropzone.min.js}"></script>
+
+    <!-- JS Front -->
+    <script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+    <script th:src="@{common/layer/layer.js}"></script>
+    <script th:src="@{common/util/reg.js}"></script>
+    <script th:src="@{common/custom.js}"></script>
+    <script th:src="@{common/custom_ceo.js}"></script>
+    <script th:src="@{common/custom_cmo.js}"></script>
+    <script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+
+    <!-- JS Plugins Init. -->
+    <script>
+        $(document).on('ready', function() {
+
+            $('#toggleColumn_product').change(function(e) {
+                datatable.columns(1).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_type').change(function(e) {
+                datatable.columns(2).visible(e.target.checked)
+            })
+
+
+            $('#toggleColumn_vendor').change(function(e) {
+                datatable.columns(3).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_stocks').change(function(e) {
+                datatable.columns(4).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_sku').change(function(e) {
+                datatable.columns(5).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_price').change(function(e) {
+                datatable.columns(6).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_quantity').change(function(e) {
+                datatable.columns(7).visible(e.target.checked)
+            })
+
+            $('#toggleColumn_variants').change(function(e) {
+                datatable.columns(8).visible(e.target.checked)
+            })
+        });
+    </script>
+
+    <!-- JS Plugins Init. -->
+    <script>
+        (function() {
+            window.onload = function() {
+
+
+                // INITIALIZATION OF NAVBAR VERTICAL ASIDE
+                // =======================================================
+                new HSSideNav('.js-navbar-vertical-aside').init()
+
+
+                // INITIALIZATION OF FORM SEARCH
+                // =======================================================
+                new HSFormSearch('.js-form-search')
+
+
+                // INITIALIZATION OF BOOTSTRAP DROPDOWN
+                // =======================================================
+                HSBsDropdown.init()
+
+
+                // INITIALIZATION OF SELECT
+                // =======================================================
+                HSCore.components.HSTomSelect.init('.js-select')
+
+
+                // INITIALIZATION OF NAV SCROLLER
+                // =======================================================
+                new HsNavScroller('.js-nav-scroller')
+
+
+                // INITIALIZATION OF DROPZONE
+                // =======================================================
+                HSCore.components.HSDropzone.init('.js-dropzone')
+
+                HSCore.components.HSClipboard.init('.js-clipboard')
+            }
+        })()
+    </script>
+
+    <!-- Style Switcher JS -->
+
+    <script>
+        (function() {
+            // STYLE SWITCHER
+            // =======================================================
+            const $dropdownBtn = document.getElementById('selectThemeDropdown') // Dropdowon trigger
+            const $variants = document.querySelectorAll(`[aria-labelledby="selectThemeDropdown"] [data-icon]`) // All items of the dropdown
+
+            // Function to set active style in the dorpdown menu and set icon for dropdown trigger
+            const setActiveStyle = function() {
+                $variants.forEach($item => {
+                    if ($item.getAttribute('data-value') === HSThemeAppearance.getOriginalAppearance()) {
+                        $dropdownBtn.innerHTML = `<i class="${$item.getAttribute('data-icon')}" />`
+                        return $item.classList.add('active')
+                    }
+
+                    $item.classList.remove('active')
+                })
+            }
+
+            // Add a click event to all items of the dropdown to set the style
+            $variants.forEach(function($item) {
+                $item.addEventListener('click', function() {
+                    HSThemeAppearance.setAppearance($item.getAttribute('data-value'))
+                })
+            })
+
+            // Call the setActiveStyle on load page
+            setActiveStyle()
+
+            // Add event listener on change style to call the setActiveStyle function
+            window.addEventListener('on-hs-appearance-change', function() {
+                setActiveStyle()
+            })
+
+        })()
+    </script>
+
+    <!-- End Style Switcher JS -->
+</body>
+
+</html>
+<div th:replace="common/common-dashboard::#agent"></div>
+<script>
+    function clickRequestHeader() {
+        // 获取radio按钮组的父元素
+        var radioGroupAdd = document.getElementById("checkOptionalType");
+        var radioGroupUpdate = document.getElementById("checkOptionalType1");
+
+        // 监听radio按钮的change事件
+        radioGroupAdd.addEventListener("change", function() {
+            // 获取当前选中的radio按钮
+            let selectedRadio = document.querySelector('input[name="editUserModalAccountTypeModalRadioEg1_"]:checked');
+
+            if (selectedRadio.value === "delete") {
+                // 如果选中的是"删除"，就将请求头参数和请求头取值input元素的style.display属性设置为"none"，即隐藏它们
+                document.getElementById("responseHeaderValueDiv").style.display = "none";
+            } else {
+                // 否则，就将它们的style.display属性设置为""（空字符串），即显示它们
+                document.getElementById("responseHeaderValueDiv").style.display = "";
+            }
+        });
+
+        // 监听radio按钮的change事件
+        radioGroupUpdate.addEventListener("change", function() {
+            // 获取当前选中的radio按钮
+            let selectedRadio = document.querySelector('input[name="editUserModalAccountTypeModalRadioEg2_"]:checked');
+
+            if (selectedRadio.value === "delete") {
+                // 如果选中的是"删除"，就将请求头参数和请求头取值input元素的style.display属性设置为"none"，即隐藏它们
+                document.getElementById("responseHeaderValueDiv1").style.display = "none";
+            } else {
+                // 否则，就将它们的style.display属性设置为""（空字符串），即显示它们
+                document.getElementById("responseHeaderValueDiv1").style.display = "";
+            }
+        });
+
+        // 获取当前选中的radio按钮
+        var selectedRadioAdd = document.querySelector('input[name="editUserModalAccountTypeModalRadioEg1_"]:checked');
+        console.log(selectedRadioAdd)
+        if (selectedRadioAdd.value === "delete") {
+            // 如果选中的是"删除"，就将请求头参数和请求头取值input元素的style.display属性设置为"none"，即隐藏它们
+            document.getElementById("responseHeaderValueDiv").style.display = "none";
+        }
+        // 获取当前选中的radio按钮
+        var selectedRadioUpdate = document.querySelector('input[name="editUserModalAccountTypeModalRadioEg2_"]:checked');
+        console.log(selectedRadioUpdate)
+        if (selectedRadioUpdate.value === "delete") {
+            // 如果选中的是"删除"，就将请求头参数和请求头取值input元素的style.display属性设置为"none"，即隐藏它们
+            document.getElementById("responseHeaderValueDiv1").style.display = "none";
+        }
+    }
+</script>
+
+<script>
+    // 金山云自定义错误页面配置管理
+    let kingsoftErrorPages = [];
+
+    // 页面加载时初始化金山云错误页面数据
+    $(document).ready(function() {
+        console.log('页面加载完成，准备初始化错误页面配置');
+        // 从后端获取现有的错误页面配置
+        loadKingsoftErrorPagesFromConfig();
+        loadKingsoftErrorPages();
+
+        // 确保在页面完全加载后再次尝试渲染表格
+        setTimeout(function() {
+            console.log('延迟执行，再次尝试渲染错误页面表格');
+            renderKingsoftErrorPageTable();
+        }, 500);
+    });
+
+    // 从后端配置中加载金山云错误页面配置
+    function loadKingsoftErrorPagesFromConfig() {
+        try {
+            // 尝试从隐藏元素中读取数据
+            const errorPagesData = document.getElementById('kingsoftErrorPagesData');
+            if (errorPagesData && errorPagesData.textContent) {
+                try {
+                    // 处理HTML转义字符
+                    let rawText = errorPagesData.textContent.trim();
+                    // 将HTML转义字符转换回普通字符
+                    rawText = rawText.replace(/&quot;/g, '"')
+                        .replace(/&amp;/g, '&')
+                        .replace(/&lt;/g, '<')
+                        .replace(/&gt;/g, '>');
+
+                    // 尝试解析JSON
+                    const errorPages = JSON.parse(rawText);
+
+                    if (Array.isArray(errorPages)) {
+                        kingsoftErrorPages = errorPages;
+                        return;
+                    } else if (errorPages && typeof errorPages === 'object') {
+                        // 如果是单个对象，转换为数组
+                        kingsoftErrorPages = [errorPages];
+                        return;
+                    }
+                } catch (parseError) {
+                    console.error('解析JSON失败:', parseError);
+                }
+            } else {
+                // 尝试直接从domainConfig中获取
+                if (typeof domainConfig !== 'undefined' && domainConfig && domainConfig.error_pages) {
+                    kingsoftErrorPages = domainConfig.error_pages;
+                    return;
+                }
+
+                // 尝试从页面上的其他位置获取数据
+                if (window.errorPagesData) {
+                    kingsoftErrorPages = window.errorPagesData;
+                    return;
+                }
+            }
+
+            kingsoftErrorPages = [];
+        } catch (error) {
+            kingsoftErrorPages = [];
+        }
+    }
+
+    // 加载金山云错误页面配置
+    function loadKingsoftErrorPages() {
+        // 直接渲染表格，数据已在loadKingsoftErrorPagesFromConfig中加载
+        renderKingsoftErrorPageTable();
+    }
+
+    // 渲染金山云错误页面表格
+    function renderKingsoftErrorPageTable() {
+        const tbody = document.getElementById('kingsoftErrorPageTableBody');
+        if (!tbody) {
+            return;
+        }
+
+        tbody.innerHTML = '';
+
+        if (!kingsoftErrorPages || kingsoftErrorPages.length === 0) {
+            // 添加一个提示行
+            const emptyRow = document.createElement('tr');
+            emptyRow.innerHTML = '<td colspan="3" class="text-center">暂无自定义错误页面配置</td>';
+            tbody.appendChild(emptyRow);
+            return;
+        }
+
+        try {
+            kingsoftErrorPages.forEach((errorPage, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="col-sm-4">${errorPage.errorHttpCode || ''}</td>
+                    <td class="col-sm-4">${errorPage.customPageUrl || ''}</td>
+                    <td class="col-sm-4">
+                        <a href="javascript:void(0)" onclick="editKingsoftErrorPage(${index})">
+                            <span class="icon icon-xs icon-primary">
+                                <i class="bi bi-pencil-square"></i>
+                            </span>
+                        </a>
+                        <a href="javascript:void(0)" onclick="deleteKingsoftErrorPage(${index})">
+                            <span class="icon icon-xs icon-danger">
+                                <i class="bi bi-trash"></i>
+                            </span>
+                        </a>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        } catch (error) {
+            // 渲染失败时不做处理
+        }
+    }
+
+    // 保存金山云错误页面配置
+    async function saveKingsoftErrorPageConfiguration(action) {
+        let errorHttpCode, customPageUrl, index;
+
+        if (action === 'add') {
+            errorHttpCode = document.getElementById('kingsoftErrorCode').value;
+            customPageUrl = document.getElementById('kingsoftCustomPageUrl').value;
+        } else if (action === 'update') {
+            errorHttpCode = document.getElementById('kingsoftErrorCodeUpdate').value;
+            customPageUrl = document.getElementById('kingsoftCustomPageUrlUpdate').value;
+            index = document.getElementById('kingsoftErrorPageIndex').value;
+        }
+
+        // 验证输入
+        if (!errorHttpCode) {
+            layerWarn("请选择错误状态码");
+            return;
+        }
+
+        if (!customPageUrl) {
+            layerWarn("请输入自定义页面URL");
+            return;
+        }
+
+        if (!customPageUrl.startsWith('https://') && !customPageUrl.startsWith('http://')) {
+            layerWarn("自定义页面URL必须以http://或https://开头");
+            return;
+        }
+
+        // 准备请求参数
+        let params = {
+            doMainId: $('#domainId').val() || '[[${domain.id}]]',
+            errorPages: []
+        };
+
+        // 根据操作类型处理数据
+        if (action === 'add') {
+            // 添加新的错误页面配置
+            const newErrorPage = {
+                errorHttpCode: errorHttpCode,
+                customPageUrl: customPageUrl
+            };
+
+            // 如果已有配置，保留现有配置并添加新配置
+            if (kingsoftErrorPages && kingsoftErrorPages.length > 0) {
+                // 检查是否已存在相同状态码的配置
+                const existingIndex = kingsoftErrorPages.findIndex(item => item.errorHttpCode === errorHttpCode);
+                if (existingIndex !== -1) {
+                    // 更新现有配置
+                    kingsoftErrorPages[existingIndex] = newErrorPage;
+                    layerWarn("已更新相同状态码的配置");
+                } else {
+                    // 添加新配置
+                    kingsoftErrorPages.push(newErrorPage);
+                }
+            } else {
+                // 没有现有配置，直接添加
+                kingsoftErrorPages = [newErrorPage];
+            }
+
+            // 将所有配置添加到请求参数
+            params.errorPages = kingsoftErrorPages;
+        } else if (action === 'update') {
+            // 更新现有错误页面配置
+            if (kingsoftErrorPages && kingsoftErrorPages.length > 0 && index >= 0 && index < kingsoftErrorPages.length) {
+                kingsoftErrorPages[index] = {
+                    errorHttpCode: errorHttpCode,
+                    customPageUrl: customPageUrl
+                };
+                params.errorPages = kingsoftErrorPages;
+            } else {
+                layerWarn("更新失败，找不到要更新的配置");
+                return;
+            }
+        }
+
+        // 发送请求保存配置
+        try {
+            const response = await fetch('/CdnDomainHigher/saveCustomErrorPageConfiguration', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(params)
+            });
+
+            const result = await response.json();
+
+            if (result.code === 200) {
+                layer.msg('保存成功');
+                // 关闭模态框
+                if (action === 'add') {
+                    $('#addKingsoftErrorPageConfiguration').modal('hide');
+                    // 清空表单
+                    document.getElementById('kingsoftErrorCode').value = '';
+                    document.getElementById('kingsoftCustomPageUrl').value = '';
+                } else if (action === 'update') {
+                    $('#updateKingsoftErrorPageConfiguration').modal('hide');
+                }
+
+                // 重新渲染表格
+                renderKingsoftErrorPageTable();
+
+                // 重新加载页面以获取最新配置
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                layerWarn(result.message || '保存失败');
+            }
+        } catch (error) {
+            layerWarn('保存失败，请稍后重试');
+        }
+    }
+
+    // 编辑金山云错误页面配置
+    function editKingsoftErrorPage(index) {
+        if (kingsoftErrorPages && kingsoftErrorPages.length > index) {
+            const errorPage = kingsoftErrorPages[index];
+
+            // 设置表单值
+            document.getElementById('kingsoftErrorPageIndex').value = index;
+            document.getElementById('kingsoftErrorCodeUpdate').value = errorPage.errorHttpCode || '';
+            document.getElementById('kingsoftCustomPageUrlUpdate').value = errorPage.customPageUrl || '';
+
+            // 显示模态框
+            $('#updateKingsoftErrorPageConfiguration').modal('show');
+        }
+    }
+
+    // 删除金山云错误页面配置
+    function deleteKingsoftErrorPage(index) {
+        if (kingsoftErrorPages && kingsoftErrorPages.length > index) {
+            // 确认删除
+            layer.confirm('确定要删除此错误页面配置吗？', {
+                btn: ['确定', '取消']
+            }, function() {
+                // 从数组中移除
+                kingsoftErrorPages.splice(index, 1);
+
+                // 重新渲染表格
+                renderKingsoftErrorPageTable();
+
+                // 保存到服务器
+                const params = {
+                    doMainId: $('#domainId').val() || '[[${domain.id}]]',
+                    errorPages: kingsoftErrorPages
+                };
+
+                // 发送请求保存配置
+                fetch('/CdnDomainHigher/saveCustomErrorPageConfiguration', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(params)
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.code === 200) {
+                            layer.msg('删除成功');
+                            // 重新加载页面以获取最新配置
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000);
+                        } else {
+                            layerWarn(result.message || '删除失败');
+                        }
+                    })
+                    .catch(() => {
+                        layerWarn('删除失败，请稍后重试');
+                    });
+
+                layer.closeAll();
+            });
+        }
+    }
+</script>

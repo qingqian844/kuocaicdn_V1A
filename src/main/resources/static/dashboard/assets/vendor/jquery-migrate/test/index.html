@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>jQuery Migrate TestDemo Suite</title>
+	<!-- // Support: IE <= 10 only -->
+	<!-- Ensure IE doesn't fall back into oldIE modes -->
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+
+	<!-- QUnit -->
+	<link rel="stylesheet" href="../external/qunit/qunit.css" media="screen">
+	<script src="../external/qunit/qunit.js"></script>
+
+	<!-- A promise polyfill -->
+	<script src="../external/npo/npo.js"></script>
+
+	<!-- Load a jQuery and jquery-migrate plugin file based on URL -->
+	<script src="data/testinit.js"></script>
+	<script>
+		TestManager.loadProject( "jquery", "3.x-git" );
+		// Close this script tag so file will load
+	</script>
+	<script>
+		jQuery.noConflict();
+		TestManager.loadProject( "jquery-migrate", "min", true );
+	</script>
+
+	<!-- Version comparisons -->
+	<script src="data/compareVersions.js"></script>
+
+	<!-- Unit test files -->
+	<script src="data/test-utils.js"></script>
+	<script src="unit/migrate.js"></script>
+	<script src="unit/jquery/core.js"></script>
+	<script src="unit/jquery/ajax.js"></script>
+	<script src="unit/jquery/attributes.js"></script>
+	<script src="unit/jquery/css.js"></script>
+	<script src="unit/jquery/data.js"></script>
+	<script src="unit/jquery/effects.js"></script>
+	<script src="unit/jquery/event.js"></script>
+	<script src="unit/jquery/manipulation.js"></script>
+	<script src="unit/jquery/offset.js"></script>
+	<script src="unit/jquery/serialize.js"></script>
+	<script src="unit/jquery/traversing.js"></script>
+	<script src="unit/jquery/deferred.js"></script>
+</head>
+<body>
+	<div id="qunit"></div>
+	<div id="qunit-fixture"></div>
+</body>
+</html>

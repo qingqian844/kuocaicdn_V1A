@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<!--suppress ThymeleafVariablesResolveInspection -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Required Meta Tags Always Come First -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Title -->
+    <title>[[${websiteBaseConfig.websiteName}]] 管理员登录</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+
+    <!-- Font -->
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+
+    <!-- CSS Implementing Plugins -->
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+
+    <!-- CSS Front Template -->
+
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+
+
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+
+    <link rel="stylesheet" th:href="@{dashboard/assets/css/style.css}"/>
+
+    <style data-hs-appearance-onload-styles>
+        * {
+            transition: unset !important;
+        }
+
+        body {
+            opacity: 0;
+        }
+    </style>
+
+    <script>
+        window.hs_config = {
+            "autopath": "@@autopath",
+            "deleteLine": "hs-builder:delete",
+            "deleteLine:build": "hs-builder:build-delete",
+            "deleteLine:dist": "hs-builder:dist-delete",
+            "previewMode": false,
+            "startPath": "/index.html",
+            "vars": {
+                "themeFont": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+                "version": "?v=1.0"
+            },
+            "layoutBuilder": {
+                "extend": {"switcherSupport": true},
+                "header": {"layoutMode": "default", "containerMode": "container-fluid"},
+                "sidebarLayout": "default"
+            },
+            "themeAppearance": {
+                "layoutSkin": "default",
+                "sidebarSkin": "default",
+                "styles": {
+                    "colors": {
+                        "primary": "#377dff",
+                        "transparent": "transparent",
+                        "white": "#fff",
+                        "dark": "132144",
+                        "gray": {"100": "#f9fafc", "900": "#1e2022"}
+                    }, "font": "Inter"
+                }
+            },
+            "languageDirection": {"lang": "en"},
+            "skipFilesFromBundle": {
+                "dist": ["assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "assets/js/demo.js"],
+                "build": ["assets/css/theme.css", "assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js", "assets/js/demo.js", "assets/css/theme-dark.css", "assets/css/docs.css", "assets/vendor/icon-set/style.css", "assets/js/hs.theme-appearance.js", "assets/js/hs.theme-appearance-charts.js", "node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js", "assets/js/demo.js"]
+            },
+            "minifyCSSFiles": ["assets/css/theme.css", "assets/css/theme-dark.css"],
+            "copyDependencies": {
+                "dist": {"*assets/js/theme-custom.js": ""},
+                "build": {"*assets/js/theme-custom.js": "", "node_modules/bootstrap-icons/font/*fonts/**": "assets/css"}
+            },
+            "buildFolder": "",
+            "replacePathsToCDN": {},
+            "directoryNames": {"src": "./src", "dist": "./dist", "build": "./build"},
+            "fileNames": {
+                "dist": {"js": "theme.min.js", "css": "theme.min.css"},
+                "build": {
+                    "css": "theme.min.css",
+                    "js": "theme.min.js",
+                    "vendorCSS": "vendor.min.css",
+                    "vendorJS": "vendor.min.js"
+                }
+            },
+            "fileTypes": "jpg|png|svg|mp4|webm|ogv|json"
+        }
+        window.hs_config.gulpRGBA = (p1) => {
+            const options = p1.split(',')
+            const hex = options[0].toString()
+            const transparent = options[1].toString()
+
+            var c;
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+                c = hex.substring(1).split('');
+                if (c.length == 3) {
+                    c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c = '0x' + c.join('');
+                return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + transparent + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        window.hs_config.gulpDarken = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = -parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+        window.hs_config.gulpLighten = (p1) => {
+            const options = p1.split(',')
+
+            let col = options[0].toString()
+            let amt = parseInt(options[1])
+            var usePound = false
+
+            if (col[0] == "#") {
+                col = col.slice(1)
+                usePound = true
+            }
+            var num = parseInt(col, 16)
+            var r = (num >> 16) + amt
+            if (r > 255) {
+                r = 255
+            } else if (r < 0) {
+                r = 0
+            }
+            var b = ((num >> 8) & 0x00FF) + amt
+            if (b > 255) {
+                b = 255
+            } else if (b < 0) {
+                b = 0
+            }
+            var g = (num & 0x0000FF) + amt
+            if (g > 255) {
+                g = 255
+            } else if (g < 0) {
+                g = 0
+            }
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
+        }
+    </script>
+</head>
+
+<body>
+
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+
+<!-- ========== MAIN CONTENT ========== -->
+<main id="content" role="main" class="main">
+    <!-- Modal -->
+    <button style="display: none" type="button" class="btn btn-primary" data-bs-toggle="modal"
+            data-bs-target="#exampleModalCenteredScrollable" id="testButton">
+        Vertically centered scrollable modal
+    </button>
+    <div id="exampleModalCenteredScrollable" class="modal fade" tabindex="-1" role="dialog"
+         aria-labelledby="exampleModalCenteredScrollableTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered" role="document">
+            <div class="modal-content" style="height: 300px;width: 250px;margin-left: 100px">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalCenteredScrollableTitle" style="text-align: center">
+                        请使用微信扫码登录</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
+                            onclick="closeWechatQrcode()"></button>
+                </div>
+                <!--                <div class="modal-body" style="text-align: center" id="qrCode"></div>-->
+                <img class="modal-body" style="text-align: center" id="qrcodes" src=""/>
+                <!--<div class="modal-footer" style="padding: calc(var(&#45;&#45;bs-modal-padding) - var(&#45;&#45;bs-modal-footer-gap) * 3)">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+&lt;!&ndash;                    <button type="button" class="btn btn-primary">Save changes</button>&ndash;&gt;
+                </div>-->
+            </div>
+        </div>
+    </div>
+    <div class="position-fixed top-0 end-0 start-0 bg-img-start"
+         style="height: 32rem; background-image: url(dashboard/assets/svg/components/card-6.svg);">
+        <!-- Shape -->
+        <div class="shape shape-bottom zi-1">
+            <svg preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 1921 273">
+                <polygon fill="#fff" points="0,273 1921,273 1921,0 "/>
+            </svg>
+        </div>
+        <!-- End Shape -->
+    </div>
+
+    <!-- Content -->
+    <div class="container py-5 py-sm-7">
+        <a class="d-flex justify-content-center mb-5" href="./index.html">
+            <img class="zi-2" th:src="${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : @{dashboard/assets/svg/logos/logo.svg}" alt="Image Description"
+                 style="width: 8rem;">
+        </a>
+
+        <div class="mx-auto" style="max-width: 30rem;">
+            <!-- Card -->
+            <div class="card card-lg mb-5">
+                <div class="card-body">
+                    <!-- Form -->
+                    <div class="text-center">
+                        <div class="mb-5">
+                            <h1 class="display-5" th:text="${websiteBaseConfig.websiteName + '管理系统'}"></h1>
+                        </div>
+
+                        <div th:if="${weChatLoginEnabled}" class="d-grid mb-4">
+                            <button class="btn btn-white btn-lg" onclick="getWechatQrCode(true)">
+                                                <span class="d-flex justify-content-center align-items-center">
+                                                  <img class="avatar avatar-xss me-2"
+                                                       th:src="@{dashboard/assets/svg/brands/wechat-icon.svg}"
+                                                       alt="Image Description">
+                                                  通过微信登录
+                                                </span>
+                            </button>
+                        </div>
+
+                        <span th:if="${weChatLoginEnabled}" class="divider-center text-muted mb-4">OR</span>
+                    </div>
+
+                    <!-- Form -->
+                    <div class="mb-4">
+                        <label class="form-label" for="userAccount">账户</label>
+                        <input value="" type="text" class="form-control form-control-lg" name="email"
+                               id="userAccount" maxlength="30"
+                               tabindex="1" placeholder="请输入手机号/邮箱" aria-label="email@address.com" required>
+                    </div>
+                    <!-- End Form -->
+
+                    <!-- Form -->
+                    <div class="mb-4">
+                        <label class="form-label w-100" for="userPassword" tabindex="0">
+                              <span class="d-flex justify-content-between align-items-center">
+                                <span>密码</span>
+                                <a class="form-label-link mb-0"
+                                   href="forget">忘记密码?</a>
+                              </span>
+                        </label>
+
+                        <div class="input-group input-group-merge" data-hs-validation-validate-class>
+                            <input id="userPassword" value="" type="password"
+                                   class="js-toggle-password form-control form-control-lg"
+                                   name="password" placeholder="请输入密码"
+                                   aria-label="8+ characters required" required minlength="8" maxlength="16"
+                                   data-hs-toggle-password-options='{
+                                                                           "target": "#changePassTarget",
+                                                                           "defaultClass": "bi-eye-slash",
+                                                                           "showClass": "bi-eye",
+                                                                           "classChangeTarget": "#changePassIcon"
+                                                                         }'>
+                            <a id="changePassTarget" class="input-group-append input-group-text"
+                               href="javascript:;">
+                                <i id="changePassIcon" class="bi-eye"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <!-- End Form -->
+
+                    <!-- Form Check -->
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" value="" id="remember">
+                        <label class="form-check-label" for="remember">
+                            保持登录
+                        </label>
+                    </div>
+                    <!-- End Form Check -->
+
+                    <div class="d-grid">
+                        <button id="loginBtn" type="button" onclick="loginAdmin()" class="btn btn-primary btn-lg">
+                            登录
+                        </button>
+                    </div>
+                    <!-- End Form -->
+
+                </div>
+            </div>
+            <!-- End Card -->
+
+            <!-- Footer -->
+            <div class="position-relative text-center zi-1">
+                <small class="text-cap text-body mb-4">Copyright © 2025. 括彩云 版权所有 上海括彩科技有限公司</small>
+            </div>
+            <!-- End Footer -->
+        </div>
+    </div>
+    <!-- End Content -->
+</main>
+<!-- ========== END MAIN CONTENT ========== -->
+
+<!-- JS Global Compulsory  -->
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+
+<!-- JS Implementing Plugins -->
+<script th:src="@{dashboard/assets/vendor/hs-toggle-password/dist/js/hs-toggle-password.js}"></script>
+
+<!-- JS Front -->
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+
+<script th:src="@{dashboard/assets/js/index.var.js}"></script>
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/util/reg.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom_ceo.js}"></script>
+<script th:src="@{common/custom_cmo.js}"></script>
+<script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+
+
+<!-- JS Plugins Init. -->
+<script>
+    (function () {
+        window.onload = function () {
+            // INITIALIZATION OF BOOTSTRAP VALIDATION
+            // =======================================================
+            HSBsValidation.init('.js-validate', {
+                onSubmit: data => {
+                    data.event.preventDefault()
+                }
+            })
+
+
+            // INITIALIZATION OF TOGGLE PASSWORD
+            // =======================================================
+            new HSTogglePassword('.js-toggle-password')
+        }
+    })()
+</script>
+
+<script>
+    'use strict';
+
+    function checkSession() {
+        $.ajax({
+            type: 'GET',
+            url: 'https://api.kuocaicdn.com/auth/session',
+        }).done(function () {
+            layerSuccess('已登录，正在跳转...');
+            window.open('/dashboard', '_self');
+        });
+    }
+
+    window.addEventListener('DOMContentLoaded', checkSession, false);
+</script>
+</body>
+</html>
+
