@@ -4,11 +4,6 @@ KuocaiCDN is a Spring Boot 2.7 based CDN management application.
 
 This open source edition keeps all CDN vendor integrations and removes the commercial license check. It also removes online payment, proxy/agent, withdrawal, traffic package purchase, traffic gift/donation, and monthly gift features. Traffic billing is balance-based metered billing only, and the application enforces a single administrator account.
 
-## Security Notice
-
-Do not commit runtime secrets, certificates, private keys, API tokens, database URLs, or service account passwords to this repository.
-
-Historical example credentials and private keys have been removed from this README. Any exposed keys should be considered compromised and rotated before reuse.
 
 ## Configuration
 
