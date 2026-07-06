@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.kuocai.cdn</groupId>
     <artifactId>KuocaiCDN</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>K2.1.1.3</version>
     <name>KuocaiCDN</name>
     <description>Demo project for Spring Boot</description>
     <properties>

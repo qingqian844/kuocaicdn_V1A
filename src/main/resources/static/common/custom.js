@@ -327,11 +327,7 @@ function loading() {
 }
 
 function loadingShow() {
-    let loading = '<div id="loadingDiv" class="fixed-bottom" style="background: rgba(223, 230, 233,0.7); width: 100%;height: 400%;margin: 0 auto">\n' +
-        '<div id="loading" class="text-center fixed-bottom bottom-50">\n' +
-        '<div class="spinner-grow text-primary" style="width: 3rem; height: 3rem;" role="status">' +
-        '<span class="visually-hidden">Loading...</span></div></div></div>';
-    $('body').append($(loading));
+    $('#loadingDiv').remove();
 }
 
 function loadingRemove() {
@@ -340,6 +336,12 @@ function loadingRemove() {
     // }, 1000);
     $('#loadingDiv').remove();
 }
+$(function () {
+    $('#loadingDiv, #dashboardStatisticsLoadingMask').remove();
+    if ($('#disableLegacyLoadingStyle').length === 0) {
+        $('head').append('<style id="disableLegacyLoadingStyle">#loadingDiv,#dashboardStatisticsLoadingMask,.dashboard-statistics-loading-mask{display:none!important;}</style>');
+    }
+});
 
 const api_origin = 'https://api.kuocaicdn.com';
 

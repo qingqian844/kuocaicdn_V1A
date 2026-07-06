@@ -39,59 +39,6 @@
         }
     </style>
 
-    <style>
-        .dashboard-statistics-card {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .dashboard-statistics-loading-mask {
-            position: absolute;
-            inset: 0;
-            z-index: 20;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1.5rem;
-            background: rgba(255, 255, 255, .78);
-            backdrop-filter: blur(2px);
-        }
-
-        .dashboard-statistics-loading-mask.d-none {
-            display: none !important;
-        }
-
-        .dashboard-statistics-loading-panel {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            min-width: 17rem;
-            padding: 1rem 1.25rem;
-            border: 1px solid rgba(231, 234, 243, .95);
-            border-radius: .75rem;
-            background: #fff;
-            box-shadow: 0 1rem 2.5rem rgba(19, 33, 68, .12);
-        }
-
-        .dashboard-statistics-loading-title {
-            color: #132144;
-            font-weight: 600;
-            line-height: 1.2;
-        }
-
-        .dashboard-statistics-loading-text {
-            color: #71869d;
-            font-size: .8125rem;
-            line-height: 1.4;
-        }
-
-        @media (max-width: 767.98px) {
-            .dashboard-statistics-loading-panel {
-                width: min(100%, 22rem);
-            }
-        }
-    </style>
-
     <script>
         window.hs_config = {
             "autopath": "@@autopath",
@@ -697,16 +644,6 @@
 
                 <!-- Card -->
                 <div id="dashboardStatisticsCard" class="card mb-3 dashboard-statistics-card" aria-busy="false">
-                    <div id="dashboardStatisticsLoadingMask" class="dashboard-statistics-loading-mask d-none"
-                         aria-live="polite" aria-hidden="true">
-                        <div class="dashboard-statistics-loading-panel">
-                            <div class="spinner-border text-primary" role="status" aria-label="数据加载中"></div>
-                            <div>
-                                <div class="dashboard-statistics-loading-title">数据加载中</div>
-                                <div class="dashboard-statistics-loading-text">正在查询服务概览数据，请稍候</div>
-                            </div>
-                        </div>
-                    </div>
                     <!-- Header -->
                     <div class="card-header card-header-content-sm-between">
                         <!-- Nav -->
@@ -753,6 +690,9 @@
                                               "backgroundColor": "#377dff",
                                               "hoverBackgroundColor": "#377dff",
                                               "borderColor": "#377dff",
+                                              "pointRadius": 0,
+                                              "pointHoverRadius": 0,
+                                              "pointHitRadius": 0,
                                               "maxBarThickness": "10"
                                             },
                                             {
@@ -760,6 +700,9 @@
                                               "backgroundColor": "#31a3be",
                                               "hoverBackgroundColor": "#31a3be",
                                               "borderColor": "#31a3be",
+                                              "pointRadius": 0,
+                                              "pointHoverRadius": 0,
+                                              "pointHitRadius": 0,
                                               "maxBarThickness": "10"
                                             }]
                                           },
@@ -801,6 +744,13 @@
                                               }
                                             },
                                             "cornerRadius": 2,
+                                            "elements": {
+                                              "point": {
+                                                "radius": 0,
+                                                "hoverRadius": 0,
+                                                "hitRadius": 0
+                                              }
+                                            },
                                             "plugins": {
                                               "tooltip": {
                                                 "prefix": "",
@@ -849,14 +799,20 @@
                                                       "backgroundColor": "#377dff",
                                                       "hoverBackgroundColor": "#377dff",
                                                       "borderColor": "#377dff",
-                                                      "maxBarThickness": "10"
+                                                      "pointRadius": 0,
+                                              "pointHoverRadius": 0,
+                                              "pointHitRadius": 0,
+                                              "maxBarThickness": "10"
                                                     },
                                                     {
                                                       "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                                                       "backgroundColor": "#31a3be",
                                                       "hoverBackgroundColor": "#31a3be",
                                                       "borderColor": "#31a3be",
-                                                      "maxBarThickness": "10"
+                                                      "pointRadius": 0,
+                                              "pointHoverRadius": 0,
+                                              "pointHitRadius": 0,
+                                              "maxBarThickness": "10"
                                                     }]
                                                   },
                                                   "options": {
@@ -897,6 +853,13 @@
                                                       }
                                                     },
                                                     "cornerRadius": 2,
+                                            "elements": {
+                                              "point": {
+                                                "radius": 0,
+                                                "hoverRadius": 0,
+                                                "hitRadius": 0
+                                              }
+                                            },
                                                     "plugins": {
                                                       "tooltip": {
                                                         "prefix": "",
@@ -1125,7 +1088,7 @@
 <script th:src="@{dashboard/assets/js/hs.theme-appearance-charts.js}"></script>
 <script th:src="@{common/layer/layer.js}"></script>
 <script th:src="@{common/util/reg.js}"></script>
-<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom.js(v='20260707-disable-loading')}"></script>
 <script th:src="@{common/custom_ceo.js}"></script>
 <script th:src="@{common/custom_cmo.js}"></script>
 <script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
@@ -1188,15 +1151,24 @@
         // 流量趋势 开始
         var start = moment();
         var end = moment();
-
-        function setDashboardStatisticsLoading(loading) {
-            $('#dashboardStatisticsCard').attr('aria-busy', loading ? 'true' : 'false');
-            $('#dashboardStatisticsLoadingMask')
-                .toggleClass('d-none', !loading)
-                .attr('aria-hidden', loading ? 'false' : 'true');
+        function hideChartPoints(chart) {
+            if (!chart || !chart.data || !chart.data.datasets) {
+                return;
+            }
+            chart.data.datasets.forEach(function (dataset) {
+                dataset.pointRadius = 0;
+                dataset.pointHoverRadius = 0;
+                dataset.pointHitRadius = 0;
+            });
+            chart.options.elements = chart.options.elements || {};
+            chart.options.elements.point = {
+                radius: 0,
+                hoverRadius: 0,
+                hitRadius: 0
+            };
         }
 
-        async function cbFlux(start, end, lebel) {
+async function cbFlux(start, end, lebel) {
             let name = 'flux';
             const rangeStart = start.clone();
             const rangeEnd = end.clone();
@@ -1217,7 +1189,6 @@
                     return;
                 }
             }
-            setDashboardStatisticsLoading(true);
             try {
                 let resp = await queryStatistics(startTime, endTime, null, 'Resource');
                 if (!resp || !resp.resource_summary || !resp.resource_detail) {
@@ -1238,18 +1209,18 @@
                 fluxChart.data.datasets[0].data = resp.resource_detail.flux.data;
                 fluxChart.data.datasets[1].data = resp.resource_detail.bs_flux.data;
                 fluxChart.options.plugins.tooltip.postfix = resp.resource_detail.flux.unit;
-                fluxChart.update();
+                hideChartPoints(fluxChart);
+                    fluxChart.update();
                 const bwChart = HSCore.components.HSChartJS.getItem('bwChart');
                 bwChart.data.labels = labels;
                 bwChart.data.datasets[0].data = resp.resource_detail.bw.data;
                 bwChart.data.datasets[1].data = resp.resource_detail.bs_bw.data;
                 bwChart.options.plugins.tooltip.postfix = resp.resource_detail.bw.unit;
-                bwChart.update();
+                hideChartPoints(bwChart);
+                    bwChart.update();
             } catch (error) {
                 console.error('Dashboard statistics loading failed:', error);
                 layerFail('数据加载失败，请稍后重试');
-            } finally {
-                setDashboardStatisticsLoading(false);
             }
         }
 
