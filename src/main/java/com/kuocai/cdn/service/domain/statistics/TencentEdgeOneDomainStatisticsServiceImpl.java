@@ -14,6 +14,10 @@ import com.kuocai.cdn.service.CdnDomainStatisticsService;
 import com.kuocai.cdn.service.base.BaseService;
 import com.kuocai.cdn.util.Assert;
 import com.tencentcloudapi.common.exception.TencentCloudSDKException;
+import com.tencentcloudapi.teo.v20220901.models.BillingData;
+import com.tencentcloudapi.teo.v20220901.models.BillingDataFilter;
+import com.tencentcloudapi.teo.v20220901.models.DescribeBillingDataRequest;
+import com.tencentcloudapi.teo.v20220901.models.DescribeBillingDataResponse;
 import com.tencentcloudapi.teo.v20220901.models.DescribeTimingL7AnalysisDataRequest;
 import com.tencentcloudapi.teo.v20220901.models.DescribeTimingL7AnalysisDataResponse;
 import com.tencentcloudapi.teo.v20220901.models.DescribeTimingL7OriginPullDataRequest;
@@ -40,6 +44,7 @@ public class TencentEdgeOneDomainStatisticsServiceImpl extends BaseService<CdnDo
     private static final String ACCESS_FLUX = "l7Flow_outFlux";
     private static final String ACCESS_BANDWIDTH = "l7Flow_outBandwidth";
     private static final String ACCESS_REQUEST = "l7Flow_request";
+    private static final String BILLING_CONTENT_ACCELERATION_FLUX = "acc_flux";
     private static final String HIT_FLUX = "l7Flow_hit_outFlux";
     private static final String ORIGIN_FLUX = "l7Flow_inFlux_hy";
     private static final String ORIGIN_BANDWIDTH = "l7Flow_inBandwidth_hy";
@@ -57,20 +62,22 @@ public class TencentEdgeOneDomainStatisticsServiceImpl extends BaseService<CdnDo
         Series originBandwidth = new Series(size);
 
         for (String domain : splitDomains(domainName)) {
-            EdgeOneQueryTarget target = resolveTarget(domain);
-            if (target == null) {
-                continue;
-            }
-            DescribeTimingL7AnalysisDataResponse accessResponse = queryAccess(target, start, end, ACCESS_FLUX, ACCESS_BANDWIDTH);
-            accessFlux.add(extractSeries(accessResponse.getData(), ACCESS_FLUX, size));
-            accessBandwidth.add(extractSeries(accessResponse.getData(), ACCESS_BANDWIDTH, size));
-
             try {
+                EdgeOneQueryTarget target = resolveTarget(domain);
+                if (target == null) {
+                    continue;
+                }
+                DescribeBillingDataResponse billingFluxResponse = queryBillingFlux(target, start, end);
+                accessFlux.add(extractBillingSeries(billingFluxResponse.getData(), target.domainName, size));
+
+                DescribeTimingL7AnalysisDataResponse accessResponse = queryAccess(target, start, end, ACCESS_BANDWIDTH);
+                accessBandwidth.add(extractSeries(accessResponse.getData(), ACCESS_BANDWIDTH, size));
+
                 DescribeTimingL7OriginPullDataResponse originResponse = queryOrigin(target, start, end, ORIGIN_FLUX, ORIGIN_BANDWIDTH);
                 originFlux.add(extractSeries(originResponse.getTimingDataRecords(), ORIGIN_FLUX, size));
                 originBandwidth.add(extractSeries(originResponse.getTimingDataRecords(), ORIGIN_BANDWIDTH, size));
             } catch (BusinessException e) {
-                log.warn("Query EdgeOne origin statistics failed, domain: {}, message: {}", domain, e.getMessage());
+                log.warn("Skip failed EdgeOne resource statistics domain: {}, message: {}", domain, e.getMessage());
             }
         }
 
@@ -100,18 +107,19 @@ public class TencentEdgeOneDomainStatisticsServiceImpl extends BaseService<CdnDo
         Series originRequests = new Series(size);
 
         for (String domain : splitDomains(domainName)) {
-            EdgeOneQueryTarget target = resolveTarget(domain);
-            if (target == null) {
-                continue;
-            }
-            DescribeTimingL7AnalysisDataResponse accessResponse = queryAccess(target, start, end, ACCESS_REQUEST, HIT_FLUX);
-            requests.add(extractSeries(accessResponse.getData(), ACCESS_REQUEST, size));
-            hitFlux.add(extractSeries(accessResponse.getData(), HIT_FLUX, size));
             try {
+                EdgeOneQueryTarget target = resolveTarget(domain);
+                if (target == null) {
+                    continue;
+                }
+                DescribeTimingL7AnalysisDataResponse accessResponse = queryAccess(target, start, end, ACCESS_REQUEST, HIT_FLUX);
+                requests.add(extractSeries(accessResponse.getData(), ACCESS_REQUEST, size));
+                hitFlux.add(extractSeries(accessResponse.getData(), HIT_FLUX, size));
+
                 DescribeTimingL7OriginPullDataResponse originResponse = queryOrigin(target, start, end, ORIGIN_REQUEST);
                 originRequests.add(extractSeries(originResponse.getTimingDataRecords(), ORIGIN_REQUEST, size));
             } catch (BusinessException e) {
-                log.warn("Query EdgeOne origin request statistics failed, domain: {}, message: {}", domain, e.getMessage());
+                log.warn("Skip failed EdgeOne visit statistics domain: {}, message: {}", domain, e.getMessage());
             }
         }
 
@@ -170,6 +178,27 @@ public class TencentEdgeOneDomainStatisticsServiceImpl extends BaseService<CdnDo
         }
     }
 
+    private DescribeBillingDataResponse queryBillingFlux(EdgeOneQueryTarget target, DateTime start, DateTime end) throws BusinessException {
+        DescribeBillingDataRequest request = new DescribeBillingDataRequest();
+        request.setZoneIds(new String[]{target.zoneId});
+        request.setMetricName(BILLING_CONTENT_ACCELERATION_FLUX);
+        request.setStartTime(formatTime(start));
+        request.setEndTime(formatTime(end));
+        request.setInterval(getDefaultDataUnit(start, end));
+        BillingDataFilter hostFilter = new BillingDataFilter();
+        hostFilter.setType("host");
+        hostFilter.setValue(target.domainName);
+        request.setFilters(new BillingDataFilter[]{hostFilter});
+        try {
+            DescribeBillingDataResponse response = TencentEdgeOneClient.getClient().DescribeBillingData(request);
+            log.info("Query EdgeOne billing flux success, domain: {}, metric: {}, requestId: {}",
+                    target.domainName, BILLING_CONTENT_ACCELERATION_FLUX, response.getRequestId());
+            return response;
+        } catch (TencentCloudSDKException e) {
+            throw new BusinessException("查询腾讯云 EdgeOne 计费用量失败：" + TencentEdgeOneClient.formatTencentError(e));
+        }
+    }
+
     private DescribeTimingL7OriginPullDataResponse queryOrigin(EdgeOneQueryTarget target, DateTime start, DateTime end, String... metrics) throws BusinessException {
         DescribeTimingL7OriginPullDataRequest request = new DescribeTimingL7OriginPullDataRequest();
         request.setZoneIds(new String[]{target.zoneId});
@@ -194,6 +223,20 @@ public class TencentEdgeOneDomainStatisticsServiceImpl extends BaseService<CdnDo
         condition.setOperator("equals");
         condition.setValue(new String[]{domainName});
         return condition;
+    }
+
+    private Series extractBillingSeries(BillingData[] data, String domainName, int size) {
+        Series result = new Series(size);
+        if (data == null) {
+            return result;
+        }
+        Arrays.stream(data)
+                .filter(item -> item != null && item.getValue() != null)
+                .filter(item -> Assert.isEmpty(item.getHost()) || domainName.equalsIgnoreCase(item.getHost()))
+                .sorted(Comparator.comparing(BillingData::getTime, Comparator.nullsLast(String::compareTo)))
+                .map(BillingData::getValue)
+                .forEach(result::append);
+        return result;
     }
 
     private Series extractSeries(TimingDataRecord[] records, String metricName, int size) {
@@ -280,7 +323,7 @@ public class TencentEdgeOneDomainStatisticsServiceImpl extends BaseService<CdnDo
 
     private String getDefaultDataUnit(DateTime start, DateTime end) {
         long between = DateUtil.between(start, end, DateUnit.DAY);
-        return between > 7 ? "day" : "hour";
+        return between > 1 ? "day" : "hour";
     }
 
     private String formatTime(DateTime time) {

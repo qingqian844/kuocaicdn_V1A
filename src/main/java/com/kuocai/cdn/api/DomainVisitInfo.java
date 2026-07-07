@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import com.kuocai.cdn.vo.EdgeOneSecurityPolicyVo;
 
 @Data
 @Builder
@@ -21,6 +22,8 @@ public class DomainVisitInfo {
     private UserAgentFilter user_agent_filter;
 
     private UrlAuth url_auth;
+
+    private EdgeOneSecurityPolicyVo edgeone_security_policy;
 
 
     @Data

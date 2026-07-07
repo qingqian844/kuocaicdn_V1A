@@ -98,6 +98,14 @@ public interface ICdnPlatformService {
 
     void saveUrlAuth(CdnDomain cdnDomain, SettingAccessVo config) throws BusinessException;
 
+    default EdgeOneSecurityPolicyVo getEdgeOneSecurityPolicy(CdnDomain cdnDomain) throws BusinessException {
+        throw new BusinessException("当前厂商暂不支持 EdgeOne 安全防护策略");
+    }
+
+    default void saveEdgeOneSecurityPolicy(CdnDomain cdnDomain, EdgeOneSecurityPolicyVo config) throws BusinessException {
+        throw new BusinessException("当前厂商暂不支持 EdgeOne 安全防护策略");
+    }
+
     /**
      * 域名高级信息配置
      **/

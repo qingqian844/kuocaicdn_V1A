@@ -747,6 +747,17 @@
         var start = moment();
         var end = moment();
 
+        function hideChartPoints(chart) {
+            if (!chart || !chart.data || !chart.data.datasets) {
+                return;
+            }
+            chart.data.datasets.forEach(function (dataset) {
+                dataset.pointRadius = 0;
+                dataset.pointHoverRadius = 0;
+                dataset.pointHitRadius = 0;
+            });
+        }
+
         async function cbFlux(start, end, lebel) {
             let name = 'flux';
             const rangeStart = start.clone();

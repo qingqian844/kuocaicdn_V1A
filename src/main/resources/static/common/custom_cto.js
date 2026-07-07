@@ -1445,6 +1445,57 @@ async function saveUserAgentFilter(id) {
 /**
  * 新增流量包
  */
+async function saveEdgeOneSecurityPolicy(id) {
+    const rateLimitEnabled = $("#eoRateLimitEnabled").is(":checked") ? "on" : "off";
+    const exceptionEnabled = $("#eoExceptionEnabled").is(":checked") ? "on" : "off";
+    const threshold = Number($("#eoRateLimitThreshold").val() || 0);
+    if (rateLimitEnabled === "on" && (!Number.isFinite(threshold) || threshold < 1 || threshold > 100000)) {
+        layerWarn("速率限制阈值必须在 1 - 100000 之间");
+        errorShake("eoRateLimitThreshold");
+        return;
+    }
+    if (exceptionEnabled === "on" && !String($("#eoExceptionCondition").val() || "").trim()) {
+        layerWarn("启用例外规则时必须填写匹配条件");
+        errorShake("eoExceptionCondition");
+        return;
+    }
+    const param = {
+        doMainId: id,
+        managedRulesEnabled: $("#eoManagedRulesEnabled").is(":checked") ? "on" : "off",
+        managedRulesDetectionOnly: $("#eoManagedRulesDetectionOnly").is(":checked") ? "on" : "off",
+        managedRulesSemanticAnalysis: $("#eoManagedRulesSemanticAnalysis").is(":checked") ? "on" : "off",
+        managedRulesAutoUpdate: $("#eoManagedRulesAutoUpdate").is(":checked") ? "on" : "off",
+        botManagementEnabled: $("#eoBotManagementEnabled").is(":checked") ? "on" : "off",
+        captchaPageChallengeEnabled: $("#eoCaptchaPageChallengeEnabled").is(":checked") ? "on" : "off",
+        aiCrawlerDetectionEnabled: $("#eoAiCrawlerDetectionEnabled").is(":checked") ? "on" : "off",
+        aiCrawlerDetectionAction: $("#eoAiCrawlerDetectionAction").val(),
+        httpDdosAdaptiveFrequencyControlEnabled: $("#eoHttpDdosAdaptiveFrequencyControlEnabled").is(":checked") ? "on" : "off",
+        httpDdosAdaptiveFrequencyControlSensitivity: $("#eoHttpDdosAdaptiveFrequencyControlSensitivity").val(),
+        httpDdosClientFilteringEnabled: $("#eoHttpDdosClientFilteringEnabled").is(":checked") ? "on" : "off",
+        httpDdosBandwidthAbuseDefenseEnabled: $("#eoHttpDdosBandwidthAbuseDefenseEnabled").is(":checked") ? "on" : "off",
+        httpDdosSlowAttackDefenseEnabled: $("#eoHttpDdosSlowAttackDefenseEnabled").is(":checked") ? "on" : "off",
+        rateLimitEnabled: rateLimitEnabled,
+        rateLimitThreshold: threshold || 1000,
+        rateLimitPeriod: $("#eoRateLimitPeriod").val(),
+        rateLimitMode: $("#eoRateLimitMode").val(),
+        rateLimitAction: $("#eoRateLimitAction").val(),
+        rateLimitChallengeOption: $("#eoRateLimitChallengeOption").val(),
+        rateLimitActionDuration: $("#eoRateLimitActionDuration").val(),
+        rateLimitCountBy: $("#eoRateLimitCountBy").val(),
+        rateLimitCondition: $("#eoRateLimitCondition").val(),
+        exceptionEnabled: exceptionEnabled,
+        exceptionModules: $("#eoExceptionModules").val(),
+        exceptionCondition: $("#eoExceptionCondition").val()
+    };
+    let data = await sendRequest("POST", "CdnDomainAccess/saveEdgeOneSecurityPolicy", JSON.stringify(param), "application/json");
+    autoLayer(data);
+    if (data['code'] === 'SUCCESS') {
+        setTimeout(function() {
+            reload();
+        }, 1000);
+    }
+}
+
 async function addFlowPackage() {
     let flowPackageName = $("#flowPackageName").val()
     let flowPackageRemark = $("#flowPackageRemark").val()

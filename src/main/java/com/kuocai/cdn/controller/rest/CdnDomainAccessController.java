@@ -10,6 +10,7 @@ import com.kuocai.cdn.service.CdnDomainService;
 import com.kuocai.cdn.service.domain.operation.ICdnPlatformService;
 import com.kuocai.cdn.service.factory.CdnPlatformFactory;
 import com.kuocai.cdn.util.Assert;
+import com.kuocai.cdn.vo.EdgeOneSecurityPolicyVo;
 import com.kuocai.cdn.vo.SettingAccessVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -162,5 +163,31 @@ public class CdnDomainAccessController extends BaseController {
         cdnDomain.setDomainStatus(DomainStatus.CONFIGURING);
         cdnDomainService.save(cdnDomain);
         return RespResult.success("配置正在部署中，大约需要5分钟的时间完成部署，请稍后。");
+    }
+
+    @RateLimiter
+    @PostMapping("saveEdgeOneSecurityPolicy")
+    @SysLog(module = "站点管理", describe = "保存 EdgeOne 安全防护策略")
+    public RespResult saveEdgeOneSecurityPolicy(@RequestBody EdgeOneSecurityPolicyVo config) {
+        if (Assert.isEmpty(config) || Assert.isEmpty(config.getDoMainId())) {
+            return RespResult.fail("参数错误");
+        }
+        CdnDomain cdnDomain = cdnDomainService.queryById(config.getDoMainId());
+        if (Assert.isEmpty(cdnDomain)) {
+            return RespResult.fail("没有对应的加速域名");
+        }
+        RespResult accessResult = checkDomainAccess(cdnDomain);
+        if (accessResult != null) {
+            return accessResult;
+        }
+        try {
+            ICdnPlatformService iCdnPlatformService = CdnPlatformFactory.getCdnPlatform(cdnDomain.getRoute());
+            iCdnPlatformService.saveEdgeOneSecurityPolicy(cdnDomain, config);
+        } catch (Exception e) {
+            return RespResult.fail(e.getMessage());
+        }
+        cdnDomain.setDomainStatus(DomainStatus.CONFIGURING);
+        cdnDomainService.save(cdnDomain);
+        return RespResult.success("EdgeOne 安全防护策略正在部署中，请稍后刷新查看。");
     }
 }

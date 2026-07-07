@@ -263,6 +263,212 @@
             <!-- End Page Header -->
 
             <!-- Card 防盗链配置 -->
+            <div th:if="${domain.route == 'tencent_edgeone'}" class="card mb-3 mb-lg-5">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">EdgeOne 安全防护策略</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-soft-primary" role="alert">
+                        对接腾讯云 EdgeOne Web 安全策略，可配置托管规则、Bot 管理、速率限制和例外规则。该区域只更新[[${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteName) ? websiteBaseConfig.websiteName : '系统'}]]创建的策略，不会删除客户在腾讯控制台手动创建的其他规则。
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">托管规则</label>
+                            <div class="form-check form-switch">
+                                <input id="eoManagedRulesEnabled" type="checkbox" class="form-check-input" th:checked="${edgeOneSecurityPolicy.get('managedRulesEnabled') == 'on'}">
+                                <label class="form-check-label" for="eoManagedRulesEnabled">启用 WAF 托管规则</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">观察模式</label>
+                            <div class="form-check form-switch">
+                                <input id="eoManagedRulesDetectionOnly" type="checkbox" class="form-check-input" th:checked="${edgeOneSecurityPolicy.get('managedRulesDetectionOnly') == 'on'}">
+                                <label class="form-check-label" for="eoManagedRulesDetectionOnly">只记录不拦截</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">语义分析</label>
+                            <div class="form-check form-switch">
+                                <input id="eoManagedRulesSemanticAnalysis" type="checkbox" class="form-check-input" th:checked="${edgeOneSecurityPolicy.get('managedRulesSemanticAnalysis') == 'on'}">
+                                <label class="form-check-label" for="eoManagedRulesSemanticAnalysis">启用语义分析</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">规则自动更新</label>
+                            <div class="form-check form-switch">
+                                <input id="eoManagedRulesAutoUpdate" type="checkbox" class="form-check-input" th:checked="${edgeOneSecurityPolicy.get('managedRulesAutoUpdate') != 'off'}">
+                                <label class="form-check-label" for="eoManagedRulesAutoUpdate">跟随最新规则集</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row border-top pt-4">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Bot 管理</label>
+                            <div class="form-check form-switch">
+                                <input id="eoBotManagementEnabled" type="checkbox" class="form-check-input" th:checked="${edgeOneSecurityPolicy.get('botManagementEnabled') == 'on'}">
+                                <label class="form-check-label" for="eoBotManagementEnabled">启用 Bot 防护</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">验证码页挑战</label>
+                            <div class="form-check form-switch">
+                                <input id="eoCaptchaPageChallengeEnabled" type="checkbox" class="form-check-input" th:checked="${edgeOneSecurityPolicy.get('captchaPageChallengeEnabled') == 'on'}">
+                                <label class="form-check-label" for="eoCaptchaPageChallengeEnabled">启用验证码挑战页</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">AI 爬虫检测</label>
+                            <div class="form-check form-switch">
+                                <input id="eoAiCrawlerDetectionEnabled" type="checkbox" class="form-check-input" th:checked="${edgeOneSecurityPolicy.get('aiCrawlerDetectionEnabled') == 'on'}">
+                                <label class="form-check-label" for="eoAiCrawlerDetectionEnabled">启用 AI 爬虫检测</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label" for="eoAiCrawlerDetectionAction">AI 爬虫动作</label>
+                            <select id="eoAiCrawlerDetectionAction" class="form-select">
+                                <option value="Monitor" th:selected="${edgeOneSecurityPolicy.get('aiCrawlerDetectionAction') == 'Monitor'}">观察</option>
+                                <option value="Deny" th:selected="${edgeOneSecurityPolicy.get('aiCrawlerDetectionAction') == 'Deny'}">拦截</option>
+                                <option value="Challenge" th:selected="${edgeOneSecurityPolicy.get('aiCrawlerDetectionAction') == 'Challenge'}">挑战</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row border-top pt-4">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">自适应频控</label>
+                            <div class="form-check form-switch">
+                                <input id="eoHttpDdosAdaptiveFrequencyControlEnabled" type="checkbox" class="form-check-input" th:checked="${edgeOneSecurityPolicy.get('httpDdosAdaptiveFrequencyControlEnabled') == 'on'}">
+                                <label class="form-check-label" for="eoHttpDdosAdaptiveFrequencyControlEnabled">启用 HTTP DDoS 频控</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label" for="eoHttpDdosAdaptiveFrequencyControlSensitivity">频控灵敏度</label>
+                            <select id="eoHttpDdosAdaptiveFrequencyControlSensitivity" class="form-select">
+                                <option value="low" th:selected="${edgeOneSecurityPolicy.get('httpDdosAdaptiveFrequencyControlSensitivity') == 'low'}">低</option>
+                                <option value="medium" th:selected="${edgeOneSecurityPolicy.get('httpDdosAdaptiveFrequencyControlSensitivity') == 'medium'}">中</option>
+                                <option value="high" th:selected="${edgeOneSecurityPolicy.get('httpDdosAdaptiveFrequencyControlSensitivity') == 'high'}">高</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">客户端过滤</label>
+                            <div class="form-check form-switch">
+                                <input id="eoHttpDdosClientFilteringEnabled" type="checkbox" class="form-check-input" th:checked="${edgeOneSecurityPolicy.get('httpDdosClientFilteringEnabled') == 'on'}">
+                                <label class="form-check-label" for="eoHttpDdosClientFilteringEnabled">启用</label>
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">带宽滥用防护</label>
+                            <div class="form-check form-switch">
+                                <input id="eoHttpDdosBandwidthAbuseDefenseEnabled" type="checkbox" class="form-check-input" th:checked="${edgeOneSecurityPolicy.get('httpDdosBandwidthAbuseDefenseEnabled') == 'on'}">
+                                <label class="form-check-label" for="eoHttpDdosBandwidthAbuseDefenseEnabled">启用</label>
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">慢速攻击防护</label>
+                            <div class="form-check form-switch">
+                                <input id="eoHttpDdosSlowAttackDefenseEnabled" type="checkbox" class="form-check-input" th:checked="${edgeOneSecurityPolicy.get('httpDdosSlowAttackDefenseEnabled') == 'on'}">
+                                <label class="form-check-label" for="eoHttpDdosSlowAttackDefenseEnabled">启用</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-top pt-4">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">速率限制</label>
+                                <div class="form-check form-switch">
+                                    <input id="eoRateLimitEnabled" type="checkbox" class="form-check-input" th:checked="${edgeOneSecurityPolicy.get('rateLimitEnabled') == 'on'}">
+                                    <label class="form-check-label" for="eoRateLimitEnabled">启用请求速率限制</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label" for="eoRateLimitThreshold">阈值</label>
+                                <input id="eoRateLimitThreshold" type="number" min="1" max="100000" class="form-control" th:value="${edgeOneSecurityPolicy.get('rateLimitThreshold')}">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label" for="eoRateLimitPeriod">统计周期</label>
+                                <select id="eoRateLimitPeriod" class="form-select">
+                                    <option value="10s" th:selected="${edgeOneSecurityPolicy.get('rateLimitPeriod') == '10s'}">10 秒</option>
+                                    <option value="30s" th:selected="${edgeOneSecurityPolicy.get('rateLimitPeriod') == '30s'}">30 秒</option>
+                                    <option value="1m" th:selected="${edgeOneSecurityPolicy.get('rateLimitPeriod') == '1m'}">1 分钟</option>
+                                    <option value="5m" th:selected="${edgeOneSecurityPolicy.get('rateLimitPeriod') == '5m'}">5 分钟</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label" for="eoRateLimitMode">处置模式</label>
+                                <select id="eoRateLimitMode" class="form-select">
+                                    <option value="Block" th:selected="${edgeOneSecurityPolicy.get('rateLimitMode') != 'Throttle'}">阻断</option>
+                                    <option value="Throttle" th:selected="${edgeOneSecurityPolicy.get('rateLimitMode') == 'Throttle'}">限速</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label" for="eoRateLimitAction">触发动作</label>
+                                <select id="eoRateLimitAction" class="form-select">
+                                    <option value="Monitor" th:selected="${edgeOneSecurityPolicy.get('rateLimitAction') == 'Monitor'}">观察</option>
+                                    <option value="Deny" th:selected="${edgeOneSecurityPolicy.get('rateLimitAction') == 'Deny'}">拦截</option>
+                                    <option value="Challenge" th:selected="${edgeOneSecurityPolicy.get('rateLimitAction') == 'Challenge'}">挑战</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label" for="eoRateLimitChallengeOption">挑战方式</label>
+                                <select id="eoRateLimitChallengeOption" class="form-select">
+                                    <option value="ManagedChallenge" th:selected="${edgeOneSecurityPolicy.get('rateLimitChallengeOption') != 'JSChallenge'}">托管挑战</option>
+                                    <option value="JSChallenge" th:selected="${edgeOneSecurityPolicy.get('rateLimitChallengeOption') == 'JSChallenge'}">JS 挑战</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label" for="eoRateLimitActionDuration">动作持续时间</label>
+                                <select id="eoRateLimitActionDuration" class="form-select">
+                                    <option value="1m" th:selected="${edgeOneSecurityPolicy.get('rateLimitActionDuration') == '1m'}">1 分钟</option>
+                                    <option value="10m" th:selected="${edgeOneSecurityPolicy.get('rateLimitActionDuration') == '10m'}">10 分钟</option>
+                                    <option value="30m" th:selected="${edgeOneSecurityPolicy.get('rateLimitActionDuration') == '30m'}">30 分钟</option>
+                                    <option value="1h" th:selected="${edgeOneSecurityPolicy.get('rateLimitActionDuration') == '1h'}">1 小时</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label" for="eoRateLimitCountBy">统计维度</label>
+                                <input id="eoRateLimitCountBy" type="text" class="form-control" th:value="${edgeOneSecurityPolicy.get('rateLimitCountBy')}" placeholder="http.request.ip">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="eoRateLimitCondition">速率限制匹配条件</label>
+                            <textarea id="eoRateLimitCondition" class="form-control" rows="2" th:text="${edgeOneSecurityPolicy.get('rateLimitCondition')}"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="border-top pt-4">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">例外规则</label>
+                                <div class="form-check form-switch">
+                                    <input id="eoExceptionEnabled" type="checkbox" class="form-check-input" th:checked="${edgeOneSecurityPolicy.get('exceptionEnabled') == 'on'}">
+                                    <label class="form-check-label" for="eoExceptionEnabled">启用安全例外</label>
+                                </div>
+                            </div>
+                            <div class="col-md-9 mb-3">
+                                <label class="form-label" for="eoExceptionModules">跳过模块</label>
+                                <input id="eoExceptionModules" type="text" class="form-control" th:value="${edgeOneSecurityPolicy.get('exceptionModules')}" placeholder="waf,rateLimiting,bot">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="eoExceptionCondition">例外匹配条件</label>
+                            <textarea id="eoExceptionCondition" class="form-control" rows="2" th:text="${edgeOneSecurityPolicy.get('exceptionCondition')}" placeholder="${http.request.uri.path} like ['/api/callback/*']"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-end gap-3">
+                        <button class="btn btn-primary" th:onclick="saveEdgeOneSecurityPolicy('[[${domain.id}]]')" id="edgeOneSecurityPolicyButton">
+                            <i class="bi bi-check-circle-fill"></i> 保存
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div class="card mb-3 mb-lg-5">
                 <div class="card-header card-header-content-md-between">
                     <h3 class="card-header-title">防盗链</h3>
@@ -693,7 +899,7 @@
     <script th:src="@{common/custom.js}"></script>
     <script th:src="@{common/custom_ceo.js}"></script>
     <script th:src="@{common/custom_cmo.js}"></script>
-    <script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+    <script th:src="@{common/custom_cto.js(v='20260707-edgeone-security')}"></script>
 
 
     <!-- JS Plugins Init. -->

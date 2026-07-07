@@ -20,7 +20,7 @@ public enum QueryStatisticsEnum {
     BAISHAN_STATISTICS(CdnRoute.BAISHAN.getCode(), 10),
     QINIU_STATISTICS(CdnRoute.QINIU.getCode(), 100),
     TENCENT_STATISTICS(CdnRoute.TENCENT.getCode(), 	20),
-    TENCENT_EDGEONE_STATISTICS(CdnRoute.TENCENT_EDGEONE.getCode(), 20),
+    TENCENT_EDGEONE_STATISTICS(CdnRoute.TENCENT_EDGEONE.getCode(), 1),
     CDNETWORKS_STATISTICS(CdnRoute.CDNETWORKS.getCode(), 20);
 
     private final String route;

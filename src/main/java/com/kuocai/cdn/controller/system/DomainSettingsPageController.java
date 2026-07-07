@@ -10,6 +10,7 @@ import com.kuocai.cdn.service.domain.operation.ICdnPlatformService;
 import com.kuocai.cdn.service.factory.CdnPlatformFactory;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.vo.CdnDomainVo;
+import com.kuocai.cdn.vo.EdgeOneSecurityPolicyVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
@@ -220,21 +221,51 @@ public class DomainSettingsPageController extends BaseController {
                         .expire_time(3600L)
                         .build());
             }
+            if (domainVisitInfo.getEdgeone_security_policy() == null) {
+                domainVisitInfo.setEdgeone_security_policy(EdgeOneSecurityPolicyVo.builder()
+                        .managedRulesEnabled("off")
+                        .managedRulesDetectionOnly("off")
+                        .managedRulesSemanticAnalysis("off")
+                        .managedRulesAutoUpdate("on")
+                        .botManagementEnabled("off")
+                        .captchaPageChallengeEnabled("off")
+                        .aiCrawlerDetectionEnabled("off")
+                        .aiCrawlerDetectionAction("Monitor")
+                        .httpDdosAdaptiveFrequencyControlEnabled("off")
+                        .httpDdosAdaptiveFrequencyControlSensitivity("medium")
+                        .httpDdosClientFilteringEnabled("off")
+                        .httpDdosBandwidthAbuseDefenseEnabled("off")
+                        .httpDdosSlowAttackDefenseEnabled("off")
+                        .rateLimitEnabled("off")
+                        .rateLimitCountBy("http.request.ip")
+                        .rateLimitThreshold(1000L)
+                        .rateLimitPeriod("1m")
+                        .rateLimitMode("Monitor")
+                        .rateLimitActionDuration("10m")
+                        .rateLimitAction("Monitor")
+                        .rateLimitChallengeOption("ManagedChallenge")
+                        .exceptionEnabled("off")
+                        .exceptionModules("waf,rateLimiting,bot")
+                        .build());
+            }
             
             JSONObject visitInfoJson = JSONObject.parseObject(JSON.toJSONString(domainVisitInfo));
             JSONObject referer = JSONObject.parseObject(JSON.toJSONString(domainVisitInfo.getReferer()));
             JSONObject ipAcl = JSONObject.parseObject(JSON.toJSONString(domainVisitInfo.getIp_filter()));
             JSONObject userAgentFilter = JSONObject.parseObject(JSON.toJSONString(domainVisitInfo.getUser_agent_filter()));
+            JSONObject edgeOneSecurityPolicy = JSONObject.parseObject(JSON.toJSONString(domainVisitInfo.getEdgeone_security_policy()));
             log.info("获取到IP黑白名单信息{}", ipAcl);
             
             // 创建一个包含所有必要属性的domainConfig
             JSONObject domainConfig = new JSONObject();
             domainConfig.put("visit", visitInfoJson);
             domainConfig.put("user_agent_filter", userAgentFilter);
+            domainConfig.put("edgeone_security_policy", edgeOneSecurityPolicy);
             
             map.put("domainConfig", domainConfig);
             map.put("referer", referer);
             map.put("ipAcl", ipAcl);
+            map.put("edgeOneSecurityPolicy", edgeOneSecurityPolicy);
         } catch (BusinessException e) {
             log.error("获取域名访问配置失败", e);
             return "redirect:/500";
