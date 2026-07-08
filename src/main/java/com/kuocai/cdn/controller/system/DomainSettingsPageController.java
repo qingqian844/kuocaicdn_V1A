@@ -55,6 +55,7 @@ public class DomainSettingsPageController extends BaseController {
             map.put("domainConfig", JSONObject.parseObject(JSON.toJSONString(domainConfig)));
 
         } catch (BusinessException e) {
+            log.error("获取域名基础配置失败，domain={}, route={}", cdnDomainVo.getDomainName(), cdnDomainVo.getRoute(), e);
             return "redirect:/500";
         }
         map.put("domain", cdnDomainVo);

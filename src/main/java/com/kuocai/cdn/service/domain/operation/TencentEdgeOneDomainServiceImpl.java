@@ -753,7 +753,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
                 .flexible_origin(new ArrayList<>())
                 .origin_request_header(new ArrayList<>())
                 .build();
-        ZoneConfig edgeOneConfig = getL7AccSetting(domainName);
+        ZoneConfig edgeOneConfig = getL7AccSettingOrEmpty(domainName);
         DomainHttpsInfo domainHttpsInfo = buildHttpsInfo(edgeOneConfig, domain);
         DomainCacheInfo domainCacheInfo = buildCacheInfo(edgeOneConfig);
         DomainVisitInfo domainVisitInfo = buildVisitInfo(domainName);
@@ -1322,6 +1322,15 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
             throw e;
         } catch (TencentCloudSDKException e) {
             throw new BusinessException("获取腾讯云 EdgeOne 配置失败：" + TencentEdgeOneClient.formatTencentError(e));
+        }
+    }
+
+    private ZoneConfig getL7AccSettingOrEmpty(String domainName) {
+        try {
+            return getL7AccSetting(domainName);
+        } catch (BusinessException e) {
+            log.warn("Get EdgeOne L7 setting failed for {}, use empty domain config: {}", domainName, e.getMessage());
+            return new ZoneConfig();
         }
     }
 
