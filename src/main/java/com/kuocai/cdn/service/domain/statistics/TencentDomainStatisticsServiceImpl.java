@@ -5,23 +5,39 @@ import cn.hutool.core.date.DateUnit;
 import cn.hutool.core.date.DateUtil;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.kuocai.cdn.api.tencent.cdn.TencentClient;
 import com.kuocai.cdn.api.tencent.cdn.TencentErrorCodeHandler;
 import com.kuocai.cdn.entity.CdnDomain;
+import com.kuocai.cdn.enumeration.domainmerage.CdnRoute;
 import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.service.CdnDomainStatisticsService;
 import com.kuocai.cdn.service.base.BaseService;
+import com.kuocai.cdn.util.Assert;
 import com.tencentcloudapi.cdn.v20180606.CdnClient;
-import com.tencentcloudapi.cdn.v20180606.models.*;
+import com.tencentcloudapi.cdn.v20180606.models.CdnData;
+import com.tencentcloudapi.cdn.v20180606.models.DescribeBillingDataRequest;
+import com.tencentcloudapi.cdn.v20180606.models.DescribeBillingDataResponse;
+import com.tencentcloudapi.cdn.v20180606.models.DescribeCdnDataRequest;
+import com.tencentcloudapi.cdn.v20180606.models.DescribeCdnDataResponse;
+import com.tencentcloudapi.cdn.v20180606.models.DescribeOriginDataRequest;
+import com.tencentcloudapi.cdn.v20180606.models.DescribeOriginDataResponse;
+import com.tencentcloudapi.cdn.v20180606.models.ListTopDataRequest;
+import com.tencentcloudapi.cdn.v20180606.models.ListTopDataResponse;
+import com.tencentcloudapi.cdn.v20180606.models.SummarizedData;
+import com.tencentcloudapi.cdn.v20180606.models.TimestampData;
+import com.tencentcloudapi.cdn.v20180606.models.TopDetailData;
 import com.tencentcloudapi.common.exception.TencentCloudSDKException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,41 +47,54 @@ public class TencentDomainStatisticsServiceImpl extends BaseService<CdnDomain> i
     @Resource
     private CdnDomainStatisticsService statisticsService;
 
+    @FunctionalInterface
+    private interface TencentCdnDataFetcher {
+        CdnData fetch(String domainName, DateTime start, DateTime end, String metric, String area) throws BusinessException;
+    }
+
     @Override
     public JSONObject queryResourceStatistics(String domainName, DateTime start, DateTime end) throws BusinessException {
         JSONObject result = new JSONObject();
         try {
-            int sized = statisticsService.getLabels(start, end).size();
+            int size = statisticsService.getLabels(start, end).size();
+            JSONArray bwDetail = emptyLongArray(size);
+            JSONArray bsBwDetail = emptyLongArray(size);
+            JSONArray fluxDetail = emptyLongArray(size);
+            JSONArray bsFluxDetail = emptyLongArray(size);
+
+            for (Map.Entry<String, String> areaGroup : splitTencentDomainsByArea(domainName).entrySet()) {
+                String domains = areaGroup.getValue();
+                String area = areaGroup.getKey();
+
+                CdnData cdnData = queryTencentDataWithDomainFallback(domains, start, end, "bandwidth", area, this::queryCdnData);
+                bwDetail = sumArray(bwDetail, fixArray(convertData(cdnData.getDetailData(), end), size), size);
+
+                cdnData = queryTencentDataWithDomainFallback(domains, start, end, "bandwidth", area, this::queryOriginData);
+                bsBwDetail = sumArray(bsBwDetail, fixArray(convertData(cdnData.getDetailData(), end), size), size);
+
+                cdnData = queryTencentDataWithDomainFallback(domains, start, end, "flux", area, this::queryCdnData);
+                fluxDetail = sumArray(fluxDetail, fixArray(convertData(cdnData.getDetailData(), end), size), size);
+
+                cdnData = queryTencentDataWithDomainFallback(domains, start, end, "flux", area, this::queryOriginData);
+                bsFluxDetail = sumArray(bsFluxDetail, fixArray(convertData(cdnData.getDetailData(), end), size), size);
+            }
+
             JSONObject rd = new JSONObject();
+            rd.put("bw", bwDetail);
+            rd.put("bs_bw", bsBwDetail);
+            rd.put("flux", fluxDetail);
+            rd.put("bs_flux", bsFluxDetail);
+
             JSONObject rs = new JSONObject();
-            // 访问带宽
-            DescribeCdnDataResponse bandwidthResponse = getDescribeCdnData(domainName, start, end, "bandwidth");
-            CdnData cdnData = bandwidthResponse.getData()[0].getCdnData()[0];
-            JSONArray bwDetail = convertData(cdnData.getDetailData(), end);
-            rd.put("bw", fixArray(bwDetail, sized));
             rs.put("bw", maxData(bwDetail));
-            // 回源带宽
-            DescribeOriginDataResponse bandwidthOriginResponse = getDescribeOriginData(domainName, start, end, "bandwidth");
-            cdnData = bandwidthOriginResponse.getData()[0].getOriginData()[0];
-            JSONArray bsBwDetail = convertData(cdnData.getDetailData(), end);
-            rd.put("bs_bw", fixArray(bsBwDetail, sized));
             rs.put("bs_bw", maxData(bsBwDetail));
-            // 访问流量
-            DescribeCdnDataResponse fluxResponse = getDescribeCdnData(domainName, start, end, "flux");
-            cdnData = fluxResponse.getData()[0].getCdnData()[0];
-            JSONArray fluxDetail = convertData(cdnData.getDetailData(), end);
-            rd.put("flux", fixArray(fluxDetail, sized));
             rs.put("flux", sumData(fluxDetail));
-            // 回源流量
-            DescribeOriginDataResponse fluxOriginResponse = getDescribeOriginData(domainName, start, end, "flux");
-            cdnData = fluxOriginResponse.getData()[0].getOriginData()[0];
-            JSONArray bsFluxDetail = convertData(cdnData.getDetailData(), end);
-            rd.put("bs_flux", fixArray(bsFluxDetail, sized));
             rs.put("bs_flux", sumData(bsFluxDetail));
+
             result.put("resource_detail", rd);
             result.put("resource_summary", rs);
         } catch (Exception e) {
-            log.error("查询网络资源消耗统计信，域名：{}，开始时间：{}，结束时间：{}", domainName, start, end);
+            log.error("Query Tencent CDN resource statistics failed, domain={}, start={}, end={}", domainName, start, end, e);
             throw new BusinessException(e.getMessage()).setCause(e).log();
         }
         return result;
@@ -75,33 +104,45 @@ public class TencentDomainStatisticsServiceImpl extends BaseService<CdnDomain> i
     public Object queryVisitsStatistics(String domainName, DateTime start, DateTime end) throws BusinessException {
         JSONObject result = new JSONObject();
         try {
-            int sized = statisticsService.getLabels(start, end).size();
-            JSONObject vs = new JSONObject();
+            int size = statisticsService.getLabels(start, end).size();
+            JSONArray reqNumDetail = emptyLongArray(size);
+            JSONArray hitFluxDetail = emptyLongArray(size);
+            JSONArray bsNumDetail = emptyLongArray(size);
+            JSONArray hitNumDetail = emptyLongArray(size);
+
+            for (Map.Entry<String, String> areaGroup : splitTencentDomainsByArea(domainName).entrySet()) {
+                String domains = areaGroup.getValue();
+                String area = areaGroup.getKey();
+
+                CdnData cdnData = queryTencentDataWithDomainFallback(domains, start, end, "request", area, this::queryCdnData);
+                reqNumDetail = sumArray(reqNumDetail, fixArray(convertData(cdnData.getDetailData()), size), size);
+
+                cdnData = queryTencentDataWithDomainFallback(domains, start, end, "hitFlux", area, this::queryCdnData);
+                hitFluxDetail = sumArray(hitFluxDetail, fixArray(convertData(cdnData.getDetailData()), size), size);
+
+                cdnData = queryTencentDataWithDomainFallback(domains, start, end, "request", area, this::queryOriginData);
+                bsNumDetail = sumArray(bsNumDetail, fixArray(convertData(cdnData.getDetailData()), size), size);
+
+                cdnData = queryTencentDataWithDomainFallback(domains, start, end, "hitRequest", area, this::queryCdnData);
+                hitNumDetail = sumArray(hitNumDetail, fixArray(convertData(cdnData.getDetailData()), size), size);
+            }
+
             JSONObject vd = new JSONObject();
-            // 访问次数
-            DescribeCdnDataResponse requestResponse = getDescribeCdnData(domainName, start, end, "request");
-            CdnData cdnData = requestResponse.getData()[0].getCdnData()[0];
-            vd.put("req_num", fixArray(convertData(cdnData.getDetailData()), sized));
-            vs.put("req_num", cdnData.getSummarizedData().getValue().longValue());
-            // 命中次数
-            DescribeCdnDataResponse hitFluxResponse = getDescribeCdnData(domainName, start, end, "hitFlux");
-            cdnData = hitFluxResponse.getData()[0].getCdnData()[0];
-            vd.put("hit_flux", fixArray(convertData(cdnData.getDetailData()), sized));
-            vs.put("hit_flux", cdnData.getSummarizedData().getValue().longValue());
-            // 访问流量
-            DescribeOriginDataResponse requestOriginResponse = getDescribeOriginData(domainName, start, end, "request");
-            cdnData = requestOriginResponse.getData()[0].getOriginData()[0];
-            vd.put("bs_num", fixArray(convertData(cdnData.getDetailData()), sized));
-            vs.put("bs_num", cdnData.getSummarizedData().getValue().longValue());
-            // 命中流量
-            DescribeCdnDataResponse hitRequestResponse = getDescribeCdnData(domainName, start, end, "hitRequest");
-            cdnData = hitRequestResponse.getData()[0].getCdnData()[0];
-            vd.put("hit_num", fixArray(convertData(cdnData.getDetailData()), sized));
-            vs.put("hit_num", cdnData.getSummarizedData().getValue().longValue());
+            vd.put("req_num", reqNumDetail);
+            vd.put("hit_flux", hitFluxDetail);
+            vd.put("bs_num", bsNumDetail);
+            vd.put("hit_num", hitNumDetail);
+
+            JSONObject vs = new JSONObject();
+            vs.put("req_num", sumData(reqNumDetail));
+            vs.put("hit_flux", sumData(hitFluxDetail));
+            vs.put("bs_num", sumData(bsNumDetail));
+            vs.put("hit_num", sumData(hitNumDetail));
+
             result.put("visits_detail", vd);
             result.put("visits_summary", vs);
         } catch (Exception e) {
-            log.error("查询访问统计信息失败，域名：{}，开始时间：{}，结束时间：{}", domainName, start, end);
+            log.error("Query Tencent CDN visit statistics failed, domain={}, start={}, end={}", domainName, start, end, e);
             throw new BusinessException(e.getMessage()).setCause(e).log();
         }
         return result;
@@ -111,57 +152,37 @@ public class TencentDomainStatisticsServiceImpl extends BaseService<CdnDomain> i
     public Object queryHttpCodeStatusStatistics(String domainName, DateTime start, DateTime end) throws BusinessException {
         JSONObject result = new JSONObject();
         try {
-            int sized = statisticsService.getLabels(start, end).size();
+            int size = statisticsService.getLabels(start, end).size();
             JSONArray sd = new JSONArray();
             JSONArray ss = new JSONArray();
             JSONArray bsd = new JSONArray();
             JSONArray bss = new JSONArray();
-            // 访问状态码 2xx
-            DescribeCdnDataResponse code2xxResponse = getDescribeCdnData(domainName, start, end, "2xx");
-            CdnData cdnData = code2xxResponse.getData()[0].getCdnData()[0];
-            sd.add(fixArray(convertData(cdnData.getDetailData()), sized));
-            ss.add(cdnData.getSummarizedData().getValue().longValue());
-            // 访问状态码 3xx
-            DescribeCdnDataResponse code3xxResponse = getDescribeCdnData(domainName, start, end, "3xx");
-            cdnData = code3xxResponse.getData()[0].getCdnData()[0];
-            sd.add(fixArray(convertData(cdnData.getDetailData()), sized));
-            ss.add(cdnData.getSummarizedData().getValue().longValue());
-            // 访问状态码 4xx
-            DescribeCdnDataResponse code4xxResponse = getDescribeCdnData(domainName, start, end, "4xx");
-            cdnData = code4xxResponse.getData()[0].getCdnData()[0];
-            sd.add(fixArray(convertData(cdnData.getDetailData()), sized));
-            ss.add(cdnData.getSummarizedData().getValue().longValue());
-            // 访问状态码 5xx
-            DescribeCdnDataResponse code5xxResponse = getDescribeCdnData(domainName, start, end, "5xx");
-            cdnData = code5xxResponse.getData()[0].getCdnData()[0];
-            sd.add(fixArray(convertData(cdnData.getDetailData()), sized));
-            ss.add(cdnData.getSummarizedData().getValue().longValue());
-            // 回源状态码 2xx
-            DescribeOriginDataResponse code2xxOriginResponse = getDescribeOriginData(domainName, start, end, "2xx");
-            cdnData = code2xxOriginResponse.getData()[0].getOriginData()[0];
-            bsd.add(fixArray(convertData(cdnData.getDetailData()), sized));
-            bss.add(cdnData.getSummarizedData().getValue().longValue());
-            // 回源状态码 3xx
-            DescribeOriginDataResponse code3xxOriginResponse = getDescribeOriginData(domainName, start, end, "3xx");
-            cdnData = code3xxOriginResponse.getData()[0].getOriginData()[0];
-            bsd.add(fixArray(convertData(cdnData.getDetailData()), sized));
-            bss.add(cdnData.getSummarizedData().getValue().longValue());
-            // 回源状态码 4xx
-            DescribeOriginDataResponse code4xxOriginResponse = getDescribeOriginData(domainName, start, end, "4xx");
-            cdnData = code4xxOriginResponse.getData()[0].getOriginData()[0];
-            bsd.add(fixArray(convertData(cdnData.getDetailData()), sized));
-            bss.add(cdnData.getSummarizedData().getValue().longValue());
-            // 回源状态码 5xx
-            DescribeOriginDataResponse code5xxOriginResponse = getDescribeOriginData(domainName, start, end, "5xx");
-            cdnData = code5xxOriginResponse.getData()[0].getOriginData()[0];
-            bsd.add(fixArray(convertData(cdnData.getDetailData()), sized));
-            bss.add(cdnData.getSummarizedData().getValue().longValue());
+
+            for (String code : new String[]{"2xx", "3xx", "4xx", "5xx"}) {
+                JSONArray detail = emptyLongArray(size);
+                JSONArray originDetail = emptyLongArray(size);
+                for (Map.Entry<String, String> areaGroup : splitTencentDomainsByArea(domainName).entrySet()) {
+                    String domains = areaGroup.getValue();
+                    String area = areaGroup.getKey();
+
+                    CdnData cdnData = queryTencentDataWithDomainFallback(domains, start, end, code, area, this::queryCdnData);
+                    detail = sumArray(detail, fixArray(convertData(cdnData.getDetailData()), size), size);
+
+                    cdnData = queryTencentDataWithDomainFallback(domains, start, end, code, area, this::queryOriginData);
+                    originDetail = sumArray(originDetail, fixArray(convertData(cdnData.getDetailData()), size), size);
+                }
+                sd.add(detail);
+                ss.add(sumData(detail));
+                bsd.add(originDetail);
+                bss.add(sumData(originDetail));
+            }
+
             result.put("status_detail", sd);
             result.put("status_summary", ss);
             result.put("bs_status_detail", bsd);
             result.put("bs_status_summary", bss);
         } catch (Exception e) {
-            log.error("查询HTTP状态码统计信息失败，域名：{}，开始时间：{}，结束时间：{}", domainName, start, end);
+            log.error("Query Tencent CDN status statistics failed, domain={}, start={}, end={}", domainName, start, end, e);
             throw new BusinessException(e.getMessage()).setCause(e).log();
         }
         return result;
@@ -171,37 +192,44 @@ public class TencentDomainStatisticsServiceImpl extends BaseService<CdnDomain> i
     public JSONObject queryTopUri(String domainName, DateTime start, DateTime end) throws BusinessException {
         JSONObject result = new JSONObject();
         try {
-            // 访问流量排行
-            ListTopDataResponse listTopDataResponse = getListTopData(domainName, start, end, "url", "flux");
-            result.put("fluxResult", convertTopData(listTopDataResponse.getData()[0].getDetailData()));
-            // 访问次数排行
-            listTopDataResponse = getListTopData(domainName, start, end, "url", "request");
-            result.put("reqNumResult", convertTopData(listTopDataResponse.getData()[0].getDetailData()));
-            log.info("查询TOP URL成功，域名：{}，开始时间：{}，结束时间：{}", domainName, start, end);
-            log.info("查询TOP URL成功，返回结果：{}", result);
+            JSONArray fluxResult = new JSONArray();
+            JSONArray reqNumResult = new JSONArray();
+            for (Map.Entry<String, String> areaGroup : splitTencentDomainsByArea(domainName).entrySet()) {
+                ListTopDataResponse listTopDataResponse = getListTopData(areaGroup.getValue(), start, end, "url", "flux", areaGroup.getKey());
+                fluxResult.addAll(convertTopData(listTopDataResponse.getData()[0].getDetailData()));
+
+                listTopDataResponse = getListTopData(areaGroup.getValue(), start, end, "url", "request", areaGroup.getKey());
+                reqNumResult.addAll(convertTopData(listTopDataResponse.getData()[0].getDetailData()));
+            }
+            result.put("fluxResult", fluxResult);
+            result.put("reqNumResult", reqNumResult);
+            log.info("Query Tencent CDN top url success, domain={}, start={}, end={}", domainName, start, end);
         } catch (Exception e) {
-            log.error("查询TOP URL失败，域名：{}，开始时间：{}，结束时间：{}", domainName, start, end);
+            log.error("Query Tencent CDN top url failed, domain={}, start={}, end={}", domainName, start, end, e);
             throw new BusinessException(e.getMessage()).setCause(e).log();
         }
         return result;
     }
 
     public ListTopDataResponse getListTopData(String domainName, DateTime startTime, DateTime endTime, String type, String filter) throws BusinessException {
+        return getListTopData(domainName, startTime, endTime, type, filter, "mainland");
+    }
+
+    public ListTopDataResponse getListTopData(String domainName, DateTime startTime, DateTime endTime, String type, String filter, String area) throws BusinessException {
         ListTopDataRequest req = new ListTopDataRequest();
         req.setStartTime(startTime.toString("yyyy-MM-dd HH:mm:ss"));
         req.setEndTime(endTime.toString("yyyy-MM-dd HH:mm:ss"));
         req.setMetric(type);
         req.setFilter(filter);
         req.setDomains(domainName.split(","));
-        req.setArea("mainland");
+        req.setArea(area);
         CdnClient client = TencentClient.getCdnClient();
         try {
             ListTopDataResponse resp = client.ListTopData(req);
-            log.info("查询域名访问详情成功，域名：{}，维度：{}，开始时间：{}，结束时间：{}", domainName, type, startTime, endTime);
-            log.info("查询域名访问详情成功，返回结果：{}", ListTopDataResponse.toJsonString(resp));
+            log.info("Query Tencent CDN top data success, domain={}, type={}, area={}, start={}, end={}", domainName, type, area, startTime, endTime);
             return resp;
         } catch (TencentCloudSDKException e) {
-            log.error("查询域名访问详情失败，域名：{}，开始时间：{}，结束时间：{}", domainName, startTime, endTime);
+            log.error("Query Tencent CDN top data failed, domain={}, type={}, area={}, start={}, end={}", domainName, type, area, startTime, endTime);
             throw new BusinessException(TencentErrorCodeHandler.getErrorDescription(e)).setCause(e).log();
         }
     }
@@ -217,88 +245,205 @@ public class TencentDomainStatisticsServiceImpl extends BaseService<CdnDomain> i
         CdnClient client = TencentClient.getCdnClient();
         try {
             DescribeBillingDataResponse resp = client.DescribeBillingData(req);
-            log.info("查询域名计费数据成功，域名：{}，维度：{}，开始时间：{}，结束时间：{}", domainName, type, startTime, endTime);
-            log.info("查询域名计费数据成功，返回结果：{}", DescribeBillingDataResponse.toJsonString(resp));
+            log.info("Query Tencent CDN billing data success, domain={}, type={}, start={}, end={}", domainName, type, startTime, endTime);
             return resp;
         } catch (TencentCloudSDKException e) {
-            log.error("查询域名计费数据失败，域名：{}，维度：{}，开始时间：{}，结束时间：{}", domainName, type, startTime, endTime);
+            log.error("Query Tencent CDN billing data failed, domain={}, type={}, start={}, end={}", domainName, type, startTime, endTime);
             throw new BusinessException(TencentErrorCodeHandler.getErrorDescription(e)).setCause(e).log();
         }
     }
 
-    private DescribeCdnDataResponse getDescribeCdnData(String domainName, DateTime startTime, DateTime endTime, String type) throws BusinessException {
+    private DescribeCdnDataResponse getDescribeCdnData(String domainName, DateTime startTime, DateTime endTime, String type, String area) throws BusinessException {
         DescribeCdnDataRequest req = new DescribeCdnDataRequest();
         req.setStartTime(startTime.toString("yyyy-MM-dd HH:mm:ss"));
         req.setEndTime(endTime.toString("yyyy-MM-dd HH:mm:ss"));
         req.setMetric(type);
         req.setInterval(getDefaultDataUnit(startTime, endTime));
         req.setDomains(domainName.split(","));
-        req.setArea("mainland");
+        req.setArea(area);
         CdnClient client = TencentClient.getCdnClient();
         try {
             DescribeCdnDataResponse resp = client.DescribeCdnData(req);
-            log.info("查询域名访问详情成功，域名：{}，维度：{}，开始时间：{}，结束时间：{}", domainName, type, startTime, endTime);
-            log.info("查询域名访问详情成功，返回结果：{}", DescribeCdnDataResponse.toJsonString(resp));
+            log.info("Query Tencent CDN data success, domain={}, type={}, area={}, start={}, end={}", domainName, type, area, startTime, endTime);
             return resp;
         } catch (TencentCloudSDKException e) {
-            log.error("查询域名访问详情失败，域名：{}，维度：{}，开始时间：{}，结束时间：{}", domainName, type, startTime, endTime);
+            log.error("Query Tencent CDN data failed, domain={}, type={}, area={}, start={}, end={}", domainName, type, area, startTime, endTime);
             throw new BusinessException(TencentErrorCodeHandler.getErrorDescription(e)).setCause(e).log();
         }
     }
 
+    private CdnData queryCdnData(String domainName, DateTime startTime, DateTime endTime, String type, String area) throws BusinessException {
+        return firstCdnData(getDescribeCdnData(domainName, startTime, endTime, type, area));
+    }
 
-    private DescribeOriginDataResponse getDescribeOriginData(String domainName, DateTime startTime, DateTime endTime, String type) throws BusinessException {
+    private DescribeOriginDataResponse getDescribeOriginData(String domainName, DateTime startTime, DateTime endTime, String type, String area) throws BusinessException {
         DescribeOriginDataRequest req = new DescribeOriginDataRequest();
         req.setDomains(domainName.split(","));
         req.setStartTime(startTime.toString("yyyy-MM-dd HH:mm:ss"));
         req.setEndTime(endTime.toString("yyyy-MM-dd HH:mm:ss"));
         req.setMetric(type);
         req.setInterval(getDefaultDataUnit(startTime, endTime));
-        req.setArea("mainland");
+        req.setArea(area);
         CdnClient client = TencentClient.getCdnClient();
         try {
             DescribeOriginDataResponse resp = client.DescribeOriginData(req);
-            log.info("查询域名回源详情成功，域名：{}，维度：{}，开始时间：{}，结束时间：{}", domainName, type, startTime, endTime);
-            log.info("查询域名回源详情成功，返回结果：{}", DescribeOriginDataResponse.toJsonString(resp));
+            log.info("Query Tencent CDN origin data success, domain={}, type={}, area={}, start={}, end={}", domainName, type, area, startTime, endTime);
             return resp;
         } catch (TencentCloudSDKException e) {
-            log.error("查询域名回源详情失败，域名：{}，开始时间：{}，结束时间：{}", domainName, startTime, endTime);
+            log.error("Query Tencent CDN origin data failed, domain={}, type={}, area={}, start={}, end={}", domainName, type, area, startTime, endTime);
             throw new BusinessException(TencentErrorCodeHandler.getErrorDescription(e)).setCause(e).log();
         }
     }
 
+    private CdnData queryOriginData(String domainName, DateTime startTime, DateTime endTime, String type, String area) throws BusinessException {
+        return firstOriginData(getDescribeOriginData(domainName, startTime, endTime, type, area));
+    }
+
+    private CdnData queryTencentDataWithDomainFallback(String domainNames, DateTime start, DateTime end, String metric,
+                                                       String area, TencentCdnDataFetcher fetcher) throws BusinessException {
+        try {
+            return fetcher.fetch(domainNames, start, end, metric, area);
+        } catch (BusinessException batchException) {
+            List<String> domains = Arrays.stream(domainNames.split(","))
+                    .map(String::trim)
+                    .filter(Assert::notEmpty)
+                    .collect(Collectors.toList());
+            if (domains.size() <= 1) {
+                throw batchException;
+            }
+
+            log.warn("Tencent CDN batch statistics failed, fallback to single-domain query. domains={}, metric={}, area={}, message={}",
+                    domainNames, metric, area, batchException.getMessage());
+            CdnData merged = new CdnData();
+            boolean hasData = false;
+            for (String domain : domains) {
+                try {
+                    CdnData item = fetcher.fetch(domain, start, end, metric, area);
+                    mergeCdnData(merged, item);
+                    hasData = true;
+                } catch (BusinessException singleException) {
+                    log.warn("Skip Tencent CDN statistics for invalid or unavailable domain. domain={}, metric={}, area={}, message={}",
+                            domain, metric, area, singleException.getMessage());
+                }
+            }
+            if (!hasData) {
+                throw batchException;
+            }
+            return merged;
+        }
+    }
+
+    private void mergeCdnData(CdnData target, CdnData source) {
+        if (source == null) {
+            return;
+        }
+        if (Assert.isEmpty(target.getMetric()) && Assert.notEmpty(source.getMetric())) {
+            target.setMetric(source.getMetric());
+        }
+        target.setDetailData(mergeTimestampData(target.getDetailData(), source.getDetailData()));
+
+        float current = target.getSummarizedData() == null || target.getSummarizedData().getValue() == null
+                ? 0F : target.getSummarizedData().getValue();
+        float addition = source.getSummarizedData() == null || source.getSummarizedData().getValue() == null
+                ? sumTimestampData(source.getDetailData()) : source.getSummarizedData().getValue();
+        SummarizedData summarizedData = target.getSummarizedData() == null ? new SummarizedData() : target.getSummarizedData();
+        summarizedData.setName(source.getSummarizedData() == null ? target.getMetric() : source.getSummarizedData().getName());
+        summarizedData.setValue(current + addition);
+        target.setSummarizedData(summarizedData);
+    }
+
+    private TimestampData[] mergeTimestampData(TimestampData[] base, TimestampData[] addition) {
+        Map<String, Float> values = new LinkedHashMap<>();
+        addTimestampData(values, base);
+        addTimestampData(values, addition);
+        return values.entrySet().stream()
+                .map(entry -> {
+                    TimestampData item = new TimestampData();
+                    item.setTime(entry.getKey());
+                    item.setValue(entry.getValue());
+                    return item;
+                })
+                .toArray(TimestampData[]::new);
+    }
+
+    private void addTimestampData(Map<String, Float> values, TimestampData[] items) {
+        if (items == null) {
+            return;
+        }
+        for (TimestampData item : items) {
+            if (item == null || item.getTime() == null || item.getValue() == null) {
+                continue;
+            }
+            values.put(item.getTime(), values.getOrDefault(item.getTime(), 0F) + item.getValue());
+        }
+    }
+
+    private float sumTimestampData(TimestampData[] items) {
+        if (items == null) {
+            return 0F;
+        }
+        float result = 0F;
+        for (TimestampData item : items) {
+            if (item != null && item.getValue() != null) {
+                result += item.getValue();
+            }
+        }
+        return result;
+    }
+
     private String getDefaultDataUnit(DateTime start, DateTime end) {
         long between = DateUtil.between(start, end, DateUnit.DAY);
-        if (between > 1) {
-            return "day";
-        } else {
-            return "hour";
-        }
+        return between > 1 ? "day" : "hour";
     }
 
     private JSONArray fixArray(JSONArray data, int size) {
-        int sized = data.size();
-        if (sized < size) {
-            for (int i = 0; i < size - sized; i++) {
-                data.add(0);
-            }
+        JSONArray result = data == null ? new JSONArray() : data;
+        while (result.size() < size) {
+            result.add(0L);
         }
-        return data;
+        return result;
+    }
+
+    private JSONArray emptyLongArray(int size) {
+        JSONArray result = new JSONArray();
+        for (int i = 0; i < size; i++) {
+            result.add(0L);
+        }
+        return result;
+    }
+
+    private JSONArray sumArray(JSONArray base, JSONArray add, int size) {
+        JSONArray result = new JSONArray();
+        for (int i = 0; i < size; i++) {
+            long a = i < base.size() ? Long.parseLong(base.get(i).toString()) : 0L;
+            long b = i < add.size() ? Long.parseLong(add.get(i).toString()) : 0L;
+            result.add(a + b);
+        }
+        return result;
     }
 
     private JSONArray convertTopData(TopDetailData[] topDetailData) {
+        if (topDetailData == null) {
+            return new JSONArray();
+        }
         return Arrays.stream(topDetailData)
                 .map(td -> td.getValue().longValue())
                 .collect(Collectors.toCollection(JSONArray::new));
     }
 
     private JSONArray convertData(TimestampData[] timestampData) {
+        if (timestampData == null) {
+            return new JSONArray();
+        }
         return Arrays.stream(timestampData)
                 .map(td -> td.getValue().longValue())
                 .collect(Collectors.toCollection(JSONArray::new));
     }
 
     private JSONArray convertData(TimestampData[] timestampData, DateTime end) {
+        if (timestampData == null) {
+            return new JSONArray();
+        }
         String endTime = end.toString("yyyy-MM-dd HH:mm:ss");
         return Arrays.stream(timestampData)
                 .filter(td -> td.getTime() != null && td.getTime().compareTo(endTime) < 0)
@@ -314,21 +459,75 @@ public class TencentDomainStatisticsServiceImpl extends BaseService<CdnDomain> i
         return data.stream().mapToLong(item -> Long.parseLong(item.toString())).max().orElse(0L);
     }
 
-    private TimestampData[] mixData(ArrayList<TimestampData[]> timestampData) {
-        Map<String, Float> map = timestampData.stream()
-                .flatMap(Arrays::stream)
-                .collect(Collectors.toMap(
-                        TimestampData::getTime,  // 使用 time 作为 key
-                        TimestampData::getValue,  // 使用 value 作为 value
-                        Float::sum,
-                        LinkedHashMap::new));
-        return map.entrySet().stream()
-                .map(entry -> {
-                    TimestampData td = new TimestampData();
-                    td.setTime(entry.getKey());
-                    td.setValue(entry.getValue());
-                    return td;
-                })
-                .toArray(TimestampData[]::new);
+    private CdnData firstCdnData(DescribeCdnDataResponse response) throws BusinessException {
+        if (response == null || response.getData() == null || response.getData().length == 0
+                || response.getData()[0].getCdnData() == null || response.getData()[0].getCdnData().length == 0) {
+            throw new BusinessException("腾讯云 CDN 统计未返回数据");
+        }
+        return response.getData()[0].getCdnData()[0];
+    }
+
+    private CdnData firstOriginData(DescribeOriginDataResponse response) throws BusinessException {
+        if (response == null || response.getData() == null || response.getData().length == 0
+                || response.getData()[0].getOriginData() == null || response.getData()[0].getOriginData().length == 0) {
+            throw new BusinessException("腾讯云 CDN 回源统计未返回数据");
+        }
+        return response.getData()[0].getOriginData()[0];
+    }
+
+    private Map<String, String> splitTencentDomainsByArea(String domainNames) {
+        Map<String, Set<String>> areaDomains = new LinkedHashMap<>();
+        areaDomains.put("mainland", new LinkedHashSet<>());
+        areaDomains.put("overseas", new LinkedHashSet<>());
+
+        Map<String, CdnDomain> localDomains = queryLocalTencentDomains(domainNames);
+        for (String domain : domainNames.split(",")) {
+            String normalized = domain == null ? "" : domain.trim();
+            if (Assert.isEmpty(normalized)) {
+                continue;
+            }
+            CdnDomain local = localDomains.get(normalized.toLowerCase());
+            for (String area : toTencentStatisticsAreas(local == null ? null : local.getServiceArea())) {
+                areaDomains.get(area).add(normalized);
+            }
+        }
+
+        Map<String, String> result = new LinkedHashMap<>();
+        areaDomains.forEach((area, domains) -> {
+            if (!domains.isEmpty()) {
+                result.put(area, String.join(",", domains));
+            }
+        });
+        return result;
+    }
+
+    private Map<String, CdnDomain> queryLocalTencentDomains(String domainNames) {
+        List<String> names = Arrays.stream(domainNames.split(","))
+                .map(String::trim)
+                .filter(Assert::notEmpty)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<String, CdnDomain> result = new LinkedHashMap<>();
+        if (names.isEmpty()) {
+            return result;
+        }
+        QueryWrapper<CdnDomain> wrapper = new QueryWrapper<>();
+        wrapper.in("domain_name", names).eq("route", CdnRoute.TENCENT.getCode());
+        for (CdnDomain domain : queryByWrapper(wrapper)) {
+            if (Assert.notEmpty(domain.getDomainName())) {
+                result.put(domain.getDomainName().toLowerCase(), domain);
+            }
+        }
+        return result;
+    }
+
+    private List<String> toTencentStatisticsAreas(String serviceArea) {
+        if ("outside_mainland_china".equals(serviceArea)) {
+            return Arrays.asList("overseas");
+        }
+        if ("global".equals(serviceArea)) {
+            return Arrays.asList("mainland", "overseas");
+        }
+        return Arrays.asList("mainland");
     }
 }

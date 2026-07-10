@@ -1,5 +1,6 @@
 package com.kuocai.cdn.component;
 
+import com.alibaba.fastjson.JSONObject;
 import com.kuocai.cdn.config.SystemConfig;
 import com.kuocai.cdn.dto.resp.RespError;
 import com.kuocai.cdn.exception.AuthorityException;
@@ -11,9 +12,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.ui.Model;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 
 import javax.servlet.http.HttpServletRequest;
@@ -53,6 +56,28 @@ public class GlobalExceptionHandler {
         // return request.getHeader("Accept").contains(MediaType.APPLICATION_JSON_VALUE) || (null != request.getHeader("X-Requested-With") && request.getHeader("X-Requested-With").contains("XMLHttpRequest"));
     }
 
+    @ResponseBody
+    @ExceptionHandler(value = HttpRequestMethodNotSupportedException.class)
+    public RespError handleMethodNotSupported(HttpRequestMethodNotSupportedException e,
+                                               HttpServletRequest request,
+                                               HttpServletResponse response) {
+        RespError error = new RespError();
+        response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+        error.setCode("METHOD_NOT_ALLOWED");
+        Object traceId = request.getAttribute(TraceIdUtil.KEY);
+        error.setMessage("页面脚本已过期，请刷新页面后重新提交 (" + (traceId != null ? traceId.toString() : "none") + ")");
+        String requestUrl = "unknown";
+        try {
+            requestUrl = request.getRequestURL() != null ? request.getRequestURL().toString() : "unknown";
+        } catch (Exception ex) {
+            log.warn("获取 requestURL 异常", ex);
+        }
+        error.setRequestUrl(requestUrl);
+        error.setException("");
+        log.error("请求方式不正确：{}", e.getMessage());
+        return error;
+    }
+
     @ExceptionHandler(value = Exception.class)
     public Object handleException(Exception e, HttpServletRequest request, HttpServletResponse response, Model model) {
         try {
@@ -69,6 +94,11 @@ public class GlobalExceptionHandler {
                     message = "当前用户无权限访问";
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                     log.error("操作权限不足，错误信息：{}", e.getMessage());
+                } else if (e instanceof HttpRequestMethodNotSupportedException) {
+                    error.setCode("METHOD_NOT_ALLOWED");
+                    message = "页面脚本已过期，请刷新页面后重新提交";
+                    response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+                    log.error("请求方式不正确：{}", e.getMessage());
                 } else {
                     Sentry.captureException(e);
                     error.setCode("INTERNAL_SERVER_ERROR");
@@ -89,8 +119,31 @@ public class GlobalExceptionHandler {
                 error.setRequestUrl(requestUrl);
 
                 error.setException("");
-                return error;
+                response.setContentType("application/json;charset=utf-8");
+                response.getWriter().write(JSONObject.toJSONString(error));
+                response.flushBuffer();
+                return new ModelAndView();
             } else {
+                if (e instanceof HttpRequestMethodNotSupportedException) {
+                    RespError error = new RespError();
+                    response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+                    error.setCode("METHOD_NOT_ALLOWED");
+                    Object traceId = request.getAttribute(TraceIdUtil.KEY);
+                    error.setMessage("页面脚本已过期，请刷新页面后重新提交 (" + (traceId != null ? traceId.toString() : "none") + ")");
+                    String requestUrl = "unknown";
+                    try {
+                        requestUrl = request.getRequestURL() != null ? request.getRequestURL().toString() : "unknown";
+                    } catch (Exception ex) {
+                        log.warn("获取 requestURL 异常", ex);
+                    }
+                    error.setRequestUrl(requestUrl);
+                    error.setException("");
+                    response.setContentType("application/json;charset=utf-8");
+                    response.getWriter().write(JSONObject.toJSONString(error));
+                    response.flushBuffer();
+                    log.error("请求方式不正确：{}", e.getMessage());
+                    return new ModelAndView();
+                }
                 Sentry.captureException(e);
                 log.error("发生错误：", e);
                 ModelAndView modelAndView = new ModelAndView();

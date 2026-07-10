@@ -361,6 +361,9 @@ function sendRequest(method, url, data, contentType = 'application/x-www-form-ur
             data: data,
             contentType: contentType,
             dataType: 'json',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
             beforeSend: function () {
                 if (loading) {
                     loadingShow();
@@ -392,6 +395,12 @@ function getRequestErrorMessage(xhr, errorThrown) {
         return xhr.responseJSON.message;
     }
     if (xhr && xhr.responseText) {
+        if (/^\s*<!doctype html/i.test(xhr.responseText) || /^\s*<html/i.test(xhr.responseText)) {
+            if (xhr.status === 401 || xhr.status === 302 || xhr.status === 405) {
+                return '登录已过期，请刷新页面后重新登录';
+            }
+            return '页面状态已变化，请刷新页面后重新提交';
+        }
         try {
             let response = JSON.parse(xhr.responseText);
             if (response && response.message) {
@@ -404,7 +413,7 @@ function getRequestErrorMessage(xhr, errorThrown) {
         return '登录已过期，请重新登录';
     }
     if (xhr && xhr.status === 405) {
-        return '请求方式不正确，请刷新页面后重试';
+        return '页面脚本已过期，请刷新页面后重新提交';
     }
     return errorThrown;
 }

@@ -40,6 +40,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -87,6 +88,10 @@ public class TencentDomainServiceImpl extends BaseService<CdnDomain> implements 
 
     @Override
     public CdnDomain create(Long userId, String domainName, String businessType, String serviceArea, String originType, String ipOrDomain) throws BusinessException, InterruptedException {
+        return create(userId, domainName, businessType, serviceArea, originType, ipOrDomain, "http");
+    }
+
+    private CdnDomain create(Long userId, String domainName, String businessType, String serviceArea, String originType, String ipOrDomain, String originProtocol) throws BusinessException, InterruptedException {
         try {
             // ## 创建域名
             AddCdnDomainRequest req = new AddCdnDomainRequest();
@@ -100,8 +105,8 @@ public class TencentDomainServiceImpl extends BaseService<CdnDomain> implements 
             Origin origin = new Origin();
             origin.setOriginType(OriginTypeEnum.getOtherParam(originType).getTencent());
             // 源站协议：http：回源站强制使用HTTP协议 https：回源站强制使用HTTPS协议 follow：回源协议跟随协议
-            origin.setOriginPullProtocol("http");
-            origin.setOrigins(ipOrDomain.split(";"));
+            origin.setOriginPullProtocol(OriginProtocolEnum.getOtherParam(normalizeTencentOriginProtocol(originProtocol)).getTencent());
+            origin.setOrigins(splitTencentOrigins(ipOrDomain));
             req.setOrigin(origin);
             // ## 默认缓存配置
 //            Cache cache = new Cache();
@@ -134,7 +139,7 @@ public class TencentDomainServiceImpl extends BaseService<CdnDomain> implements 
                 } else {
                     code += TencentErrorCodeHandler.getErrorDescription(e);
                 }
-                throw new BusinessException(code);
+                throw new BusinessException(code + buildTencentErrorTrace(e));
             }
             // ## 获取域名信息
             BriefDomain domain = getBriefDomain(domainName);
@@ -154,6 +159,27 @@ public class TencentDomainServiceImpl extends BaseService<CdnDomain> implements 
             log.error("创建域名 {} 流程失败：{}", domainName, e.getMessage());
             throw new BusinessException(e.getMessage());
         }
+    }
+
+    @Override
+    public CdnDomain create(Long userId, String domainName, String businessType, String serviceArea, String originType, String ipOrDomain,
+                            String originProtocol, Integer httpPort, Integer httpsPort, String originHost, Integer originWeight) throws BusinessException, InterruptedException {
+        String protocol = normalizeTencentOriginProtocol(originProtocol);
+        String formattedOrigins = String.join(";", buildTencentOrigins(ipOrDomain, protocol, httpPort, httpsPort, null, false));
+        CdnDomain cdnDomain = create(userId, domainName, businessType, serviceArea, originType, formattedOrigins, protocol);
+        CdnDomainSources main = CdnDomainSources.builder()
+                .originType(originType)
+                .ipOrDomain(stripTencentOriginDecorations(ipOrDomain))
+                .httpPort(defaultPort(httpPort, 80))
+                .httpsPort(defaultPort(httpsPort, 443))
+                .activeStandby(1)
+                .hostName(originHost)
+                .build();
+        saveSourceStationConfig(cdnDomain, CdnDomainSourcesVo.builder()
+                .main(main)
+                .originProtocol(protocol)
+                .build());
+        return cdnDomain;
     }
 
     @Override
@@ -1336,6 +1362,152 @@ public class TencentDomainServiceImpl extends BaseService<CdnDomain> implements 
             default:
                 return "configuring";
         }
+    }
+
+    private String[] buildTencentOrigins(String originAddr, String originProtocol, Integer httpPort, Integer httpsPort, Integer originWeight, boolean includeWeight) {
+        if (Assert.isEmpty(originAddr)) {
+            return new String[0];
+        }
+        int port = getTencentOriginPort(originProtocol, httpPort, httpsPort);
+        return Arrays.stream(originAddr.split(";"))
+                .map(String::trim)
+                .filter(Assert::notEmpty)
+                .map(this::stripTencentOriginDecoration)
+                .map(origin -> appendTencentOriginPort(origin, port, originWeight, includeWeight))
+                .toArray(String[]::new);
+    }
+
+    private String[] splitTencentOrigins(String originAddr) {
+        if (Assert.isEmpty(originAddr)) {
+            return new String[0];
+        }
+        return Arrays.stream(originAddr.split(";"))
+                .map(String::trim)
+                .filter(Assert::notEmpty)
+                .map(this::stripTencentOriginWeight)
+                .toArray(String[]::new);
+    }
+
+    private String appendTencentOriginPort(String origin, int port, Integer originWeight, boolean includeWeight) {
+        if (Assert.isEmpty(origin)) {
+            return origin;
+        }
+        String value = origin + ":" + port;
+        if (includeWeight && originWeight != null && originWeight >= 1 && originWeight <= 100) {
+            value += ":" + originWeight;
+        }
+        return value;
+    }
+
+    private String stripTencentOriginDecorations(String originAddr) {
+        if (Assert.isEmpty(originAddr)) {
+            return "";
+        }
+        return Arrays.stream(originAddr.split(";"))
+                .map(String::trim)
+                .filter(Assert::notEmpty)
+                .map(this::stripTencentOriginDecoration)
+                .collect(Collectors.joining(";"));
+    }
+
+    private String stripTencentOriginDecoration(String origin) {
+        if (Assert.isEmpty(origin)) {
+            return "";
+        }
+        String value = origin.trim();
+        String[] parts = value.split(":");
+        if (parts.length == 2 && isPort(parts[1])) {
+            return parts[0];
+        }
+        if (parts.length == 3 && isPort(parts[1]) && isWeight(parts[2])) {
+            return parts[0];
+        }
+        return value;
+    }
+
+    private String stripTencentOriginWeight(String origin) {
+        if (Assert.isEmpty(origin)) {
+            return "";
+        }
+        String value = origin.trim();
+        String[] parts = value.split(":");
+        if (parts.length == 3 && isPort(parts[1]) && isWeight(parts[2])) {
+            return parts[0] + ":" + parts[1];
+        }
+        return value;
+    }
+
+    private String extractTencentOriginPort(String[] origins, String originProtocol) {
+        int defaultPort = "https".equals(originProtocol) ? 443 : 80;
+        for (String origin : emptyIfNull(origins)) {
+            String port = extractTencentOriginPort(origin);
+            if (Assert.notEmpty(port)) {
+                return port;
+            }
+        }
+        return String.valueOf(defaultPort);
+    }
+
+    private String extractTencentOriginPort(String origin) {
+        if (Assert.isEmpty(origin)) {
+            return "";
+        }
+        String[] parts = origin.trim().split(":");
+        return parts.length >= 2 && isPort(parts[1]) ? parts[1] : "";
+    }
+
+    private int getTencentOriginPort(String originProtocol, Integer httpPort, Integer httpsPort) {
+        String protocol = normalizeTencentOriginProtocol(originProtocol);
+        if ("https".equals(protocol)) {
+            return defaultPort(httpsPort, 443);
+        }
+        return defaultPort(httpPort, 80);
+    }
+
+    private String normalizeTencentOriginProtocol(String originProtocol) {
+        if ("https".equals(originProtocol) || "follow".equals(originProtocol)) {
+            return originProtocol;
+        }
+        return "http";
+    }
+
+    private int defaultPort(Integer port, int defaultValue) {
+        return port == null || port < 1 || port > 65535 ? defaultValue : port;
+    }
+
+    private boolean isPort(String value) {
+        if (Assert.isEmpty(value)) {
+            return false;
+        }
+        try {
+            int port = Integer.parseInt(value);
+            return port >= 1 && port <= 65535;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    private boolean isWeight(String value) {
+        if (Assert.isEmpty(value)) {
+            return false;
+        }
+        try {
+            int weight = Integer.parseInt(value);
+            return weight >= 1 && weight <= 100;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    private String buildTencentErrorTrace(TencentCloudSDKException e) {
+        List<String> traces = new ArrayList<>();
+        if (Assert.notEmpty(e.getErrorCode())) {
+            traces.add("errorCode=" + e.getErrorCode());
+        }
+        if (Assert.notEmpty(e.getRequestId())) {
+            traces.add("requestId=" + e.getRequestId());
+        }
+        return traces.isEmpty() ? "" : " (" + String.join(", ", traces) + ")";
     }
 
     private String[] emptyIfNull(String[] values) {

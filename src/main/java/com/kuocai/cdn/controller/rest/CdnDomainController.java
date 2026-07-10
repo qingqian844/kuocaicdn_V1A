@@ -25,6 +25,7 @@ import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.service.CdnDomainService;
 import com.kuocai.cdn.service.EdgeOneDomainQuotaService;
 import com.kuocai.cdn.service.FlowDonateService;
+import com.kuocai.cdn.service.domain.operation.CdnetworksDomainServiceImpl;
 import com.kuocai.cdn.service.domain.operation.ICdnPlatformService;
 import com.kuocai.cdn.service.domain.operation.optional.ICdnDomainVerifyService;
 import com.kuocai.cdn.service.factory.CdnPlatformFactory;
@@ -39,9 +40,11 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Arrays;
@@ -106,6 +109,58 @@ public class CdnDomainController extends BaseController {
      * @param originAddr   源站
      * @return 响应
      */
+    @RateLimiter
+    @GetMapping("configReady")
+    public RespResult configReady(@RequestParam("id") Long id) {
+        if (Assert.isEmpty(id)) {
+            return RespResult.paramEmpty("domainId");
+        }
+        CdnDomain cdnDomain = service.queryById(id);
+        if (Assert.isEmpty(cdnDomain)) {
+            return RespResult.notFound("domainId");
+        }
+        RespResult accessResult = checkDomainAccess(cdnDomain);
+        if (accessResult != null) {
+            return accessResult;
+        }
+        if (!isConfigurableStatus(cdnDomain.getDomainStatus())) {
+            return RespResult.fail("域名正在配置中，请稍后刷新后再配置");
+        }
+        try {
+            if (isConfigurableStatus(cdnDomain.getDomainStatus())) {
+                return RespResult.success("配置已就绪");
+            }
+            loadDomainConfigForReadyCheck(cdnDomain);
+            return RespResult.success("配置已就绪");
+        } catch (BusinessException e) {
+            log.info("域名[{}]上游配置尚未准备完成：{}", cdnDomain.getDomainName(), e.getMessage());
+            return RespResult.fail("上游配置还在同步中，请稍后再进入配置");
+        } catch (Exception e) {
+            log.info("域名[{}]配置就绪检查失败：{}", cdnDomain.getDomainName(), e.getMessage());
+            return RespResult.fail("上游配置还在同步中，请稍后再进入配置");
+        }
+    }
+
+    private boolean isConfigurableStatus(String domainStatus) {
+        return "online".equals(domainStatus) || "offline".equals(domainStatus);
+    }
+
+    private void loadDomainConfigForReadyCheck(CdnDomain cdnDomain) throws BusinessException {
+        String domainRoute = cdnDomain.getRoute();
+        ICdnPlatformService cdnPlatformService = CdnPlatformFactory.getCdnPlatform(domainRoute);
+        if ("cdnetworks".equals(domainRoute)) {
+            ((CdnetworksDomainServiceImpl) cdnPlatformService).getDomainBasicConfig(cdnDomain.getDomainName());
+        } else {
+            cdnPlatformService.getDomainConfig(cdnDomain.getDomainName());
+        }
+    }
+
+    @RateLimiter
+    @GetMapping("create")
+    public RespResult createByGet() {
+        return RespResult.fail("创建域名请求已失效，请刷新页面后重新提交");
+    }
+
     @RateLimiter
     @PostMapping("create")
     @SysLog(module = "站点管理", describe = "创建加速域名")

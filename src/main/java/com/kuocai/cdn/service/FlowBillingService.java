@@ -9,6 +9,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.kuocai.cdn.api.huawei.cdn.constant.DomainStatus;
 import com.kuocai.cdn.async.SmsAsync;
+import com.kuocai.cdn.common.mongo.entity.FlowBillingCarry;
 import com.kuocai.cdn.common.mongo.entity.FlowBillingLogic;
 import com.kuocai.cdn.constant.PurchasedFlowConstants;
 import com.kuocai.cdn.constant.TransactionOrderPayType;
@@ -40,6 +41,11 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class FlowBillingService {
+
+    private static final BigDecimal FLOW_MIN_BILLING_AMOUNT = BigDecimal.ONE;
+    private static final BigDecimal BYTES_PER_GB = BigDecimal.valueOf(1024L).pow(3);
+    private static final int FLOW_BILLING_FLOW_SCALE = 8;
+    private static final int FLOW_BILLING_AMOUNT_SCALE = 6;
 
     private final SysUserService sysUserService;
     private final CdnDomainService cdnDomainService;
@@ -149,6 +155,32 @@ public class FlowBillingService {
         log.debug("flux_byte value: {}", fluxByte);
 
         return ObjectUtil.defaultIfNull(fluxByte, 0L);
+    }
+
+    public static BigDecimal flowBytesToBillingGB(long flowBytes) {
+        if (flowBytes <= 0) {
+            return BigDecimal.ZERO.setScale(FLOW_BILLING_FLOW_SCALE);
+        }
+        return BigDecimal.valueOf(flowBytes).divide(BYTES_PER_GB, FLOW_BILLING_FLOW_SCALE, RoundingMode.HALF_UP);
+    }
+
+    public static BigDecimal calculateFlowBillingAmount(BigDecimal flowPrice, long flowBytes) {
+        if (flowPrice == null || flowBytes <= 0) {
+            return BigDecimal.ZERO.setScale(FLOW_BILLING_AMOUNT_SCALE);
+        }
+        return flowPrice.multiply(flowBytesToBillingGB(flowBytes))
+                .setScale(FLOW_BILLING_AMOUNT_SCALE, RoundingMode.HALF_UP);
+    }
+
+    private static String formatBillingDecimal(BigDecimal value) {
+        if (value == null) {
+            return "0";
+        }
+        BigDecimal normalized = value.stripTrailingZeros();
+        if (normalized.scale() < 0) {
+            normalized = normalized.setScale(0);
+        }
+        return normalized.toPlainString();
     }
 
     private JSONObject getResource(Long userId, List<CdnDomain> userCdnDomains, DateTime start, DateTime end) throws BusinessException {
@@ -1071,36 +1103,19 @@ public class FlowBillingService {
             }
             // 需要支付剩余流量
             long hasPayFlow = totalUse - residualFlow;
-            BigDecimal hasPayFlowGB = KuocaiBaseUtil.flowUnitConversion(hasPayFlow, "GB");
+            BigDecimal hasPayFlowGB = flowBytesToBillingGB(hasPayFlow);
             SysUser sysUser = sysUserService.queryById(userId);
             // 元/GB
             BigDecimal flowPrice = sysUser.getFlowPrice();
-            // 向上保留两位小数
-            BigDecimal hasPayMoney = flowPrice.multiply(hasPayFlowGB).setScale(2, RoundingMode.UP);
+            // 按字节精确折算，小额流量先结转，累计满 1 元再生成欠费账单。
+            BigDecimal hasPayMoney = calculateFlowBillingAmount(flowPrice, hasPayFlow);
             if (hasPayMoney.compareTo(BigDecimal.ZERO) < 0) {
                 log.warn("计算出的订单金额为负数({})，将取绝对值进行计费", hasPayMoney);
                 hasPayMoney = hasPayMoney.abs();
             }
 
-            log.info("订单支付金额: flowPrice:{}, hasPayFlowGB:{}", flowPrice, hasPayFlow);
-            TransactionOrder transactionOrder = TransactionOrder.builder().payType(TransactionOrderPayType.BALANCE_PAY).orderType(TransactionOrderType.FLOW_DEDUCTION).orderNum(PayUtils.getOutTradeNo()).userId(userId).userName(sysUser.getUserName()).createTime(new Date()).amount(hasPayMoney).status(TransactionOrderStatus.WAIT_BUYER_PAY).detail("当前使用流量：" + hasPayFlowGB + "GB，流量费用: ¥" + hasPayMoney).title("[" + start + "->" + DateUtil.format(end, "HH:mm:ss") + "] 流量消费结账").payUrl("").build();
-
-            transactionOrder = transactionOrderService.save(transactionOrder);
-            log.info("用户[{}]已生成流量订单：标题：[{}]，详情：[{}]，订单ID：[{}]", userId, transactionOrder.getTitle(), transactionOrder.getDetail(), transactionOrder.getId());
-            // 自动扣款处理
-            if (sysUser.openAutoBalance()) {
-                SysUserAccount sysUserAccount = sysUserAccountService.queryByUserId(userId);
-                if (Assert.isEmpty(sysUserAccount)) {
-                    throw new BusinessException("当前用户没有余额账户：[{}]", userId);
-                }
-                BigDecimal accountBalance = sysUserAccount.getAccountBalance();
-                // 判断余额是否充足
-                if (accountBalance.compareTo(hasPayMoney) >= 0) {
-                    // 余额充足直接扣款，然后将生成的订单改为已支付状态
-                    transactionOrderService.useBalance2PayTransactionOrder(sysUserAccount, transactionOrder);
-                }
-                // 余额不足不需要操作
-            }
+            log.info("订单支付金额: flowPrice:{}, hasPayFlowGB:{}, hasPayMoney:{}", flowPrice, formatBillingDecimal(hasPayFlowGB), formatBillingDecimal(hasPayMoney));
+            carryOrCreateFlowBill(hasPayFlow, hasPayMoney, userId, start, end, sysUser);
         }
         // 如果当前用户还有其他流量包可用则无需通知
         if (purchasedFlowService.hasAdditionalFlow(userId)) {
@@ -1138,6 +1153,78 @@ public class FlowBillingService {
      * @param size     大小
      * @return {@code Map<String, Map<Long, Object>>}
      */
+    private void carryOrCreateFlowBill(long paidFlow, BigDecimal currentAmount, Long userId, DateTime start, DateTime end, SysUser sysUser) throws BusinessException {
+        if (paidFlow <= 0L || currentAmount == null || currentAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+
+        Query query = Query.query(Criteria.where("userId").is(userId));
+        FlowBillingCarry carry = mongoTemplate.findOne(query, FlowBillingCarry.class);
+        if (Assert.isEmpty(carry)) {
+            carry = new FlowBillingCarry();
+            carry.setUserId(userId);
+            carry.setFirstStartTime(start.toString("yyyy-MM-dd HH:mm:ss"));
+        }
+        if (Assert.isEmpty(carry.getFirstStartTime())) {
+            carry.setFirstStartTime(start.toString("yyyy-MM-dd HH:mm:ss"));
+        }
+
+        long totalFlow = ObjectUtil.defaultIfNull(carry.getPendingFlow(), 0L) + paidFlow;
+        BigDecimal totalAmount = ObjectUtil.defaultIfNull(carry.getPendingAmount(), BigDecimal.ZERO).add(currentAmount);
+        carry.setPendingFlow(totalFlow);
+        carry.setPendingAmount(totalAmount);
+        carry.setLastEndTime(end.toString("yyyy-MM-dd HH:mm:ss"));
+        carry.setUpdateTime(KuocaiDateUtil.getCurrentTime());
+
+        if (totalAmount.compareTo(FLOW_MIN_BILLING_AMOUNT) < 0) {
+            mongoTemplate.save(carry);
+            log.info("User[{}] flow fee carried, flow: {}, amount: {}", userId, totalFlow, totalAmount);
+            return;
+        }
+
+        BigDecimal amount = totalAmount.setScale(FLOW_BILLING_AMOUNT_SCALE, RoundingMode.HALF_UP);
+        if (amount.compareTo(FLOW_MIN_BILLING_AMOUNT) < 0) {
+            mongoTemplate.save(carry);
+            log.info("User[{}] flow fee carried after rounding, flow: {}, amount: {}", userId, totalFlow, totalAmount);
+            return;
+        }
+
+        BigDecimal flowGB = flowBytesToBillingGB(totalFlow);
+        TransactionOrder transactionOrder = TransactionOrder.builder()
+                .payType(TransactionOrderPayType.BALANCE_PAY)
+                .orderType(TransactionOrderType.FLOW_DEDUCTION)
+                .orderNum(PayUtils.getOutTradeNo())
+                .userId(userId)
+                .userName(sysUser.getUserName())
+                .createTime(new Date())
+                .amount(amount)
+                .status(TransactionOrderStatus.WAIT_BUYER_PAY)
+                .detail("累计使用流量：" + formatBillingDecimal(flowGB) + "GB，流量费用: ¥" + formatBillingDecimal(amount))
+                .title("[" + carry.getFirstStartTime() + "->" + DateUtil.format(end, "yyyy-MM-dd HH:mm:ss") + "] 流量消费累计结账")
+                .payUrl("")
+                .build();
+        transactionOrder = transactionOrderService.save(transactionOrder);
+        log.info("User[{}] flow deduction order created, title: {}, detail: {}, orderId: {}",
+                userId, transactionOrder.getTitle(), transactionOrder.getDetail(), transactionOrder.getId());
+
+        carry.setPendingFlow(0L);
+        carry.setPendingAmount(BigDecimal.ZERO);
+        carry.setFirstStartTime(null);
+        carry.setLastEndTime(null);
+        carry.setUpdateTime(KuocaiDateUtil.getCurrentTime());
+        mongoTemplate.save(carry);
+
+        if (sysUser.openAutoBalance()) {
+            SysUserAccount sysUserAccount = sysUserAccountService.queryByUserId(userId);
+            if (Assert.isEmpty(sysUserAccount)) {
+                throw new BusinessException("当前用户没有余额账户：" + userId);
+            }
+            if (sysUserAccount.getAccountBalance().compareTo(amount) >= 0) {
+                transactionOrderService.useBalance2PayTransactionOrder(sysUserAccount, transactionOrder);
+            }
+        }
+    }
+
     public Map<String, Map<Long, Object>> deductFlow(List<PurchasedFlowVo> packages, long size) {
         // 按照过期时间进行排序
         packages.sort(Comparator.comparing(PurchasedFlowVo::getDeadline));

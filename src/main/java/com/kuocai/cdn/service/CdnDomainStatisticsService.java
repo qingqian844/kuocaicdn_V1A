@@ -196,7 +196,7 @@ public class CdnDomainStatisticsService {
      */
     public JSONObject mergeAllPlatForm(List<CdnDomain> cdnDomains, DateTime start, DateTime end, String type, Long userId) throws BusinessException {
         String domainNameAlls = cdnDomains.stream().map(CdnDomain::getDomainName).sorted().collect(Collectors.joining(","));
-        String key = String.format("Statistics:%d:%s:%s:%s->%s", userId, type, domainNameAlls.hashCode(), start.getTime(), end.getTime());
+        String key = String.format("Statistics:v3:%d:%s:%s:%s->%s", userId, type, domainNameAlls.hashCode(), start.getTime(), end.getTime());
         DateTime now = DateUtil.date();
         if (!start.after(now) && end.after(now)) {
             key = key + ":rt:" + DateUtil.format(now, "yyyyMMddHHmm");

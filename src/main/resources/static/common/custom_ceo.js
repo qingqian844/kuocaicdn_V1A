@@ -759,6 +759,116 @@ async function trackEdgeOneQuotaOrder(orderId) {
     setTimeout(reload, 1000);
 }
 
+function showDomainSettingLoading(message) {
+    const text = message || '正在进入配置页，请稍候';
+    $('#domainSettingLoadingOverlay').remove();
+    if (!$('#domainSettingLoadingStyle').length) {
+        $('head').append(`
+            <style id="domainSettingLoadingStyle">
+                #domainSettingLoadingOverlay {
+                    position: fixed;
+                    inset: 0;
+                    z-index: 2147483000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(15, 23, 42, .28);
+                    backdrop-filter: blur(2px);
+                }
+                #domainSettingLoadingOverlay .domain-setting-loading-card {
+                    min-width: 260px;
+                    max-width: min(360px, calc(100vw - 40px));
+                    padding: 28px 30px;
+                    border-radius: 10px;
+                    background: #fff;
+                    box-shadow: 0 18px 48px rgba(15, 23, 42, .2);
+                    text-align: center;
+                    color: #1f2937;
+                }
+                #domainSettingLoadingOverlay .domain-setting-loading-spinner {
+                    width: 42px;
+                    height: 42px;
+                    margin: 0 auto 16px;
+                    border: 4px solid #e5e7eb;
+                    border-top-color: #2563eb;
+                    border-radius: 50%;
+                    animation: domainSettingLoadingSpin .8s linear infinite;
+                }
+                #domainSettingLoadingOverlay .domain-setting-loading-title {
+                    font-size: 16px;
+                    font-weight: 600;
+                    line-height: 1.4;
+                }
+                #domainSettingLoadingOverlay .domain-setting-loading-desc {
+                    margin-top: 8px;
+                    color: #6b7280;
+                    font-size: 13px;
+                    line-height: 1.5;
+                }
+                @keyframes domainSettingLoadingSpin {
+                    to { transform: rotate(360deg); }
+                }
+            </style>
+        `);
+    }
+    $('body').append(`
+        <div id="domainSettingLoadingOverlay">
+            <div class="domain-setting-loading-card">
+                <div class="domain-setting-loading-spinner"></div>
+                <div class="domain-setting-loading-title">${text}</div>
+                <div class="domain-setting-loading-desc">正在读取上游配置，页面会自动打开</div>
+            </div>
+        </div>
+    `);
+}
+
+function updateDomainSettingLoading(message) {
+    const $title = $('#domainSettingLoadingOverlay .domain-setting-loading-title');
+    if ($title.length) {
+        $title.text(message || '正在进入配置页，请稍候');
+    } else {
+        showDomainSettingLoading(message);
+    }
+}
+
+function hideDomainSettingLoading() {
+    $('#domainSettingLoadingOverlay').remove();
+}
+
+async function openDomainSettingWhenReady(id, button) {
+    if (!id) {
+        layerWarn("加速域名ID不能为空");
+        return;
+    }
+    const $button = button ? $(button) : null;
+    const oldHtml = $button && $button.length ? $button.html() : '';
+    let navigating = false;
+    if ($button && $button.length) {
+        $button.prop('disabled', true).html('<i class="bi-hourglass-split"></i> 打开中');
+    }
+    showDomainSettingLoading('正在检查配置状态');
+    try {
+        const data = await sendRequest("GET", "CdnDomain/configReady", {
+            id: id
+        }, 'application/x-www-form-urlencoded; charset=UTF-8', false);
+        if (data['code'] === 'SUCCESS') {
+            navigating = true;
+            updateDomainSettingLoading('配置已就绪，正在打开页面');
+            window.location.href = `domain-setting-basic?id=${id}`;
+            return;
+        }
+        hideDomainSettingLoading();
+        layerWarn(data['message'] || "上游配置还在同步中，请稍后再进入配置");
+    } catch (e) {
+        hideDomainSettingLoading();
+        layerWarn("上游配置还在同步中，请稍后再进入配置");
+    } finally {
+        if (!navigating && $button && $button.length) {
+            $button.prop('disabled', false).html(oldHtml);
+        }
+    }
+}
+
 async function enableDomain(id) {
     if (!id) {
         layerWarn("加速域名ID不能为空");

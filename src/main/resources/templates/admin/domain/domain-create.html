@@ -494,7 +494,9 @@
                                 <a class="btn btn-outline-danger" style="margin: 0px 5px" href="domain-list">
                                 取消
                             </a>
-                                <button class="btn btn-primary" th:disabled="${routeAuthorized == false}" onclick="createDomain()">
+                                <button type="button" class="btn btn-primary"
+                                        th:disabled="${routeAuthorized == false}"
+                                        onclick="createDomain()">
                                 创建
                             </button>
                                 <span style="display: none" id="verifyCode" th:text="${verifyCode}"></span>
@@ -616,7 +618,7 @@
     <script th:src="@{common/layer/layer.js}"></script>
     <script th:src="@{common/util/reg.js}"></script>
     <script th:src="@{common/custom.js}"></script>
-    <script th:src="@{common/custom_ceo.js(v='20260629-origin-port-create')}"></script>
+    <script th:src="@{common/custom_ceo.js(v='20260708-domain-create-method')}"></script>
     <script th:src="@{common/custom_cmo.js}"></script>
     <script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
 

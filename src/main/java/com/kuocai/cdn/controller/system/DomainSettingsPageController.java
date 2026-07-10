@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.Map;
 
@@ -33,13 +34,17 @@ public class DomainSettingsPageController extends BaseController {
      * 域名配置 基础配置
      */
     @GetMapping("/domain-setting-basic")
-    public String domainBasicSettings(Long id, Map<String, Object> map) {
+    public String domainBasicSettings(@RequestParam("id") Long id, Map<String, Object> map) {
         if (Assert.isEmpty(id)) {
             return "redirect:/400";
         }
         CdnDomainVo cdnDomainVo = cdnDomainService.getCdnDomainVoById(id);
         if (Assert.isEmpty(cdnDomainVo)) {
             return "redirect:/404";
+        }
+        String notReadyRedirect = checkDomainConfigPageReady(cdnDomainVo);
+        if (notReadyRedirect != null) {
+            return notReadyRedirect;
         }
         // 获取域名的详细配置
         try {
@@ -55,8 +60,7 @@ public class DomainSettingsPageController extends BaseController {
             map.put("domainConfig", JSONObject.parseObject(JSON.toJSONString(domainConfig)));
 
         } catch (BusinessException e) {
-            log.error("获取域名基础配置失败，domain={}, route={}", cdnDomainVo.getDomainName(), cdnDomainVo.getRoute(), e);
-            return "redirect:/500";
+            return domainConfigNotReadyRedirect(cdnDomainVo, e);
         }
         map.put("domain", cdnDomainVo);
         return "admin/domain/domain-setting-basic";
@@ -66,13 +70,17 @@ public class DomainSettingsPageController extends BaseController {
      * 域名配置 回源配置
      */
     @GetMapping("/domain-setting-origin")
-    public String domainOriginSettings(Long id, Map<String, Object> map) {
+    public String domainOriginSettings(@RequestParam("id") Long id, Map<String, Object> map) {
         if (Assert.isEmpty(id)) {
             return "redirect:/400";
         }
         CdnDomainVo cdnDomainVo = cdnDomainService.getCdnDomainVoById(id);
         if (Assert.isEmpty(cdnDomainVo)) {
             return "redirect:/404";
+        }
+        String notReadyRedirect = checkDomainConfigPageReady(cdnDomainVo);
+        if (notReadyRedirect != null) {
+            return notReadyRedirect;
         }
         // 获取域名的详细配置
         try {
@@ -90,7 +98,7 @@ public class DomainSettingsPageController extends BaseController {
             log.info("获取到配置信息{}", backSourceInfoJson);
             map.put("domainConfig", backSourceInfoJson);
         } catch (BusinessException e) {
-            return "redirect:/500";
+            return domainConfigNotReadyRedirect(cdnDomainVo, e);
         }
         map.put("domain", cdnDomainVo);
         return "admin/domain/domain-setting-origin";
@@ -100,13 +108,17 @@ public class DomainSettingsPageController extends BaseController {
      * 域名配置 HTTPS配置
      */
     @GetMapping("/domain-setting-https")
-    public String domainHttpsSettings(Long id, Map<String, Object> map) {
+    public String domainHttpsSettings(@RequestParam("id") Long id, Map<String, Object> map) {
         if (Assert.isEmpty(id)) {
             return "redirect:/400";
         }
         CdnDomainVo cdnDomainVo = cdnDomainService.getCdnDomainVoById(id);
         if (Assert.isEmpty(cdnDomainVo)) {
             return "redirect:/404";
+        }
+        String notReadyRedirect = checkDomainConfigPageReady(cdnDomainVo);
+        if (notReadyRedirect != null) {
+            return notReadyRedirect;
         }
         // 获取域名的详细配置
         try {
@@ -124,7 +136,7 @@ public class DomainSettingsPageController extends BaseController {
             log.info("获取到配置信息{}", httpsInfoJson);
             map.put("domainConfig", httpsInfoJson);
         } catch (BusinessException e) {
-            return "redirect:/500";
+            return domainConfigNotReadyRedirect(cdnDomainVo, e);
         }
         map.put("domain", cdnDomainVo);
         return "admin/domain/domain-setting-https";
@@ -134,13 +146,17 @@ public class DomainSettingsPageController extends BaseController {
      * 域名配置 缓存配置
      */
     @GetMapping("/domain-setting-cache")
-    public String domainCacheSettings(Long id, Map<String, Object> map) {
+    public String domainCacheSettings(@RequestParam("id") Long id, Map<String, Object> map) {
         if (Assert.isEmpty(id)) {
             return "redirect:/400";
         }
         CdnDomainVo cdnDomainVo = cdnDomainService.getCdnDomainVoById(id);
         if (Assert.isEmpty(cdnDomainVo)) {
             return "redirect:/404";
+        }
+        String notReadyRedirect = checkDomainConfigPageReady(cdnDomainVo);
+        if (notReadyRedirect != null) {
+            return notReadyRedirect;
         }
         // 获取域名的详细配置
         try {
@@ -158,7 +174,7 @@ public class DomainSettingsPageController extends BaseController {
             log.info("获取到配置信息{}", cacheInfoJson);
             map.put("domainConfig", cacheInfoJson);
         } catch (BusinessException e) {
-            return "redirect:/500";
+            return domainConfigNotReadyRedirect(cdnDomainVo, e);
         }
         map.put("domain", cdnDomainVo);
         return "admin/domain/domain-setting-cache";
@@ -168,13 +184,17 @@ public class DomainSettingsPageController extends BaseController {
      * 域名配置 访问配置
      */
     @GetMapping("/domain-setting-access")
-    public String domainAccessSettings(Long id, Map<String, Object> map) {
+    public String domainAccessSettings(@RequestParam("id") Long id, Map<String, Object> map) {
         if (Assert.isEmpty(id)) {
             return "redirect:/400";
         }
         CdnDomainVo cdnDomainVo = cdnDomainService.getCdnDomainVoById(id);
         if (Assert.isEmpty(cdnDomainVo)) {
             return "redirect:/404";
+        }
+        String notReadyRedirect = checkDomainConfigPageReady(cdnDomainVo);
+        if (notReadyRedirect != null) {
+            return notReadyRedirect;
         }
         // 获取域名的详细配置
         try {
@@ -269,7 +289,7 @@ public class DomainSettingsPageController extends BaseController {
             map.put("edgeOneSecurityPolicy", edgeOneSecurityPolicy);
         } catch (BusinessException e) {
             log.error("获取域名访问配置失败", e);
-            return "redirect:/500";
+            return domainConfigNotReadyRedirect(cdnDomainVo, e);
         }
         map.put("domain", cdnDomainVo);
         return "admin/domain/domain-setting-access";
@@ -279,13 +299,17 @@ public class DomainSettingsPageController extends BaseController {
      * 域名配置 高级配置
      */
     @GetMapping("/domain-setting-higher")
-    public String domainHigherSettings(Long id, Map<String, Object> map) {
+    public String domainHigherSettings(@RequestParam("id") Long id, Map<String, Object> map) {
         if (Assert.isEmpty(id)) {
             return "redirect:/400";
         }
         CdnDomainVo cdnDomainVo = cdnDomainService.getCdnDomainVoById(id);
         if (Assert.isEmpty(cdnDomainVo)) {
             return "redirect:/404";
+        }
+        String notReadyRedirect = checkDomainConfigPageReady(cdnDomainVo);
+        if (notReadyRedirect != null) {
+            return notReadyRedirect;
         }
         // 获取域名的详细配置
         try {
@@ -315,10 +339,24 @@ public class DomainSettingsPageController extends BaseController {
             
             map.put("domainConfig", advancedInfoJson);
         } catch (BusinessException e) {
-            return "redirect:/500";
+            return domainConfigNotReadyRedirect(cdnDomainVo, e);
         }
         map.put("domain", cdnDomainVo);
         return "admin/domain/domain-setting-higher";
     }
 
+    private String checkDomainConfigPageReady(CdnDomainVo cdnDomainVo) {
+        if (!"online".equals(cdnDomainVo.getDomainStatus()) && !"offline".equals(cdnDomainVo.getDomainStatus())) {
+            log.info("域名[{}]状态为{}，暂不允许进入配置页", cdnDomainVo.getDomainName(), cdnDomainVo.getDomainStatus());
+            return "redirect:/domain-list?domainConfigNotReady=1";
+        }
+        return null;
+    }
+
+    private String domainConfigNotReadyRedirect(CdnDomainVo cdnDomainVo, Exception e) {
+        log.info("域名[{}]上游配置尚未准备完成，暂不进入配置页：{}",
+                cdnDomainVo == null ? "" : cdnDomainVo.getDomainName(),
+                e == null ? "" : e.getMessage());
+        return "redirect:/domain-list?domainConfigNotReady=1";
+    }
 }

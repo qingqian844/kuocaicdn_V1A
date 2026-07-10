@@ -504,7 +504,7 @@
     <script th:src="@{common/layer/layer.js}"></script>
     <script th:src="@{common/util/reg.js}"></script>
     <script th:src="@{common/custom.js}"></script>
-    <script th:src="@{common/custom_ceo.js}"></script>
+    <script th:src="@{common/custom_ceo.js(v='20260709-domain-setting-loading')}"></script>
     <script th:src="@{common/custom_cmo.js}"></script>
     <script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
 
@@ -719,16 +719,16 @@
                         }
                         let canConfigure = row.domainStatus === 'online' || row.domainStatus === 'offline';
                         let configButton = canConfigure
-                            ? `<a class="btn btn-white btn-sm" href="domain-setting-basic?id=${row.id}">
+                            ? `<button type="button" class="btn btn-white btn-sm" onclick="openDomainSettingWhenReady('${row.id}', this)">
                                     <i class="bi-gear-fill"></i> 配置
-                               </a>`
+                               </button>`
                             : `<button type="button" class="btn btn-white btn-sm" disabled title="域名正在配置中，请稍后刷新后再配置">
                                     <i class="bi-hourglass-split"></i> 配置中
                                </button>`;
                         let configMenu = canConfigure
-                            ? `<a class="dropdown-item" href="domain-setting-basic?id=${row.id}">
+                            ? `<button type="button" class="dropdown-item" onclick="openDomainSettingWhenReady('${row.id}', this)">
                                     <i class="bi-gear-fill dropdown-item-icon"></i> 配置
-                               </a>`
+                               </button>`
                             : `<button type="button" class="dropdown-item" onclick="layerWarn('域名正在配置中，请稍后刷新后再配置')">
                                     <i class="bi-hourglass-split dropdown-item-icon"></i> 配置中
                                </button>`;
