@@ -4,6 +4,22 @@ KuocaiCDN Open Source Edition is a Spring Boot based CDN management platform for
 
 括彩 CDN 开源版是一套基于 Spring Boot 的 CDN 管理系统，适合需要自建 CDN 管理平台的企业、服务商和技术团队使用。系统可用于统一管理 CDN 域名、厂商账号、证书、源站配置、缓存规则、流量统计和余额计费。
 
+## 界面截图 / Screenshots
+
+以下截图来自实际页面，敏感信息已打码。
+
+| 官网首页 | 服务概览 |
+| --- | --- |
+| ![官网首页](docs/images/screenshot-home.png) | ![服务概览](docs/images/screenshot-dashboard.png) |
+
+| 数据统计 | 域名管理 |
+| --- | --- |
+| ![数据统计](docs/images/screenshot-statistics.png) | ![域名管理](docs/images/screenshot-domains.png) |
+
+| 创建工单 | 订单列表 |
+| --- | --- |
+| ![创建工单](docs/images/screenshot-work-order.png) | ![订单列表](docs/images/screenshot-orders.png) |
+
 ---
 官网：[https://www.kuocai.net/](https://www.kuocai.net/) 
 
