@@ -926,7 +926,6 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         rule.setCondition(source.getCondition());
         rule.setAction(source.getAction());
         rule.setEnabled(source.getEnabled());
-        rule.setRuleType(source.getRuleType());
         rule.setPriority(source.getPriority());
         return rule;
     }
@@ -1267,7 +1266,6 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         rule.setName(name);
         rule.setCondition(condition);
         rule.setEnabled("on");
-        rule.setRuleType("PreciseMatchRule");
         rule.setPriority(priority);
         SecurityAction action = new SecurityAction();
         action.setName("Deny");
