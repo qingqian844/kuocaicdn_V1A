@@ -67,10 +67,13 @@ public class TencentEdgeOneDomainStatisticsServiceImpl extends BaseService<CdnDo
                 if (target == null) {
                     continue;
                 }
-                DescribeBillingDataResponse billingFluxResponse = queryBillingFlux(target, start, end);
-                accessFlux.add(extractBillingSeries(billingFluxResponse.getData(), target.domainName, size));
-
-                DescribeTimingL7AnalysisDataResponse accessResponse = queryAccess(target, start, end, ACCESS_BANDWIDTH);
+                DescribeTimingL7AnalysisDataResponse accessResponse = queryAccess(target, start, end, ACCESS_FLUX, ACCESS_BANDWIDTH);
+                Series accessFluxSeries = extractSeries(accessResponse.getData(), ACCESS_FLUX, size);
+                if (accessFluxSeries.isEmpty()) {
+                    DescribeBillingDataResponse billingFluxResponse = queryBillingFlux(target, start, end);
+                    accessFluxSeries = extractBillingSeries(billingFluxResponse.getData(), target.domainName, size);
+                }
+                accessFlux.add(accessFluxSeries);
                 accessBandwidth.add(extractSeries(accessResponse.getData(), ACCESS_BANDWIDTH, size));
 
                 DescribeTimingL7OriginPullDataResponse originResponse = queryOrigin(target, start, end, ORIGIN_FLUX, ORIGIN_BANDWIDTH);
@@ -385,6 +388,10 @@ public class TencentEdgeOneDomainStatisticsServiceImpl extends BaseService<CdnDo
 
         private long max() {
             return values.stream().mapToLong(Long::longValue).max().orElse(0L);
+        }
+
+        private boolean isEmpty() {
+            return values.isEmpty() || values.stream().allMatch(value -> value == null || value == 0L);
         }
     }
 }

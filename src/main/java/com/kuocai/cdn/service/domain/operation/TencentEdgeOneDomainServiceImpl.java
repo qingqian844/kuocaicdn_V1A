@@ -624,17 +624,59 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
 
     @Override
     public void saveHotlinkPrevention(CdnDomain cdnDomain, SettingAccessVo config) throws BusinessException {
-        throw new BusinessException("腾讯云 EdgeOne 防盗链需要使用安全/规则策略，当前版本暂未对接");
+        ensureDomainReady(cdnDomain);
+        RefererDTO referer = config.getReferer();
+        int type = referer == null || referer.getReferer_type() == null ? 0 : referer.getReferer_type();
+        List<String> values = referer == null ? Collections.emptyList() : cleanValues(referer.getReferers());
+        if (type != 0 && values.isEmpty()) {
+            throw new BusinessException("Referer rules cannot be empty");
+        }
+        CustomRule rule = null;
+        if (type != 0) {
+            boolean includeEmpty = referer.getInclude_empty() != null && referer.getInclude_empty();
+            String matched = buildHeaderLikeCondition("referer", values, true);
+            String empty = "(not ${http.request.headers['referer']} exists or ${http.request.headers['referer']} in [''])";
+            String condition = type == 2
+                    ? (includeEmpty ? "not (" + matched + " or " + empty + ")" : "not (" + matched + ")")
+                    : (includeEmpty ? "(" + matched + " or " + empty + ")" : matched);
+            rule = buildBasicDenyRule(EO_RULE_REFERER, condition);
+        }
+        saveKuocaiSecurityRule(cdnDomain, EO_RULE_REFERER, rule);
     }
 
     @Override
     public void saveIpBlackWhiteList(CdnDomain cdnDomain, SettingAccessVo config) throws BusinessException {
-        throw new BusinessException("腾讯云 EdgeOne IP 黑白名单需要使用安全策略，当前版本暂未对接");
+        ensureDomainReady(cdnDomain);
+        int type = config.getType() == null ? 0 : config.getType();
+        List<String> values = cleanValues(config.getIps());
+        if (type != 0 && values.isEmpty()) {
+            throw new BusinessException("IP rules cannot be empty");
+        }
+        CustomRule rule = null;
+        if (type != 0) {
+            String matched = "${http.request.ip} in " + toConditionList(values);
+            String condition = type == 2 ? "not (" + matched + ")" : matched;
+            rule = buildBasicDenyRule(EO_RULE_IP_ACL, condition);
+        }
+        saveKuocaiSecurityRule(cdnDomain, EO_RULE_IP_ACL, rule);
     }
 
     @Override
     public void saveUserAgentFilter(CdnDomain cdnDomain, SettingAccessVo config) throws BusinessException {
-        throw new BusinessException("腾讯云 EdgeOne User-Agent 黑白名单需要使用规则策略，当前版本暂未对接");
+        ensureDomainReady(cdnDomain);
+        UserAgentBlackAndWhiteListDTO ua = config.getUserAgentBlackAndWhiteListDTO();
+        int type = ua == null || ua.getType() == null ? 0 : ua.getType();
+        List<String> values = ua == null ? Collections.emptyList() : cleanValues(ua.getUa_list());
+        if (type != 0 && values.isEmpty()) {
+            throw new BusinessException("User-Agent rules cannot be empty");
+        }
+        CustomRule rule = null;
+        if (type != 0) {
+            String matched = buildHeaderLikeCondition("user-agent", values, false);
+            String condition = type == 2 ? "not (" + matched + ")" : matched;
+            rule = buildBasicDenyRule(EO_RULE_UA, condition);
+        }
+        saveKuocaiSecurityRule(cdnDomain, EO_RULE_UA, rule);
     }
 
     @Override
@@ -950,6 +992,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         rule.setCondition(source.getCondition());
         rule.setAction(source.getAction());
         rule.setEnabled(source.getEnabled());
+        rule.setRuleType(source.getRuleType());
         rule.setPriority(source.getPriority());
         return rule;
     }
@@ -1290,12 +1333,22 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         rule.setName(name);
         rule.setCondition(condition);
         rule.setEnabled("on");
+        rule.setRuleType("PreciseMatchRule");
         rule.setPriority(priority);
         SecurityAction action = new SecurityAction();
         action.setName("Deny");
-        DenyActionParameters deny = new DenyActionParameters();
-        deny.setResponseCode("403");
-        action.setDenyActionParameters(deny);
+        rule.setAction(action);
+        return rule;
+    }
+
+    private CustomRule buildBasicDenyRule(String name, String condition) {
+        CustomRule rule = new CustomRule();
+        rule.setName(name);
+        rule.setCondition(condition);
+        rule.setEnabled("on");
+        rule.setRuleType("BasicAccessRule");
+        SecurityAction action = new SecurityAction();
+        action.setName("Deny");
         rule.setAction(action);
         return rule;
     }
@@ -1309,7 +1362,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
             if (item.contains("*") || item.contains("?")) {
                 wildcardValues.add(item);
             } else if (wrapWithoutWildcard) {
-                containValues.add(item);
+                wildcardValues.add("*" + item + "*");
             } else {
                 exactValues.add(item);
             }
@@ -1317,9 +1370,6 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         List<String> expressions = new ArrayList<>();
         if (!exactValues.isEmpty()) {
             expressions.add("${http.request.headers['" + headerName + "']} in " + toConditionList(exactValues));
-        }
-        if (!containValues.isEmpty()) {
-            expressions.add("${http.request.headers['" + headerName + "']} contain " + toConditionList(containValues));
         }
         if (!wildcardValues.isEmpty()) {
             expressions.add("${http.request.headers['" + headerName + "']} like " + toConditionList(wildcardValues));
