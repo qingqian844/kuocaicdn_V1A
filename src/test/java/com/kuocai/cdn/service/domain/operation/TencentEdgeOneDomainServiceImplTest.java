@@ -1,7 +1,10 @@
 package com.kuocai.cdn.service.domain.operation;
 
 import com.kuocai.cdn.api.huawei.cdn.dto.CacheRuleDTO;
+import com.tencentcloudapi.teo.v20220901.models.CacheConfigCustomTime;
+import com.tencentcloudapi.teo.v20220901.models.CacheConfigParameters;
 import com.tencentcloudapi.teo.v20220901.models.ModifySecurityPolicyRequest;
+import com.tencentcloudapi.teo.v20220901.models.NoCache;
 import com.tencentcloudapi.teo.v20220901.models.RuleEngineItem;
 import com.tencentcloudapi.teo.v20220901.models.SecurityPolicy;
 import org.junit.jupiter.api.Test;
@@ -78,5 +81,40 @@ class TencentEdgeOneDomainServiceImplTest {
         assertTrue(json.contains("${http.request.uri.path} like"));
         assertTrue(json.contains("/download"));
         assertFalse(json.contains("matches"));
+    }
+
+    @Test
+    void edgeOneActiveStatusIsConfigurable() {
+        Boolean busy = ReflectionTestUtils.invokeMethod(service, "isDomainBusy", "active");
+
+        assertNotNull(busy);
+        assertFalse(busy);
+    }
+
+    @Test
+    void unchangedGlobalCacheRuleCanBeSkipped() {
+        CacheConfigParameters currentCache = new CacheConfigParameters();
+        CacheConfigCustomTime customTime = new CacheConfigCustomTime();
+        customTime.setSwitch("on");
+        customTime.setCacheTime(30L * 24 * 60 * 60);
+        currentCache.setCustomTime(customTime);
+        NoCache noCache = new NoCache();
+        noCache.setSwitch("off");
+        currentCache.setNoCache(noCache);
+
+        Boolean same = ReflectionTestUtils.invokeMethod(
+                service,
+                "isSameGlobalCacheConfig",
+                currentCache,
+                CacheRuleDTO.builder()
+                        .match_type("all")
+                        .ttl(30)
+                        .ttl_unit("d")
+                        .follow_origin("off")
+                        .build()
+        );
+
+        assertNotNull(same);
+        assertTrue(same);
     }
 }

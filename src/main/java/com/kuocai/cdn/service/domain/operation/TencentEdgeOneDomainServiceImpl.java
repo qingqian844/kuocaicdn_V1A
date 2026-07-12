@@ -575,32 +575,20 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
     @Override
     public void saveCacheRules(CdnDomain cdnDomain, SettingCacheVo config) throws BusinessException {
         ensureDomainReady(cdnDomain);
-        CacheRuleDTO globalRule = firstGlobalCacheRule(config.getCacheRules());
-        if (globalRule == null) {
-            throw new BusinessException("腾讯云 EdgeOne 当前先支持全站缓存规则，目录/后缀/完整路径规则后续单独对接");
+        List<CacheRuleDTO> rules = config == null ? Collections.emptyList() : config.getCacheRules();
+        CacheRuleDTO globalRule = firstGlobalCacheRule(rules);
+        if (globalRule != null) {
+            CacheConfigParameters cache = buildGlobalCacheParameters(globalRule);
+            CacheConfigParameters currentCache = getL7AccSetting(cdnDomain.getDomainName()).getCache();
+            if (isSameGlobalCacheConfig(currentCache, globalRule)) {
+                log.info("Skip EdgeOne global cache update because config is unchanged, domain={}", cdnDomain.getDomainName());
+            } else {
+                ZoneConfig zoneConfig = new ZoneConfig();
+                zoneConfig.setCache(cache);
+                modifyL7AccSetting(cdnDomain, zoneConfig);
+            }
         }
-        CacheConfigParameters cache = new CacheConfigParameters();
-        if ("on".equals(globalRule.getFollow_origin())) {
-            cache.setFollowOrigin(buildFollowOrigin("on"));
-            CacheConfigCustomTime customTime = new CacheConfigCustomTime();
-            customTime.setSwitch("off");
-            cache.setCustomTime(customTime);
-            NoCache noCache = new NoCache();
-            noCache.setSwitch("off");
-            cache.setNoCache(noCache);
-        } else {
-            cache.setFollowOrigin(buildFollowOrigin("off"));
-            CacheConfigCustomTime customTime = new CacheConfigCustomTime();
-            customTime.setSwitch("on");
-            customTime.setCacheTime(KuocaiBaseUtil.toSeconds(globalRule.getTtl(), globalRule.getTtl_unit()));
-            cache.setCustomTime(customTime);
-            NoCache noCache = new NoCache();
-            noCache.setSwitch("off");
-            cache.setNoCache(noCache);
-        }
-        ZoneConfig zoneConfig = new ZoneConfig();
-        zoneConfig.setCache(cache);
-        modifyL7AccSetting(cdnDomain, zoneConfig);
+        saveEdgeOneCacheRule(cdnDomain, nonGlobalCacheRules(rules));
     }
 
     @Override
@@ -2402,7 +2390,20 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
             return true;
         }
         String normalized = status.trim().toLowerCase();
-        return !"online".equals(normalized) && !"offline".equals(normalized);
+        return !isDomainConfigurableStatus(normalized);
+    }
+
+    private boolean isDomainConfigurableStatus(String status) {
+        String normalized = normalize(status).toLowerCase();
+        return "online".equals(normalized)
+                || "offline".equals(normalized)
+                || "active".equals(normalized)
+                || "activated".equals(normalized)
+                || "enable".equals(normalized)
+                || "enabled".equals(normalized)
+                || "normal".equals(normalized)
+                || "success".equals(normalized)
+                || "finished".equals(normalized);
     }
 
     private boolean isDomainStatusDenied(TencentCloudSDKException e) {
@@ -2424,6 +2425,55 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
                 .filter(rule -> rule != null && ("all".equals(rule.getMatch_type()) || "global".equals(rule.getMatch_type())))
                 .findFirst()
                 .orElse(null);
+    }
+
+    private CacheConfigParameters buildGlobalCacheParameters(CacheRuleDTO globalRule) {
+        CacheConfigParameters cache = new CacheConfigParameters();
+        if ("on".equals(globalRule.getFollow_origin())) {
+            cache.setFollowOrigin(buildFollowOrigin("on"));
+            CacheConfigCustomTime customTime = new CacheConfigCustomTime();
+            customTime.setSwitch("off");
+            cache.setCustomTime(customTime);
+            NoCache noCache = new NoCache();
+            noCache.setSwitch("off");
+            cache.setNoCache(noCache);
+        } else if (globalRule.getTtl() == null) {
+            cache.setFollowOrigin(buildFollowOrigin("off"));
+            CacheConfigCustomTime customTime = new CacheConfigCustomTime();
+            customTime.setSwitch("off");
+            cache.setCustomTime(customTime);
+            NoCache noCache = new NoCache();
+            noCache.setSwitch("on");
+            cache.setNoCache(noCache);
+        } else {
+            cache.setFollowOrigin(buildFollowOrigin("off"));
+            CacheConfigCustomTime customTime = new CacheConfigCustomTime();
+            customTime.setSwitch("on");
+            customTime.setCacheTime(KuocaiBaseUtil.toSeconds(globalRule.getTtl(), globalRule.getTtl_unit()));
+            cache.setCustomTime(customTime);
+            NoCache noCache = new NoCache();
+            noCache.setSwitch("off");
+            cache.setNoCache(noCache);
+        }
+        return cache;
+    }
+
+    private boolean isSameGlobalCacheConfig(CacheConfigParameters currentCache, CacheRuleDTO requestedRule) {
+        if (currentCache == null || requestedRule == null) {
+            return false;
+        }
+        if ("on".equals(requestedRule.getFollow_origin())) {
+            return currentCache.getFollowOrigin() != null
+                    && "on".equals(normalizeSwitch(currentCache.getFollowOrigin().getSwitch()));
+        }
+        if (requestedRule.getTtl() == null) {
+            return currentCache.getNoCache() != null
+                    && "on".equals(normalizeSwitch(currentCache.getNoCache().getSwitch()));
+        }
+        return currentCache.getCustomTime() != null
+                && "on".equals(normalizeSwitch(currentCache.getCustomTime().getSwitch()))
+                && currentCache.getCustomTime().getCacheTime() != null
+                && currentCache.getCustomTime().getCacheTime().equals(KuocaiBaseUtil.toSeconds(requestedRule.getTtl(), requestedRule.getTtl_unit()));
     }
 
     private String normalizeSwitch(String value) {
@@ -2516,10 +2566,10 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
     }
 
     private String convertDomainStatus(String status) {
-        if ("online".equals(status)) {
+        if (isDomainConfigurableStatus(status) && !"offline".equals(normalize(status).toLowerCase())) {
             return "online";
         }
-        if ("offline".equals(status)) {
+        if ("offline".equals(normalize(status).toLowerCase())) {
             return "offline";
         }
         return "configuring";
