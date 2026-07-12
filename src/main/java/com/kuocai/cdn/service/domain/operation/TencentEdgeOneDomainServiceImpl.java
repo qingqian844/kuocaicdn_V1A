@@ -76,6 +76,10 @@ import com.tencentcloudapi.teo.v20220901.models.OriginRecord;
 import com.tencentcloudapi.teo.v20220901.models.SecurityAction;
 import com.tencentcloudapi.teo.v20220901.models.SecurityPolicy;
 import com.tencentcloudapi.teo.v20220901.models.ServerCertInfo;
+import com.tencentcloudapi.teo.v20220901.models.RuleBranch;
+import com.tencentcloudapi.teo.v20220901.models.RuleEngineAction;
+import com.tencentcloudapi.teo.v20220901.models.RuleEngineItem;
+import com.tencentcloudapi.teo.v20220901.models.SecurityConfig;
 import com.tencentcloudapi.teo.v20220901.models.ZoneConfig;
 import com.tencentcloudapi.teo.v20220901.models.ZoneConfigParameters;
 import com.tencentcloudapi.teo.v20220901.models.CacheConfigParameters;
@@ -657,18 +661,28 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
             }
 
             SecurityPolicy updatePolicy = new SecurityPolicy();
-            updatePolicy.setManagedRules(buildManagedRules(currentPolicy.getManagedRules(), config));
-            updatePolicy.setBotManagement(buildBotManagement(currentPolicy.getBotManagement(), config));
-            updatePolicy.setBotManagementLite(buildBotManagementLite(currentPolicy.getBotManagementLite(), config));
-            updatePolicy.setHttpDDoSProtection(buildHttpDDoSProtection(currentPolicy.getHttpDDoSProtection(), config));
-            updatePolicy.setRateLimitingRules(buildRateLimitingRules(currentPolicy.getRateLimitingRules(), config, cdnDomain.getDomainName()));
-            updatePolicy.setExceptionRules(buildExceptionRules(currentPolicy.getExceptionRules(), config));
+            if (shouldSubmitManagedRules(currentPolicy.getManagedRules(), config)) {
+                updatePolicy.setManagedRules(buildManagedRules(currentPolicy.getManagedRules(), config));
+            }
+            if (shouldSubmitBotManagement(currentPolicy.getBotManagement(), config)) {
+                updatePolicy.setBotManagement(buildBotManagement(currentPolicy.getBotManagement(), config));
+            }
+            if (shouldSubmitBotManagementLite(currentPolicy.getBotManagementLite(), config)) {
+                updatePolicy.setBotManagementLite(buildBotManagementLite(currentPolicy.getBotManagementLite(), config));
+            }
+            if (shouldSubmitHttpDdosProtection(currentPolicy.getHttpDDoSProtection(), config)) {
+                updatePolicy.setHttpDDoSProtection(buildHttpDDoSProtection(currentPolicy.getHttpDDoSProtection(), config));
+            }
+            if (shouldSubmitRateLimitingRules(currentPolicy.getRateLimitingRules(), config)) {
+                updatePolicy.setRateLimitingRules(buildRateLimitingRules(currentPolicy.getRateLimitingRules(), config, cdnDomain.getDomainName()));
+            }
+            if (shouldSubmitExceptionRules(currentPolicy.getExceptionRules(), config)) {
+                updatePolicy.setExceptionRules(buildExceptionRules(currentPolicy.getExceptionRules(), config));
+            }
 
-            ModifySecurityPolicyRequest request = new ModifySecurityPolicyRequest();
-            request.setZoneId(getZoneId(cdnDomain));
-            request.setEntity("Host");
-            request.setHost(cdnDomain.getDomainName());
-            request.setSecurityPolicy(updatePolicy);
+            ModifySecurityPolicyRequest request = buildModifySecurityPolicyRequest(getZoneId(cdnDomain), cdnDomain.getDomainName(), updatePolicy);
+            log.info("Modify EdgeOne security policy request, domain={}, request={}",
+                    cdnDomain.getDomainName(), ModifySecurityPolicyRequest.toJsonString(request));
             ModifySecurityPolicyResponse response = TencentEdgeOneClient.getClient().ModifySecurityPolicy(request);
             log.info("Modify EdgeOne security policy success, domain={}, response={}",
                     cdnDomain.getDomainName(), ModifySecurityPolicyResponse.toJsonString(response));
@@ -841,11 +855,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
             SecurityPolicy updatePolicy = new SecurityPolicy();
             updatePolicy.setCustomRules(customRules);
 
-            ModifySecurityPolicyRequest request = new ModifySecurityPolicyRequest();
-            request.setZoneId(getZoneId(cdnDomain));
-            request.setEntity("Host");
-            request.setHost(cdnDomain.getDomainName());
-            request.setSecurityPolicy(updatePolicy);
+            ModifySecurityPolicyRequest request = buildModifySecurityPolicyRequest(getZoneId(cdnDomain), cdnDomain.getDomainName(), updatePolicy);
             ModifySecurityPolicyResponse response = TencentEdgeOneClient.getClient().ModifySecurityPolicy(request);
             log.info("Modify EdgeOne domain {} security rule {} success: {}", cdnDomain.getDomainName(), ruleName, ModifySecurityPolicyResponse.toJsonString(response));
         } catch (BusinessException e) {
@@ -893,6 +903,49 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
                 .exceptionCondition(exceptionRule == null ? "" : normalize(exceptionRule.getCondition()))
                 .exceptionModules(exceptionRule == null ? "waf,rateLimiting,bot" : toLocalExceptionModules(exceptionRule.getWebSecurityModulesForException()))
                 .build();
+    }
+
+    private ModifySecurityPolicyRequest buildModifySecurityPolicyRequest(String zoneId, String domainName, SecurityPolicy updatePolicy) {
+        ModifySecurityPolicyRequest request = new ModifySecurityPolicyRequest();
+        request.setZoneId(zoneId);
+        request.setEntity("Host");
+        request.setHost(domainName);
+        request.setSecurityConfig(new SecurityConfig());
+        request.setSecurityPolicy(updatePolicy);
+        return request;
+    }
+
+    private boolean shouldSubmitManagedRules(ManagedRules existing, EdgeOneSecurityPolicyVo config) {
+        return existing != null
+                || "on".equals(normalizeSwitch(config == null ? null : config.getManagedRulesEnabled()))
+                || "on".equals(normalizeSwitch(config == null ? null : config.getManagedRulesDetectionOnly()))
+                || "on".equals(normalizeSwitch(config == null ? null : config.getManagedRulesSemanticAnalysis()));
+    }
+
+    private boolean shouldSubmitBotManagement(BotManagement existing, EdgeOneSecurityPolicyVo config) {
+        return existing != null || "on".equals(normalizeSwitch(config == null ? null : config.getBotManagementEnabled()));
+    }
+
+    private boolean shouldSubmitBotManagementLite(BotManagementLite existing, EdgeOneSecurityPolicyVo config) {
+        return existing != null
+                || "on".equals(normalizeSwitch(config == null ? null : config.getCaptchaPageChallengeEnabled()))
+                || "on".equals(normalizeSwitch(config == null ? null : config.getAiCrawlerDetectionEnabled()));
+    }
+
+    private boolean shouldSubmitHttpDdosProtection(HttpDDoSProtection existing, EdgeOneSecurityPolicyVo config) {
+        return existing != null
+                || "on".equals(normalizeSwitch(config == null ? null : config.getHttpDdosAdaptiveFrequencyControlEnabled()))
+                || "on".equals(normalizeSwitch(config == null ? null : config.getHttpDdosClientFilteringEnabled()))
+                || "on".equals(normalizeSwitch(config == null ? null : config.getHttpDdosBandwidthAbuseDefenseEnabled()))
+                || "on".equals(normalizeSwitch(config == null ? null : config.getHttpDdosSlowAttackDefenseEnabled()));
+    }
+
+    private boolean shouldSubmitRateLimitingRules(RateLimitingRules existing, EdgeOneSecurityPolicyVo config) {
+        return existing != null || "on".equals(normalizeSwitch(config == null ? null : config.getRateLimitEnabled()));
+    }
+
+    private boolean shouldSubmitExceptionRules(ExceptionRules existing, EdgeOneSecurityPolicyVo config) {
+        return existing != null || "on".equals(normalizeSwitch(config == null ? null : config.getExceptionEnabled()));
     }
 
     private ManagedRules buildManagedRules(ManagedRules existing, EdgeOneSecurityPolicyVo config) {
@@ -1534,6 +1587,511 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
                 .build();
     }
 
+    private void saveEdgeOneCacheRule(CdnDomain cdnDomain, List<CacheRuleDTO> rules) throws BusinessException {
+        String zoneId = getZoneId(cdnDomain);
+        RuleEngineItem existingRule = findEdgeOneCacheRule(cdnDomain.getDomainName());
+        try {
+            if (rules.isEmpty()) {
+                if (existingRule != null && Assert.notEmpty(existingRule.getRuleId())) {
+                    DeleteL7AccRulesRequest request = new DeleteL7AccRulesRequest();
+                    request.setZoneId(zoneId);
+                    request.setRuleIds(new String[]{existingRule.getRuleId()});
+                    TencentEdgeOneClient.getClient().DeleteL7AccRules(request);
+                    log.info("Delete EdgeOne cache rule success, domain={}, ruleId={}",
+                            cdnDomain.getDomainName(), existingRule.getRuleId());
+                }
+                return;
+            }
+
+            RuleEngineItem rule = buildCacheRuleEngineItem(cdnDomain.getDomainName(), rules);
+            if (existingRule != null && Assert.notEmpty(existingRule.getRuleId())) {
+                rule.setRuleId(existingRule.getRuleId());
+                if (existingRule.getRulePriority() != null) {
+                    rule.setRulePriority(existingRule.getRulePriority());
+                }
+                ModifyL7AccRuleRequest request = new ModifyL7AccRuleRequest();
+                request.setZoneId(zoneId);
+                request.setRule(rule);
+                log.info("Modify EdgeOne cache rule request, domain={}, request={}",
+                        cdnDomain.getDomainName(), ModifyL7AccRuleRequest.toJsonString(request));
+                TencentEdgeOneClient.getClient().ModifyL7AccRule(request);
+                log.info("Modify EdgeOne cache rule success, domain={}, ruleId={}",
+                        cdnDomain.getDomainName(), existingRule.getRuleId());
+            } else {
+                CreateL7AccRulesRequest request = new CreateL7AccRulesRequest();
+                request.setZoneId(zoneId);
+                request.setRules(new RuleEngineItem[]{rule});
+                log.info("Create EdgeOne cache rule request, domain={}, request={}",
+                        cdnDomain.getDomainName(), CreateL7AccRulesRequest.toJsonString(request));
+                CreateL7AccRulesResponse response = TencentEdgeOneClient.getClient().CreateL7AccRules(request);
+                log.info("Create EdgeOne cache rule success, domain={}, response={}",
+                        cdnDomain.getDomainName(), CreateL7AccRulesResponse.toJsonString(response));
+            }
+        } catch (TencentCloudSDKException e) {
+            throw new BusinessException("修改腾讯云 EdgeOne 缓存规则失败：" + TencentEdgeOneClient.formatTencentError(e));
+        }
+    }
+
+    private RuleEngineItem buildCacheRuleEngineItem(String domainName, List<CacheRuleDTO> rules) throws BusinessException {
+        List<com.tencentcloudapi.teo.v20220901.models.RuleEngineSubRule> subRules = new ArrayList<>();
+        for (CacheRuleDTO rule : rules) {
+            RuleBranch branch = new RuleBranch();
+            branch.setCondition(buildCacheRuleCondition(rule));
+            RuleEngineAction action = new RuleEngineAction();
+            action.setName(EO_ACTION_CACHE);
+            action.setCacheParameters(buildRuleCacheParameters(rule));
+            branch.setActions(new RuleEngineAction[]{action});
+            com.tencentcloudapi.teo.v20220901.models.RuleEngineSubRule subRule = new com.tencentcloudapi.teo.v20220901.models.RuleEngineSubRule();
+            subRule.setBranches(new RuleBranch[]{branch});
+            subRule.setDescription(new String[]{JSON.toJSONString(normalizeEdgeOneCacheRuleForDescription(rule))});
+            subRules.add(subRule);
+        }
+        RuleBranch hostBranch = new RuleBranch();
+        hostBranch.setSubRules(subRules.toArray(new com.tencentcloudapi.teo.v20220901.models.RuleEngineSubRule[0]));
+        RuleEngineItem item = new RuleEngineItem();
+        item.setStatus("enable");
+        hostBranch.setCondition("${http.request.host} in ['" + escapeConditionValue(domainName) + "']");
+        item.setRuleName(edgeOneCacheRuleName(domainName));
+        item.setDescription(new String[]{"Kuocai cache rules for " + domainName});
+        item.setBranches(new RuleBranch[]{hostBranch});
+        return item;
+    }
+
+    private String buildCacheRuleCondition(CacheRuleDTO rule) throws BusinessException {
+        String matchType = normalize(rule.getMatch_type());
+        List<String> values = splitRuleValues(rule.getMatch_value());
+        if ("file_extension".equals(matchType)) {
+            List<String> extensions = normalizeEdgeOneFileExtensions(rule.getMatch_value());
+            if (extensions.isEmpty()) {
+                throw new BusinessException("文件后缀缓存规则内容不能为空");
+            }
+            return "${http.request.file_extension} in " + toConditionList(extensions);
+        }
+        if ("catalog".equals(matchType)) {
+            if (values.isEmpty()) {
+                throw new BusinessException("目录路径缓存规则内容不能为空");
+            }
+            List<String> expressions = new ArrayList<>();
+            for (String value : values) {
+                String path = normalize(value);
+                if (!path.startsWith("/")) {
+                    path = "/" + path;
+                }
+                path = trimTrailingSlash(path);
+                if ("/".equals(path)) {
+                    expressions.add("${http.request.uri.path} like ['/*']");
+                } else {
+                    expressions.add("(${http.request.uri.path} in ['" + escapeConditionValue(path) + "'] or ${http.request.uri.path} like ['" + escapeConditionValue(path + "/*") + "'])");
+                }
+            }
+            return "(" + String.join(" or ", expressions) + ")";
+        }
+        if ("full_path".equals(matchType)) {
+            if (values.isEmpty()) {
+                throw new BusinessException("全路径缓存规则内容不能为空");
+            }
+            List<String> exactValues = new ArrayList<>();
+            List<String> wildcardValues = new ArrayList<>();
+            for (String value : values) {
+                if (value.contains("*") || value.contains("?")) {
+                    wildcardValues.add(value);
+                } else {
+                    exactValues.add(value);
+                }
+            }
+            List<String> expressions = new ArrayList<>();
+            if (!exactValues.isEmpty()) {
+                expressions.add("${http.request.uri.path} in " + toConditionList(exactValues));
+            }
+            if (!wildcardValues.isEmpty()) {
+                expressions.add("${http.request.uri.path} like " + toConditionList(wildcardValues));
+            }
+            return expressions.size() == 1 ? expressions.get(0) : "(" + String.join(" or ", expressions) + ")";
+        }
+        throw new BusinessException("腾讯云 EdgeOne 暂不支持该缓存规则类型：" + matchType);
+    }
+
+    private CacheParameters buildRuleCacheParameters(CacheRuleDTO rule) {
+        CacheParameters cache = new CacheParameters();
+        if ("on".equals(rule.getFollow_origin())) {
+            cache.setFollowOrigin(buildFollowOrigin("on"));
+            cache.setNoCache(buildNoCache("off"));
+            cache.setCustomTime(buildCustomTime("off", null));
+            return cache;
+        }
+        if (rule.getTtl() == null) {
+            cache.setFollowOrigin(buildFollowOrigin("off"));
+            cache.setNoCache(buildNoCache("on"));
+            cache.setCustomTime(buildCustomTime("off", null));
+        } else {
+            cache.setFollowOrigin(buildFollowOrigin("off"));
+            cache.setNoCache(buildNoCache("off"));
+            cache.setCustomTime(buildCustomTime("on", KuocaiBaseUtil.toSeconds(rule.getTtl(), rule.getTtl_unit())));
+        }
+        return cache;
+    }
+
+    private void saveEdgeOneOriginFollowRedirectRule(CdnDomain cdnDomain, DomainOriginSettingVo config) throws BusinessException {
+        String zoneId = getZoneId(cdnDomain);
+        RuleEngineItem existingRule = findEdgeOneOriginFollowRedirectRule(cdnDomain.getDomainName());
+        boolean enabled = config != null && "on".equals(normalizeSwitch(config.getStatus()));
+        try {
+            if (!enabled) {
+                if (existingRule != null && Assert.notEmpty(existingRule.getRuleId())) {
+                    DeleteL7AccRulesRequest request = new DeleteL7AccRulesRequest();
+                    request.setZoneId(zoneId);
+                    request.setRuleIds(new String[]{existingRule.getRuleId()});
+                    TencentEdgeOneClient.getClient().DeleteL7AccRules(request);
+                    log.info("Delete EdgeOne origin follow redirect rule success, domain={}, ruleId={}",
+                            cdnDomain.getDomainName(), existingRule.getRuleId());
+                }
+                return;
+            }
+
+            RuleEngineItem rule = buildOriginFollowRedirectRule(cdnDomain.getDomainName(), resolveOriginFollowRedirectMaxTimes(config));
+            if (existingRule != null && Assert.notEmpty(existingRule.getRuleId())) {
+                rule.setRuleId(existingRule.getRuleId());
+                if (existingRule.getRulePriority() != null) {
+                    rule.setRulePriority(existingRule.getRulePriority());
+                }
+                ModifyL7AccRuleRequest request = new ModifyL7AccRuleRequest();
+                request.setZoneId(zoneId);
+                request.setRule(rule);
+                TencentEdgeOneClient.getClient().ModifyL7AccRule(request);
+                log.info("Modify EdgeOne origin follow redirect rule success, domain={}, ruleId={}",
+                        cdnDomain.getDomainName(), existingRule.getRuleId());
+            } else {
+                CreateL7AccRulesRequest request = new CreateL7AccRulesRequest();
+                request.setZoneId(zoneId);
+                request.setRules(new RuleEngineItem[]{rule});
+                CreateL7AccRulesResponse response = TencentEdgeOneClient.getClient().CreateL7AccRules(request);
+                log.info("Create EdgeOne origin follow redirect rule success, domain={}, response={}",
+                        cdnDomain.getDomainName(), CreateL7AccRulesResponse.toJsonString(response));
+            }
+        } catch (TencentCloudSDKException e) {
+            throw new BusinessException("修改腾讯云 EdgeOne 回源跟随重定向失败：" + TencentEdgeOneClient.formatTencentError(e));
+        }
+    }
+
+    private RuleEngineItem buildOriginFollowRedirectRule(String domainName, long maxTimes) {
+        UpstreamFollowRedirectParameters parameters = new UpstreamFollowRedirectParameters();
+        parameters.setSwitch("on");
+        parameters.setMaxTimes(maxTimes);
+
+        RuleEngineAction action = new RuleEngineAction();
+        action.setName(EO_ACTION_UPSTREAM_FOLLOW_REDIRECT);
+        action.setUpstreamFollowRedirectParameters(parameters);
+
+        RuleBranch branch = new RuleBranch();
+        branch.setCondition("${http.request.host} in ['" + escapeConditionValue(domainName) + "']");
+        branch.setActions(new RuleEngineAction[]{action});
+
+        RuleEngineItem rule = new RuleEngineItem();
+        rule.setStatus("enable");
+        rule.setRuleName(edgeOneOriginFollowRedirectRuleName(domainName));
+        rule.setDescription(new String[]{"Kuocai origin follow redirect for " + domainName});
+        rule.setBranches(new RuleBranch[]{branch});
+        return rule;
+    }
+
+    private long resolveOriginFollowRedirectMaxTimes(DomainOriginSettingVo config) {
+        int maxTimes = config == null || config.getMaxTimes() == null ? 3 : config.getMaxTimes();
+        if (maxTimes < 1) {
+            return 1L;
+        }
+        if (maxTimes > 5) {
+            return 5L;
+        }
+        return maxTimes;
+    }
+
+    private String getOriginFollowRedirectStatus(String domainName) {
+        try {
+            RuleEngineItem rule = findEdgeOneOriginFollowRedirectRule(domainName);
+            UpstreamFollowRedirectParameters parameters = getOriginFollowRedirectParameters(rule);
+            return parameters != null && "on".equals(normalizeSwitch(parameters.getSwitch())) ? "on" : "off";
+        } catch (Exception e) {
+            log.warn("Get EdgeOne origin follow redirect status failed for {}, fallback off: {}", domainName, e.getMessage());
+            return "off";
+        }
+    }
+
+    private Integer getOriginFollowRedirectMaxTimes(String domainName) {
+        try {
+            RuleEngineItem rule = findEdgeOneOriginFollowRedirectRule(domainName);
+            UpstreamFollowRedirectParameters parameters = getOriginFollowRedirectParameters(rule);
+            if (parameters != null && parameters.getMaxTimes() != null) {
+                return parameters.getMaxTimes().intValue();
+            }
+        } catch (Exception e) {
+            log.warn("Get EdgeOne origin follow redirect max times failed for {}, fallback 3: {}", domainName, e.getMessage());
+        }
+        return 3;
+    }
+
+    private UpstreamFollowRedirectParameters getOriginFollowRedirectParameters(RuleEngineItem rule) {
+        if (rule == null || rule.getBranches() == null || !"enable".equalsIgnoreCase(normalize(rule.getStatus()))) {
+            return null;
+        }
+        for (RuleBranch branch : rule.getBranches()) {
+            if (branch == null || branch.getActions() == null) {
+                continue;
+            }
+            for (RuleEngineAction action : branch.getActions()) {
+                if (action != null
+                        && EO_ACTION_UPSTREAM_FOLLOW_REDIRECT.equals(action.getName())
+                        && action.getUpstreamFollowRedirectParameters() != null) {
+                    return action.getUpstreamFollowRedirectParameters();
+                }
+            }
+        }
+        return null;
+    }
+
+    private List<DomainCacheInfo.CacheRule> queryEdgeOneCacheRules(String domainName) {
+        try {
+            RuleEngineItem rule = findEdgeOneCacheRule(domainName);
+            if (rule == null || rule.getBranches() == null) {
+                return new ArrayList<>();
+            }
+            List<DomainCacheInfo.CacheRule> rules = new ArrayList<>();
+            for (RuleBranch branch : rule.getBranches()) {
+                if (branch == null || branch.getSubRules() == null) {
+                    DomainCacheInfo.CacheRule cacheRule = parseCacheRuleBranch(branch, rules.size() + 1);
+                    if (cacheRule != null) {
+                        rules.add(cacheRule);
+                    }
+                    continue;
+                }
+                for (com.tencentcloudapi.teo.v20220901.models.RuleEngineSubRule subRule : branch.getSubRules()) {
+                    if (subRule == null || subRule.getBranches() == null) {
+                        continue;
+                    }
+                    DomainCacheInfo.CacheRule describedRule = parseCacheRuleDescription(subRule.getDescription(), rules.size() + 1);
+                    if (describedRule != null) {
+                        rules.add(describedRule);
+                        continue;
+                    }
+                    for (RuleBranch subBranch : subRule.getBranches()) {
+                        DomainCacheInfo.CacheRule cacheRule = parseCacheRuleBranch(subBranch, rules.size() + 1);
+                        if (cacheRule != null) {
+                            rules.add(cacheRule);
+                        }
+                    }
+                }
+            }
+            return rules;
+        } catch (Exception e) {
+            log.warn("Get EdgeOne cache rules failed for {}, use global cache only: {}", domainName, e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    private DomainCacheInfo.CacheRule parseCacheRuleDescription(String[] descriptions, int priority) {
+        if (descriptions == null || descriptions.length == 0 || Assert.isEmpty(descriptions[0])) {
+            return null;
+        }
+        try {
+            CacheRuleDTO rule = JSON.parseObject(descriptions[0], CacheRuleDTO.class);
+            if (rule == null || Assert.isEmpty(rule.getMatch_type())) {
+                return null;
+            }
+            return DomainCacheInfo.CacheRule.builder()
+                    .match_type(rule.getMatch_type())
+                    .match_value(normalizeEdgeOneCacheRuleMatchValue(rule))
+                    .ttl(rule.getTtl())
+                    .ttl_unit(Assert.isEmpty(rule.getTtl_unit()) ? "s" : rule.getTtl_unit())
+                    .priority(rule.getPriority() == null ? priority : rule.getPriority())
+                    .follow_origin("on".equals(rule.getFollow_origin()) ? "on" : "off")
+                    .url_parameter_type(normalize(rule.getUrl_parameter_type()))
+                    .url_parameter_value(normalize(rule.getUrl_parameter_value()))
+                    .build();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private DomainCacheInfo.CacheRule parseCacheRuleBranch(RuleBranch branch, int priority) {
+        if (branch == null || branch.getActions() == null) {
+            return null;
+        }
+        CacheParameters cache = null;
+        for (RuleEngineAction action : branch.getActions()) {
+            if (action != null && EO_ACTION_CACHE.equals(action.getName()) && action.getCacheParameters() != null) {
+                cache = action.getCacheParameters();
+                break;
+            }
+        }
+        if (cache == null) {
+            return null;
+        }
+        String condition = normalize(branch.getCondition());
+        String matchType = inferCacheRuleMatchType(condition);
+        List<String> values = parseCacheRuleValues(matchType, condition);
+        int seconds = getCacheSeconds(cache);
+        return DomainCacheInfo.CacheRule.builder()
+                .match_type(matchType)
+                .match_value(String.join(",", values))
+                .ttl(isNoCache(cache) ? null : KuocaiBaseUtil.getUnitCacheTime(seconds))
+                .ttl_unit(isNoCache(cache) ? "s" : KuocaiBaseUtil.getCacheTimeUnit(seconds))
+                .priority(priority)
+                .follow_origin(isFollowOrigin(cache) ? "on" : "off")
+                .url_parameter_type("")
+                .url_parameter_value("")
+                .build();
+    }
+
+    private String inferCacheRuleMatchType(String condition) {
+        if (condition.contains("file_extension")) {
+            return "file_extension";
+        }
+        if (condition.contains(" like ")) {
+            List<String> values = parseConditionValues(condition);
+            boolean allCatalog = !values.isEmpty() && values.stream().allMatch(value -> value.endsWith("*") && !value.substring(0, value.length() - 1).contains("*"));
+            return allCatalog ? "catalog" : "full_path";
+        }
+        return "full_path";
+    }
+
+    private List<String> parseCacheRuleValues(String matchType, String condition) {
+        List<String> values = parseConditionValues(condition);
+        List<String> result = new ArrayList<>();
+        for (String value : values) {
+            String normalized = normalize(value);
+            if (Assert.isEmpty(normalized)) {
+                continue;
+            }
+            if ("file_extension".equals(matchType)) {
+                String extension = normalized.replaceFirst("^\\.+", "");
+                if (Assert.notEmpty(extension)) {
+                    result.add(extension);
+                }
+            } else if ("catalog".equals(matchType)) {
+                result.add(normalized.endsWith("*") ? normalized.substring(0, normalized.length() - 1) : normalized);
+            } else {
+                result.add(normalized);
+            }
+        }
+        return result;
+    }
+
+    private RuleEngineItem findEdgeOneCacheRule(String domainName) throws BusinessException {
+        return findEdgeOneL7Rule(domainName, edgeOneCacheRuleName(domainName));
+    }
+
+    private RuleEngineItem findEdgeOneOriginFollowRedirectRule(String domainName) throws BusinessException {
+        return findEdgeOneL7Rule(domainName, edgeOneOriginFollowRedirectRuleName(domainName));
+    }
+
+    private String edgeOneCacheRuleName(String domainName) {
+        String normalized = normalize(domainName).replaceAll("[^A-Za-z0-9_-]", "_");
+        return EO_RULE_CACHE_PREFIX + normalized;
+    }
+
+    private String edgeOneOriginFollowRedirectRuleName(String domainName) {
+        String normalized = normalize(domainName).replaceAll("[^A-Za-z0-9_-]", "_");
+        return EO_RULE_ORIGIN_FOLLOW_REDIRECT_PREFIX + normalized;
+    }
+
+    private List<CacheRuleDTO> nonGlobalCacheRules(List<CacheRuleDTO> rules) {
+        if (rules == null || rules.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<CacheRuleDTO> result = new ArrayList<>();
+        for (CacheRuleDTO rule : rules) {
+            if (rule == null || "all".equals(rule.getMatch_type()) || "global".equals(rule.getMatch_type())) {
+                continue;
+            }
+            result.add(rule);
+        }
+        return result;
+    }
+
+    private List<String> splitRuleValues(String value) {
+        if (Assert.isEmpty(value)) {
+            return Collections.emptyList();
+        }
+        List<String> result = new ArrayList<>();
+        for (String item : value.split("[,;，；]")) {
+            String normalized = normalize(item);
+            if (Assert.notEmpty(normalized)) {
+                result.add(normalized);
+            }
+        }
+        return result;
+    }
+
+    private CacheRuleDTO normalizeEdgeOneCacheRuleForDescription(CacheRuleDTO rule) {
+        if (rule == null || !"file_extension".equals(normalize(rule.getMatch_type()))) {
+            return rule;
+        }
+        return CacheRuleDTO.builder()
+                .match_type(rule.getMatch_type())
+                .match_value(normalizeEdgeOneCacheRuleMatchValue(rule))
+                .ttl(rule.getTtl())
+                .ttl_unit(rule.getTtl_unit())
+                .priority(rule.getPriority())
+                .url_parameter_type(rule.getUrl_parameter_type())
+                .url_parameter_value(rule.getUrl_parameter_value())
+                .follow_origin(rule.getFollow_origin())
+                .build();
+    }
+
+    private String normalizeEdgeOneCacheRuleMatchValue(CacheRuleDTO rule) {
+        if (rule == null) {
+            return "";
+        }
+        if (!"file_extension".equals(normalize(rule.getMatch_type()))) {
+            return normalize(rule.getMatch_value());
+        }
+        return String.join(",", normalizeEdgeOneFileExtensions(rule.getMatch_value()));
+    }
+
+    private List<String> normalizeEdgeOneFileExtensions(String value) {
+        List<String> result = new ArrayList<>();
+        for (String item : splitRuleValues(value)) {
+            String extension = normalize(item).replaceFirst("^\\.+", "");
+            if (Assert.notEmpty(extension)) {
+                result.add(extension);
+            }
+        }
+        return result;
+    }
+
+    private String regexQuotePath(String path) {
+        return Pattern.quote(path);
+    }
+
+    private String wildcardToRegex(String value) {
+        StringBuilder regex = new StringBuilder("^");
+        for (char c : normalize(value).toCharArray()) {
+            if (c == '*') {
+                regex.append(".*");
+            } else if (c == '?') {
+                regex.append('.');
+            } else {
+                regex.append(Pattern.quote(String.valueOf(c)));
+            }
+        }
+        regex.append('$');
+        return regex.toString();
+    }
+
+    private boolean isFollowOrigin(CacheParameters cache) {
+        return cache.getFollowOrigin() != null && "on".equals(normalizeSwitch(cache.getFollowOrigin().getSwitch()));
+    }
+
+    private boolean isNoCache(CacheParameters cache) {
+        return cache.getNoCache() != null && "on".equals(normalizeSwitch(cache.getNoCache().getSwitch()));
+    }
+
+    private int getCacheSeconds(CacheParameters cache) {
+        if (cache.getCustomTime() == null || cache.getCustomTime().getCacheTime() == null) {
+            return 0;
+        }
+        return cache.getCustomTime().getCacheTime().intValue();
+    }
+
     private DomainVisitInfo buildVisitInfo(String domainName) {
         DomainVisitInfo visitInfo = DomainVisitInfo.builder()
                 .referer(DomainVisitInfo.Referer.builder().type("off").referer_type(0).value("").include_empty(false).build())
@@ -1831,6 +2389,14 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         return value == null ? "" : value.trim();
     }
 
+    private String trimTrailingSlash(String value) {
+        String normalized = normalize(value);
+        while (normalized.length() > 1 && normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized;
+    }
+
     private boolean isDomainBusy(String status) {
         if (Assert.isEmpty(status)) {
             return true;
@@ -1872,6 +2438,23 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         followOrigin.setDefaultCacheStrategy(normalizedStatus);
         followOrigin.setDefaultCacheTime(0L);
         return followOrigin;
+    }
+
+    private NoCache buildNoCache(String status) {
+        NoCache noCache = new NoCache();
+        noCache.setSwitch(normalizeSwitch(status));
+        return noCache;
+    }
+
+    private CustomTime buildCustomTime(String status, Long cacheTime) {
+        CustomTime customTime = new CustomTime();
+        String normalizedStatus = normalizeSwitch(status);
+        customTime.setSwitch(normalizedStatus);
+        customTime.setIgnoreCacheControl("on".equals(normalizedStatus) ? "on" : "off");
+        if (cacheTime != null) {
+            customTime.setCacheTime(cacheTime);
+        }
+        return customTime;
     }
 
     private String[] emptyIfNull(String[] values) {
