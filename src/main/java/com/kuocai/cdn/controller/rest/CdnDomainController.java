@@ -313,6 +313,12 @@ public class CdnDomainController extends BaseController {
             return false;
         }
         String lower = message.toLowerCase();
+        if (message.contains("CdnDomainRecordNotVerified")
+                || message.contains("CdnTxtRecordValueNotMatch")
+                || lower.contains("domainrecordnotverified")
+                || lower.contains("txtrecordvaluenotmatch")) {
+            return true;
+        }
         if (message.contains("无权限")
                 || lower.contains("unauthorized")
                 || lower.contains("not authorized")
@@ -538,7 +544,7 @@ public class CdnDomainController extends BaseController {
         if (!routes.contains(route)) {
             return RespResult.fail("请稍后再试");
         }
-        if ("outside_mainland_china".equals(area) && !"tencent_edgeone".equals(route)) {
+        if ("outside_mainland_china".equals(area) && !"tencent_edgeone".equals(route) && !"tencent".equals(route)) {
             route = "aliyun";
         }
         if (Assert.isEmpty(domainName)) {
@@ -565,7 +571,7 @@ public class CdnDomainController extends BaseController {
         if (!routes.contains(route)) {
             return RespResult.fail("请稍后再试");
         }
-        if ("outside_mainland_china".equals(area) && !"tencent_edgeone".equals(route)) {
+        if ("outside_mainland_china".equals(area) && !"tencent_edgeone".equals(route) && !"tencent".equals(route)) {
             route = "aliyun";
         }
         if (Assert.isEmpty(domainName) || Assert.isEmpty(verifyType)) {

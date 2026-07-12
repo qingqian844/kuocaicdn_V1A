@@ -9,11 +9,15 @@ import com.tencentcloudapi.common.profile.HttpProfile;
 public class TencentClient {
 
     public static CdnClient getCdnClient() {
-        Credential credential = new Credential(TencentCdn.SecretId, TencentCdn.SecretKey);
+        Credential credential = new Credential(trim(TencentCdn.SecretId), trim(TencentCdn.SecretKey));
         HttpProfile httpProfile = new HttpProfile();
         httpProfile.setEndpoint(TencentCdn.END_POINT);
         ClientProfile clientProfile = new ClientProfile();
         clientProfile.setHttpProfile(httpProfile);
         return new CdnClient(credential, "", clientProfile);
+    }
+
+    private static String trim(String value) {
+        return value == null ? "" : value.trim();
     }
 }

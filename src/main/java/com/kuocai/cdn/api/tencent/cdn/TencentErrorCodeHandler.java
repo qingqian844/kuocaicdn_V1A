@@ -10,6 +10,7 @@ public class TencentErrorCodeHandler {
 
     static {
         errorCodeMap = new HashMap<>(250);
+        errorCodeMap.put("AuthFailure.SignatureFailure", "腾讯云签名校验失败，请检查腾讯云 CDN SecretId/SecretKey 是否正确，且不要包含空格或换行。");
         errorCodeMap.put("AuthFailure", "CAM签名/鉴权错误。");
         errorCodeMap.put("FailedOperation.CdnConfigError", "域名配置更新操作失败，请重试或联系客服人员解决。");
         errorCodeMap.put("InternalError.CamSystemError", "内部鉴权系统错误。");

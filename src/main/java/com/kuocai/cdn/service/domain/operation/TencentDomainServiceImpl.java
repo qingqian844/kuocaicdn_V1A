@@ -54,6 +54,7 @@ public class TencentDomainServiceImpl extends BaseService<CdnDomain> implements 
             req.setDomain(domainName);
             CreateVerifyRecordResponse resp = cdn.CreateVerifyRecord(req);
             return DomainVerifyRecordInfo.builder()
+                    .domainName(domainName)
                     .subDomain(resp.getSubDomain())
                     .record(resp.getRecord())
                     .recordType(resp.getRecordType())
@@ -62,6 +63,8 @@ public class TencentDomainServiceImpl extends BaseService<CdnDomain> implements 
                     .fileVerifyName(resp.getFileVerifyName())
                     .content(resp.getRecord())
                     .build();
+        } catch (TencentCloudSDKException e) {
+            throw new BusinessException(TencentErrorCodeHandler.getErrorDescription(e) + buildTencentErrorTrace(e));
         } catch (Exception e) {
             throw new BusinessException(e.getMessage());
         }
