@@ -84,6 +84,7 @@ import com.tencentcloudapi.teo.v20220901.models.ServerCertInfo;
 import com.tencentcloudapi.teo.v20220901.models.RuleBranch;
 import com.tencentcloudapi.teo.v20220901.models.RuleEngineAction;
 import com.tencentcloudapi.teo.v20220901.models.RuleEngineItem;
+import com.tencentcloudapi.teo.v20220901.models.SecurityConfig;
 import com.tencentcloudapi.teo.v20220901.models.ZoneConfig;
 import com.tencentcloudapi.teo.v20220901.models.ZoneConfigParameters;
 import com.tencentcloudapi.teo.v20220901.models.CacheConfigParameters;
@@ -913,6 +914,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         request.setZoneId(zoneId);
         request.setEntity("Host");
         request.setHost(domainName);
+        request.setSecurityConfig(new SecurityConfig());
         request.setSecurityPolicy(updatePolicy);
         return request;
     }
@@ -1729,17 +1731,11 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         CacheParameters cache = new CacheParameters();
         if ("on".equals(rule.getFollow_origin())) {
             cache.setFollowOrigin(buildFollowOrigin("on"));
-            cache.setNoCache(buildNoCache("off"));
-            cache.setCustomTime(buildCustomTime("off", null));
             return cache;
         }
         if (rule.getTtl() == null) {
-            cache.setFollowOrigin(buildFollowOrigin("off"));
             cache.setNoCache(buildNoCache("on"));
-            cache.setCustomTime(buildCustomTime("off", null));
         } else {
-            cache.setFollowOrigin(buildFollowOrigin("off"));
-            cache.setNoCache(buildNoCache("off"));
             cache.setCustomTime(buildCustomTime("on", KuocaiBaseUtil.toSeconds(rule.getTtl(), rule.getTtl_unit())));
         }
         return cache;
