@@ -1,8 +1,10 @@
 package com.kuocai.cdn.service.domain.operation;
 
 import com.kuocai.cdn.api.huawei.cdn.dto.CacheRuleDTO;
+import com.kuocai.cdn.api.huawei.cdn.dto.UrlAuthDTO;
 import com.tencentcloudapi.teo.v20220901.models.CacheConfigCustomTime;
 import com.tencentcloudapi.teo.v20220901.models.CacheConfigParameters;
+import com.tencentcloudapi.teo.v20220901.models.CustomRules;
 import com.tencentcloudapi.teo.v20220901.models.ModifySecurityPolicyRequest;
 import com.tencentcloudapi.teo.v20220901.models.NoCache;
 import com.tencentcloudapi.teo.v20220901.models.RuleEngineItem;
@@ -33,6 +35,24 @@ class TencentEdgeOneDomainServiceImplTest {
         assertNotNull(request);
         assertNotNull(request.getSecurityConfig());
         assertNotNull(request.getSecurityPolicy());
+        assertTrue(ModifySecurityPolicyRequest.toJsonString(request).contains("\"SecurityConfig\""));
+    }
+
+    @Test
+    void edgeOneCustomAccessRuleRequestIncludesSecurityConfig() {
+        SecurityPolicy policy = new SecurityPolicy();
+        policy.setCustomRules(new CustomRules());
+
+        ModifySecurityPolicyRequest request = ReflectionTestUtils.invokeMethod(
+                service,
+                "buildModifySecurityPolicyRequest",
+                "zone-test",
+                "static.example.com",
+                policy
+        );
+
+        assertNotNull(request);
+        assertNotNull(request.getSecurityConfig());
         assertTrue(ModifySecurityPolicyRequest.toJsonString(request).contains("\"SecurityConfig\""));
     }
 
@@ -116,5 +136,28 @@ class TencentEdgeOneDomainServiceImplTest {
 
         assertNotNull(same);
         assertTrue(same);
+    }
+
+    @Test
+    void edgeOneUrlAuthRuleUsesAuthenticationAction() {
+        RuleEngineItem item = ReflectionTestUtils.invokeMethod(
+                service,
+                "buildUrlAuthRule",
+                "static.example.com",
+                UrlAuthDTO.builder()
+                        .status("on")
+                        .type("typeB")
+                        .primary_key("abcdef123456")
+                        .secondary_key("backup123456")
+                        .expire_time(1800L)
+                        .build()
+        );
+
+        assertNotNull(item);
+        String json = RuleEngineItem.toJsonString(item);
+        assertTrue(json.contains("\"Name\":\"Authentication\""));
+        assertTrue(json.contains("\"AuthType\":\"TypeB\""));
+        assertTrue(json.contains("\"SecretKey\":\"abcdef123456\""));
+        assertTrue(json.contains("\"Timeout\":1800"));
     }
 }

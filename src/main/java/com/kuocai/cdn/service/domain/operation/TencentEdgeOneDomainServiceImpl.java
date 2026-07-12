@@ -12,6 +12,10 @@ import com.kuocai.cdn.api.huawei.cdn.dto.CacheRuleDTO;
 import com.kuocai.cdn.api.huawei.cdn.dto.CompressDTO;
 import com.kuocai.cdn.api.huawei.cdn.dto.ErrorCodeCacheDTO;
 import com.kuocai.cdn.api.huawei.cdn.dto.HttpPutBodyDTO;
+import com.kuocai.cdn.api.huawei.cdn.dto.HttpResponseHeaderDTO;
+import com.kuocai.cdn.api.huawei.cdn.dto.RefererDTO;
+import com.kuocai.cdn.api.huawei.cdn.dto.UrlAuthDTO;
+import com.kuocai.cdn.api.huawei.cdn.dto.UserAgentBlackAndWhiteListDTO;
 import com.kuocai.cdn.api.tencent.dns.CreateRecordResponse;
 import com.kuocai.cdn.api.tencent.dns.TencentApi;
 import com.kuocai.cdn.api.tencent.dns.dto.CreateRecordDTO;
@@ -37,6 +41,7 @@ import com.tencentcloudapi.common.exception.TencentCloudSDKException;
 import com.tencentcloudapi.teo.v20220901.TeoClient;
 import com.tencentcloudapi.teo.v20220901.models.AccelerationDomain;
 import com.tencentcloudapi.teo.v20220901.models.AdvancedFilter;
+import com.tencentcloudapi.teo.v20220901.models.AuthenticationParameters;
 import com.tencentcloudapi.teo.v20220901.models.AscriptionInfo;
 import com.tencentcloudapi.teo.v20220901.models.CreateAccelerationDomainRequest;
 import com.tencentcloudapi.teo.v20220901.models.CreateAccelerationDomainResponse;
@@ -137,9 +142,12 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
     private static final String EO_RULE_CACHE_PREFIX = "kuocai_cache_";
     private static final String EO_RULE_RESPONSE_HEADER_PREFIX = "kuocai_response_header_";
     private static final String EO_RULE_ORIGIN_FOLLOW_REDIRECT_PREFIX = "kuocai_origin_follow_redirect_";
+    private static final String EO_RULE_URL_AUTH_PREFIX = "kuocai_url_auth_";
     private static final String EO_ACTION_CACHE = "Cache";
     private static final String EO_ACTION_MODIFY_RESPONSE_HEADER = "ModifyResponseHeader";
     private static final String EO_ACTION_UPSTREAM_FOLLOW_REDIRECT = "UpstreamFollowRedirect";
+    private static final String EO_ACTION_AUTHENTICATION = "Authentication";
+    private static final String EO_URL_AUTH_PARAM = "sign";
     private static final Pattern CONDITION_VALUE_PATTERN = Pattern.compile("'((?:\\\\'|[^'])*)'");
 
     @Override
@@ -631,7 +639,8 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
 
     @Override
     public void saveUrlAuth(CdnDomain cdnDomain, SettingAccessVo config) throws BusinessException {
-        throw new BusinessException("腾讯云 EdgeOne URL 鉴权需要使用规则策略，当前版本暂未对接");
+        ensureDomainReady(cdnDomain);
+        saveEdgeOneUrlAuthRule(cdnDomain, config == null ? null : config.getUrlAuth());
     }
 
     @Override
@@ -1719,6 +1728,121 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         return cache;
     }
 
+    private void saveEdgeOneUrlAuthRule(CdnDomain cdnDomain, UrlAuthDTO urlAuth) throws BusinessException {
+        String zoneId = getZoneId(cdnDomain);
+        RuleEngineItem existingRule = findEdgeOneUrlAuthRule(cdnDomain.getDomainName());
+        boolean enabled = urlAuth != null && "on".equals(normalizeSwitch(urlAuth.getStatus()));
+        try {
+            if (!enabled) {
+                if (existingRule != null && Assert.notEmpty(existingRule.getRuleId())) {
+                    DeleteL7AccRulesRequest request = new DeleteL7AccRulesRequest();
+                    request.setZoneId(zoneId);
+                    request.setRuleIds(new String[]{existingRule.getRuleId()});
+                    TencentEdgeOneClient.getClient().DeleteL7AccRules(request);
+                    log.info("Delete EdgeOne URL auth rule success, domain={}, ruleId={}",
+                            cdnDomain.getDomainName(), existingRule.getRuleId());
+                }
+                return;
+            }
+
+            RuleEngineItem rule = buildUrlAuthRule(cdnDomain.getDomainName(), urlAuth);
+            if (existingRule != null && Assert.notEmpty(existingRule.getRuleId())) {
+                rule.setRuleId(existingRule.getRuleId());
+                if (existingRule.getRulePriority() != null) {
+                    rule.setRulePriority(existingRule.getRulePriority());
+                }
+                ModifyL7AccRuleRequest request = new ModifyL7AccRuleRequest();
+                request.setZoneId(zoneId);
+                request.setRule(rule);
+                log.info("Modify EdgeOne URL auth rule request, domain={}, request={}",
+                        cdnDomain.getDomainName(), ModifyL7AccRuleRequest.toJsonString(request));
+                TencentEdgeOneClient.getClient().ModifyL7AccRule(request);
+                log.info("Modify EdgeOne URL auth rule success, domain={}, ruleId={}",
+                        cdnDomain.getDomainName(), existingRule.getRuleId());
+            } else {
+                CreateL7AccRulesRequest request = new CreateL7AccRulesRequest();
+                request.setZoneId(zoneId);
+                request.setRules(new RuleEngineItem[]{rule});
+                log.info("Create EdgeOne URL auth rule request, domain={}, request={}",
+                        cdnDomain.getDomainName(), CreateL7AccRulesRequest.toJsonString(request));
+                CreateL7AccRulesResponse response = TencentEdgeOneClient.getClient().CreateL7AccRules(request);
+                log.info("Create EdgeOne URL auth rule success, domain={}, response={}",
+                        cdnDomain.getDomainName(), CreateL7AccRulesResponse.toJsonString(response));
+            }
+        } catch (TencentCloudSDKException e) {
+            throw new BusinessException("修改腾讯云 EdgeOne URL 鉴权失败：" + TencentEdgeOneClient.formatTencentError(e));
+        }
+    }
+
+    private RuleEngineItem buildUrlAuthRule(String domainName, UrlAuthDTO urlAuth) throws BusinessException {
+        AuthenticationParameters parameters = buildAuthenticationParameters(urlAuth);
+        RuleEngineAction action = new RuleEngineAction();
+        action.setName(EO_ACTION_AUTHENTICATION);
+        action.setAuthenticationParameters(parameters);
+
+        RuleBranch branch = new RuleBranch();
+        branch.setCondition(hostCondition(domainName));
+        branch.setActions(new RuleEngineAction[]{action});
+
+        RuleEngineItem rule = new RuleEngineItem();
+        rule.setStatus("enable");
+        rule.setRuleName(edgeOneUrlAuthRuleName(domainName));
+        rule.setDescription(new String[]{JSON.toJSONString(normalizeUrlAuthForDescription(urlAuth))});
+        rule.setBranches(new RuleBranch[]{branch});
+        return rule;
+    }
+
+    private AuthenticationParameters buildAuthenticationParameters(UrlAuthDTO urlAuth) throws BusinessException {
+        String type = toEdgeOneUrlAuthType(urlAuth == null ? null : urlAuth.getType());
+        String primaryKey = normalize(urlAuth == null ? null : urlAuth.getPrimary_key());
+        String secondaryKey = normalize(urlAuth == null ? null : urlAuth.getSecondary_key());
+        long timeout = urlAuth == null || urlAuth.getExpire_time() == null ? 0L : urlAuth.getExpire_time();
+        if (Assert.isEmpty(primaryKey)) {
+            throw new BusinessException("URL 鉴权主密钥不能为空");
+        }
+        if (primaryKey.length() < 6 || primaryKey.length() > 40) {
+            throw new BusinessException("腾讯云 EdgeOne URL 鉴权主密钥必须为 6-40 位");
+        }
+        if (Assert.notEmpty(secondaryKey) && (secondaryKey.length() < 6 || secondaryKey.length() > 40)) {
+            throw new BusinessException("腾讯云 EdgeOne URL 鉴权备密钥必须为 6-40 位");
+        }
+        if (timeout < 0) {
+            throw new BusinessException("URL 鉴权过期时间不能小于 0");
+        }
+
+        AuthenticationParameters parameters = new AuthenticationParameters();
+        parameters.setAuthType(type);
+        parameters.setSecretKey(primaryKey);
+        parameters.setBackupSecretKey(Assert.isEmpty(secondaryKey) ? null : secondaryKey);
+        parameters.setTimeout(timeout);
+        if ("TypeA".equals(type)) {
+            parameters.setAuthParam(EO_URL_AUTH_PARAM);
+        }
+        return parameters;
+    }
+
+    private UrlAuthDTO normalizeUrlAuthForDescription(UrlAuthDTO urlAuth) throws BusinessException {
+        return UrlAuthDTO.builder()
+                .status("on")
+                .type(toLocalUrlAuthType(toEdgeOneUrlAuthType(urlAuth == null ? null : urlAuth.getType())))
+                .primary_key(normalize(urlAuth == null ? null : urlAuth.getPrimary_key()))
+                .secondary_key(normalize(urlAuth == null ? null : urlAuth.getSecondary_key()))
+                .expire_time(urlAuth == null || urlAuth.getExpire_time() == null ? 0L : urlAuth.getExpire_time())
+                .build();
+    }
+
+    private String toEdgeOneUrlAuthType(String type) {
+        String normalized = normalize(type).toLowerCase();
+        if ("typeb".equals(normalized)) {
+            return "TypeB";
+        }
+        return "TypeA";
+    }
+
+    private String toLocalUrlAuthType(String type) {
+        return "TypeB".equals(normalize(type)) ? "typeB" : "typeA";
+    }
+
     private void saveEdgeOneOriginFollowRedirectRule(CdnDomain cdnDomain, DomainOriginSettingVo config) throws BusinessException {
         String zoneId = getZoneId(cdnDomain);
         RuleEngineItem existingRule = findEdgeOneOriginFollowRedirectRule(cdnDomain.getDomainName());
@@ -1971,6 +2095,10 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         return findEdgeOneL7Rule(domainName, edgeOneOriginFollowRedirectRuleName(domainName));
     }
 
+    private RuleEngineItem findEdgeOneUrlAuthRule(String domainName) throws BusinessException {
+        return findEdgeOneL7Rule(domainName, edgeOneUrlAuthRuleName(domainName));
+    }
+
     private String edgeOneCacheRuleName(String domainName) {
         String normalized = normalize(domainName).replaceAll("[^A-Za-z0-9_-]", "_");
         return EO_RULE_CACHE_PREFIX + normalized;
@@ -1979,6 +2107,11 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
     private String edgeOneOriginFollowRedirectRuleName(String domainName) {
         String normalized = normalize(domainName).replaceAll("[^A-Za-z0-9_-]", "_");
         return EO_RULE_ORIGIN_FOLLOW_REDIRECT_PREFIX + normalized;
+    }
+
+    private String edgeOneUrlAuthRuleName(String domainName) {
+        String normalized = normalize(domainName).replaceAll("[^A-Za-z0-9_-]", "_");
+        return EO_RULE_URL_AUTH_PREFIX + normalized;
     }
 
     private List<CacheRuleDTO> nonGlobalCacheRules(List<CacheRuleDTO> rules) {
@@ -2080,6 +2213,61 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         return cache.getCustomTime().getCacheTime().intValue();
     }
 
+    private DomainVisitInfo.UrlAuth queryEdgeOneUrlAuth(String domainName) {
+        try {
+            RuleEngineItem rule = findEdgeOneUrlAuthRule(domainName);
+            if (rule == null || rule.getBranches() == null || !"enable".equalsIgnoreCase(normalize(rule.getStatus()))) {
+                return DomainVisitInfo.UrlAuth.builder().status("off").type("").primary_key("").secondary_key("").expire_time(0L).build();
+            }
+            DomainVisitInfo.UrlAuth described = parseUrlAuthDescription(rule.getDescription());
+            if (described != null) {
+                return described;
+            }
+            for (RuleBranch branch : rule.getBranches()) {
+                if (branch == null || branch.getActions() == null) {
+                    continue;
+                }
+                for (RuleEngineAction action : branch.getActions()) {
+                    if (action == null || !EO_ACTION_AUTHENTICATION.equals(action.getName()) || action.getAuthenticationParameters() == null) {
+                        continue;
+                    }
+                    AuthenticationParameters parameters = action.getAuthenticationParameters();
+                    return DomainVisitInfo.UrlAuth.builder()
+                            .status("on")
+                            .type(toLocalUrlAuthType(parameters.getAuthType()))
+                            .primary_key(normalize(parameters.getSecretKey()))
+                            .secondary_key(normalize(parameters.getBackupSecretKey()))
+                            .expire_time(parameters.getTimeout() == null ? 0L : parameters.getTimeout())
+                            .build();
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Get EdgeOne URL auth rule failed for {}, fallback off: {}", domainName, e.getMessage());
+        }
+        return DomainVisitInfo.UrlAuth.builder().status("off").type("").primary_key("").secondary_key("").expire_time(0L).build();
+    }
+
+    private DomainVisitInfo.UrlAuth parseUrlAuthDescription(String[] descriptions) {
+        if (descriptions == null || descriptions.length == 0 || Assert.isEmpty(descriptions[0])) {
+            return null;
+        }
+        try {
+            UrlAuthDTO dto = JSON.parseObject(descriptions[0], UrlAuthDTO.class);
+            if (dto == null || !"on".equals(normalizeSwitch(dto.getStatus()))) {
+                return null;
+            }
+            return DomainVisitInfo.UrlAuth.builder()
+                    .status("on")
+                    .type(toLocalUrlAuthType(toEdgeOneUrlAuthType(dto.getType())))
+                    .primary_key(normalize(dto.getPrimary_key()))
+                    .secondary_key(normalize(dto.getSecondary_key()))
+                    .expire_time(dto.getExpire_time() == null ? 0L : dto.getExpire_time())
+                    .build();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private DomainVisitInfo buildVisitInfo(String domainName) {
         DomainVisitInfo visitInfo = DomainVisitInfo.builder()
                 .referer(DomainVisitInfo.Referer.builder().type("off").referer_type(0).value("").include_empty(false).build())
@@ -2095,6 +2283,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
                     applyKuocaiRuleToVisitInfo(rule, visitInfo);
                 }
             }
+            visitInfo.setUrl_auth(queryEdgeOneUrlAuth(domainName));
             visitInfo.setEdgeone_security_policy(buildEdgeOneSecurityPolicyVo(policy, domainName));
         } catch (Exception e) {
             log.warn("Get EdgeOne security policy failed for {}, use empty visit config: {}", domainName, e.getMessage());
