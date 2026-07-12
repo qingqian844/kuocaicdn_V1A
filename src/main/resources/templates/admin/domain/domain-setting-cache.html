@@ -684,6 +684,7 @@
 
                 function updateCacheRulesModal(source, index) {
                     source = JSON.parse(source)
+                    $('#ruleContext1,#expiseTimeNumber1').css('border', '');
                     $('#hiddenIndex').val(index);
                     $('#inputRuleTypes1').val(source.match_type);
                     $('#ruleContext1').val(source.match_value);
@@ -1096,7 +1097,7 @@
     <script th:src="@{common/custom.js(v='20260624-cache-suffix')}"></script>
     <script th:src="@{common/custom_ceo.js}"></script>
     <script th:src="@{common/custom_cmo.js}"></script>
-    <script th:src="@{common/custom_cto.js(v='20260624-cache-suffix')}"></script>
+    <script th:src="@{common/custom_cto.js(v='20260712-eo-cache-rule')}"></script>
 
 
     <!-- JS Plugins Init. -->
@@ -1106,6 +1107,7 @@
             // 初始化编辑模态框
             function initEditCacheRuleModal(index) {
                 const rule = JSON.parse($('#cacheRules').val())[index];
+                $('#ruleContext1,#expiseTimeNumber1').css('border', '');
                 $('#hiddenIndex').val(index);
                 $('#inputRuleTypes1').val(rule.match_type);
                 $('#ruleContext1').val(rule.match_value);

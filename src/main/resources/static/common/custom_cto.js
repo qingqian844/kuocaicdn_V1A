@@ -805,10 +805,11 @@ async function saveOcspStapling(id, status) {
 async function saveCacheRulesModal(id, sources, type, index) {
     sources = JSON.parse(sources) || []
     let flag = false;
+    $("#ruleContext,#ruleContext1,#expiseTimeNumber,#expiseTimeNumber1").css("border", "");
     if (type == 1) {
         // 类型
         let matchType = $("#inputRuleTypes option:selected:checked").val()
-        let matchValue = $("#ruleContext").val()
+        let matchValue = $.trim($("#ruleContext").val())
         let priority = $("#priority").val()
         let cacheEnabled = $("#cacheEnableSwitch").is(":checked")
         let ttl = cacheEnabled ? $("#expiseTimeNumber").val() : null
@@ -872,7 +873,7 @@ async function saveCacheRulesModal(id, sources, type, index) {
     if (type == 2) {
         let hiddenIndex = $('#hiddenIndex').val();
         let matchType = $("#inputRuleTypes1 option:selected:checked").val()
-        let matchValue = $("#ruleContext1").val()
+        let matchValue = $.trim($("#ruleContext1").val())
         let priority = $("#priority1").val()
         let cacheEnabled = $("#cacheEnableSwitch1").is(":checked")
         let ttl = cacheEnabled ? $("#expiseTimeNumber1").val() : null

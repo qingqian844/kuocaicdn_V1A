@@ -582,7 +582,6 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
 
     @Override
     public void saveCacheRules(CdnDomain cdnDomain, SettingCacheVo config) throws BusinessException {
-        ensureDomainReady(cdnDomain);
         List<CacheRuleDTO> rules = config == null ? Collections.emptyList() : config.getCacheRules();
         CacheRuleDTO globalRule = firstGlobalCacheRule(rules);
         if (globalRule != null) {
