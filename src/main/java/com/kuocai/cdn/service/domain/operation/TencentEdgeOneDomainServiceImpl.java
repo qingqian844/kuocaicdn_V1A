@@ -101,6 +101,7 @@ import com.tencentcloudapi.teo.v20220901.models.ClientFiltering;
 import com.tencentcloudapi.teo.v20220901.models.CompressionParameters;
 import com.tencentcloudapi.teo.v20220901.models.DescribeL7AccSettingRequest;
 import com.tencentcloudapi.teo.v20220901.models.DescribeL7AccSettingResponse;
+import com.tencentcloudapi.teo.v20220901.models.DenyActionParameters;
 import com.tencentcloudapi.teo.v20220901.models.ExceptionRule;
 import com.tencentcloudapi.teo.v20220901.models.ExceptionRules;
 import com.tencentcloudapi.teo.v20220901.models.FollowOrigin;
@@ -1292,6 +1293,9 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         rule.setPriority(priority);
         SecurityAction action = new SecurityAction();
         action.setName("Deny");
+        DenyActionParameters deny = new DenyActionParameters();
+        deny.setResponseCode("403");
+        action.setDenyActionParameters(deny);
         rule.setAction(action);
         return rule;
     }
