@@ -825,9 +825,23 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         }
     }
 
+    private SecurityPolicy describeZoneDefaultSecurityPolicy(String domainName) throws BusinessException {
+        try {
+            DescribeSecurityPolicyRequest request = new DescribeSecurityPolicyRequest();
+            request.setZoneId(TencentEdgeOneClient.resolveZoneId(domainName));
+            request.setEntity("ZoneDefaultPolicy");
+            DescribeSecurityPolicyResponse response = TencentEdgeOneClient.getClient().DescribeSecurityPolicy(request);
+            return response.getSecurityPolicy();
+        } catch (BusinessException e) {
+            throw e;
+        } catch (TencentCloudSDKException e) {
+            throw new BusinessException("Get Tencent EdgeOne zone security policy failed: " + TencentEdgeOneClient.formatTencentError(e));
+        }
+    }
+
     private void saveKuocaiSecurityRule(CdnDomain cdnDomain, String ruleName, CustomRule replacement) throws BusinessException {
         try {
-            SecurityPolicy policy = describeSecurityPolicy(cdnDomain.getDomainName());
+            SecurityPolicy policy = describeZoneDefaultSecurityPolicy(cdnDomain.getDomainName());
             if (policy == null) {
                 policy = new SecurityPolicy();
             }
@@ -857,7 +871,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
             SecurityPolicy updatePolicy = new SecurityPolicy();
             updatePolicy.setCustomRules(customRules);
 
-            ModifySecurityPolicyRequest request = buildModifySecurityPolicyRequest(getZoneId(cdnDomain), cdnDomain.getDomainName(), updatePolicy);
+            ModifySecurityPolicyRequest request = buildModifyZoneDefaultSecurityPolicyRequest(getZoneId(cdnDomain), updatePolicy);
             log.info("Modify EdgeOne domain {} security rule {} request: {}",
                     cdnDomain.getDomainName(), ruleName, ModifySecurityPolicyRequest.toJsonString(request));
             ModifySecurityPolicyResponse response = TencentEdgeOneClient.getClient().ModifySecurityPolicy(request);
@@ -914,6 +928,15 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         request.setZoneId(zoneId);
         request.setEntity("Host");
         request.setHost(domainName);
+        request.setSecurityConfig(new SecurityConfig());
+        request.setSecurityPolicy(updatePolicy);
+        return request;
+    }
+
+    private ModifySecurityPolicyRequest buildModifyZoneDefaultSecurityPolicyRequest(String zoneId, SecurityPolicy updatePolicy) {
+        ModifySecurityPolicyRequest request = new ModifySecurityPolicyRequest();
+        request.setZoneId(zoneId);
+        request.setEntity("ZoneDefaultPolicy");
         request.setSecurityConfig(new SecurityConfig());
         request.setSecurityPolicy(updatePolicy);
         return request;
