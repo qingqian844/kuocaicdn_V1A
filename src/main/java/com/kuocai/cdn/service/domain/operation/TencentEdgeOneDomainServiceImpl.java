@@ -84,7 +84,6 @@ import com.tencentcloudapi.teo.v20220901.models.ServerCertInfo;
 import com.tencentcloudapi.teo.v20220901.models.RuleBranch;
 import com.tencentcloudapi.teo.v20220901.models.RuleEngineAction;
 import com.tencentcloudapi.teo.v20220901.models.RuleEngineItem;
-import com.tencentcloudapi.teo.v20220901.models.SecurityConfig;
 import com.tencentcloudapi.teo.v20220901.models.ZoneConfig;
 import com.tencentcloudapi.teo.v20220901.models.ZoneConfigParameters;
 import com.tencentcloudapi.teo.v20220901.models.CacheConfigParameters;
@@ -831,27 +830,35 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
             if (policy == null) {
                 policy = new SecurityPolicy();
             }
-            CustomRules customRules = policy.getCustomRules();
-            if (customRules == null) {
-                customRules = new CustomRules();
-            }
             List<CustomRule> rules = new ArrayList<>();
-            if (customRules.getRules() != null) {
-                for (CustomRule rule : customRules.getRules()) {
-                    if (rule == null || ruleName.equals(rule.getName())) {
+            CustomRule oldRule = null;
+            CustomRules currentCustomRules = policy.getCustomRules();
+            if (currentCustomRules != null && currentCustomRules.getRules() != null) {
+                for (CustomRule rule : currentCustomRules.getRules()) {
+                    if (rule == null) {
                         continue;
                     }
-                    rules.add(rule);
+                    if (ruleName.equals(rule.getName())) {
+                        oldRule = rule;
+                        continue;
+                    }
+                    rules.add(copyCustomRuleForSubmit(rule));
                 }
             }
             if (replacement != null) {
+                if (oldRule != null && Assert.notEmpty(oldRule.getId())) {
+                    replacement.setId(oldRule.getId());
+                }
                 rules.add(replacement);
             }
+            CustomRules customRules = new CustomRules();
             customRules.setRules(rules.toArray(new CustomRule[0]));
             SecurityPolicy updatePolicy = new SecurityPolicy();
             updatePolicy.setCustomRules(customRules);
 
             ModifySecurityPolicyRequest request = buildModifySecurityPolicyRequest(getZoneId(cdnDomain), cdnDomain.getDomainName(), updatePolicy);
+            log.info("Modify EdgeOne domain {} security rule {} request: {}",
+                    cdnDomain.getDomainName(), ruleName, ModifySecurityPolicyRequest.toJsonString(request));
             ModifySecurityPolicyResponse response = TencentEdgeOneClient.getClient().ModifySecurityPolicy(request);
             log.info("Modify EdgeOne domain {} security rule {} success: {}", cdnDomain.getDomainName(), ruleName, ModifySecurityPolicyResponse.toJsonString(response));
         } catch (BusinessException e) {
@@ -906,9 +913,20 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         request.setZoneId(zoneId);
         request.setEntity("Host");
         request.setHost(domainName);
-        request.setSecurityConfig(new SecurityConfig());
         request.setSecurityPolicy(updatePolicy);
         return request;
+    }
+
+    private CustomRule copyCustomRuleForSubmit(CustomRule source) {
+        CustomRule rule = new CustomRule();
+        rule.setId(source.getId());
+        rule.setName(source.getName());
+        rule.setCondition(source.getCondition());
+        rule.setAction(source.getAction());
+        rule.setEnabled(source.getEnabled());
+        rule.setRuleType(source.getRuleType());
+        rule.setPriority(source.getPriority());
+        return rule;
     }
 
     private boolean shouldSubmitManagedRules(ManagedRules existing, EdgeOneSecurityPolicyVo config) {
@@ -1247,7 +1265,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         rule.setName(name);
         rule.setCondition(condition);
         rule.setEnabled("on");
-        rule.setRuleType("BasicAccessRule");
+        rule.setRuleType("PreciseMatchRule");
         rule.setPriority(priority);
         SecurityAction action = new SecurityAction();
         action.setName("Deny");
