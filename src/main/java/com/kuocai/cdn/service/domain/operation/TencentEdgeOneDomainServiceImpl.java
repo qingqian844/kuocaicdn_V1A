@@ -41,6 +41,7 @@ import com.tencentcloudapi.common.exception.TencentCloudSDKException;
 import com.tencentcloudapi.teo.v20220901.TeoClient;
 import com.tencentcloudapi.teo.v20220901.models.AccelerationDomain;
 import com.tencentcloudapi.teo.v20220901.models.AdvancedFilter;
+import com.tencentcloudapi.teo.v20220901.models.AclConfig;
 import com.tencentcloudapi.teo.v20220901.models.AuthenticationParameters;
 import com.tencentcloudapi.teo.v20220901.models.AscriptionInfo;
 import com.tencentcloudapi.teo.v20220901.models.CreateAccelerationDomainRequest;
@@ -95,13 +96,14 @@ import com.tencentcloudapi.teo.v20220901.models.AICrawlerDetection;
 import com.tencentcloudapi.teo.v20220901.models.BandwidthAbuseDefense;
 import com.tencentcloudapi.teo.v20220901.models.BotManagement;
 import com.tencentcloudapi.teo.v20220901.models.BotManagementLite;
+import com.tencentcloudapi.teo.v20220901.models.BotConfig;
 import com.tencentcloudapi.teo.v20220901.models.CAPTCHAPageChallenge;
 import com.tencentcloudapi.teo.v20220901.models.ChallengeActionParameters;
 import com.tencentcloudapi.teo.v20220901.models.ClientFiltering;
 import com.tencentcloudapi.teo.v20220901.models.CompressionParameters;
 import com.tencentcloudapi.teo.v20220901.models.DescribeL7AccSettingRequest;
 import com.tencentcloudapi.teo.v20220901.models.DescribeL7AccSettingResponse;
-import com.tencentcloudapi.teo.v20220901.models.DenyActionParameters;
+import com.tencentcloudapi.teo.v20220901.models.ExceptConfig;
 import com.tencentcloudapi.teo.v20220901.models.ExceptionRule;
 import com.tencentcloudapi.teo.v20220901.models.ExceptionRules;
 import com.tencentcloudapi.teo.v20220901.models.FollowOrigin;
@@ -114,8 +116,11 @@ import com.tencentcloudapi.teo.v20220901.models.NoCache;
 import com.tencentcloudapi.teo.v20220901.models.OCSPStaplingParameters;
 import com.tencentcloudapi.teo.v20220901.models.RateLimitingRule;
 import com.tencentcloudapi.teo.v20220901.models.RateLimitingRules;
+import com.tencentcloudapi.teo.v20220901.models.RateLimitConfig;
 import com.tencentcloudapi.teo.v20220901.models.SlowAttackDefense;
 import com.tencentcloudapi.teo.v20220901.models.TLSConfigParameters;
+import com.tencentcloudapi.teo.v20220901.models.UpstreamFollowRedirectParameters;
+import com.tencentcloudapi.teo.v20220901.models.WafConfig;
 import com.tencentcloudapi.teo.v20220901.models.Zone;
 import com.tencentcloudapi.ssl.v20191205.models.UploadCertificateRequest;
 import com.tencentcloudapi.ssl.v20191205.models.UploadCertificateResponse;
@@ -639,7 +644,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
             String condition = type == 2
                     ? (includeEmpty ? "not (" + matched + " or " + empty + ")" : "not (" + matched + ")")
                     : (includeEmpty ? "(" + matched + " or " + empty + ")" : matched);
-            rule = buildBasicDenyRule(EO_RULE_REFERER, condition);
+            rule = buildDenyRule(EO_RULE_REFERER, condition, 10L);
         }
         saveKuocaiSecurityRule(cdnDomain, EO_RULE_REFERER, rule);
     }
@@ -674,7 +679,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         if (type != 0) {
             String matched = buildHeaderLikeCondition("user-agent", values, false);
             String condition = type == 2 ? "not (" + matched + ")" : matched;
-            rule = buildBasicDenyRule(EO_RULE_UA, condition);
+            rule = buildDenyRule(EO_RULE_UA, condition, 12L);
         }
         saveKuocaiSecurityRule(cdnDomain, EO_RULE_UA, rule);
     }
@@ -717,6 +722,12 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
             }
             if (shouldSubmitExceptionRules(currentPolicy.getExceptionRules(), config)) {
                 updatePolicy.setExceptionRules(buildExceptionRules(currentPolicy.getExceptionRules(), config));
+            }
+
+            if (!hasSecurityPolicyUpdates(updatePolicy)) {
+                log.info("Skip EdgeOne security policy update because no effective policy field changed, domain={}",
+                        cdnDomain.getDomainName());
+                return;
             }
 
             ModifySecurityPolicyRequest request = buildModifySecurityPolicyRequest(getZoneId(cdnDomain), cdnDomain.getDomainName(), updatePolicy);
@@ -900,7 +911,10 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
                         oldRule = rule;
                         continue;
                     }
-                    rules.add(copyCustomRuleForSubmit(rule));
+                    CustomRule copiedRule = copyCustomRuleForSubmit(rule);
+                    if (copiedRule != null) {
+                        rules.add(copiedRule);
+                    }
                 }
             }
             if (replacement != null) {
@@ -971,7 +985,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         request.setZoneId(zoneId);
         request.setEntity("Host");
         request.setHost(domainName);
-        request.setSecurityConfig(new SecurityConfig());
+        request.setSecurityConfig(buildCompatibleSecurityConfig(updatePolicy));
         request.setSecurityPolicy(updatePolicy);
         return request;
     }
@@ -980,21 +994,109 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         ModifySecurityPolicyRequest request = new ModifySecurityPolicyRequest();
         request.setZoneId(zoneId);
         request.setEntity("ZoneDefaultPolicy");
-        request.setSecurityConfig(new SecurityConfig());
+        request.setSecurityConfig(buildCompatibleSecurityConfig(updatePolicy));
         request.setSecurityPolicy(updatePolicy);
         return request;
     }
 
     private CustomRule copyCustomRuleForSubmit(CustomRule source) {
+        if (source == null || "ManagedAccessRule".equalsIgnoreCase(normalize(source.getRuleType()))) {
+            return null;
+        }
         CustomRule rule = new CustomRule();
         rule.setId(source.getId());
         rule.setName(source.getName());
         rule.setCondition(source.getCondition());
-        rule.setAction(source.getAction());
-        rule.setEnabled(source.getEnabled());
-        rule.setRuleType(source.getRuleType());
-        rule.setPriority(source.getPriority());
+        rule.setAction(copySecurityActionForSubmit(source.getAction()));
+        rule.setEnabled(normalizeSwitch(source.getEnabled()));
+        String ruleType = normalize(source.getRuleType());
+        if ("BasicAccessRule".equalsIgnoreCase(ruleType)) {
+            rule.setRuleType("BasicAccessRule");
+        } else {
+            rule.setRuleType("PreciseMatchRule");
+            rule.setPriority(source.getPriority());
+        }
         return rule;
+    }
+
+    private SecurityAction copySecurityActionForSubmit(SecurityAction source) {
+        if (source == null || Assert.isEmpty(source.getName())) {
+            return null;
+        }
+        SecurityAction action = new SecurityAction();
+        action.setName(source.getName());
+        switch (normalize(source.getName()).toLowerCase()) {
+            case "redirect":
+                action.setRedirectActionParameters(source.getRedirectActionParameters());
+                break;
+            case "allow":
+                action.setAllowActionParameters(source.getAllowActionParameters());
+                break;
+            case "challenge":
+            case "jschallenge":
+            case "managedchallenge":
+                action.setChallengeActionParameters(source.getChallengeActionParameters());
+                break;
+            case "blockip":
+                action.setBlockIPActionParameters(source.getBlockIPActionParameters());
+                break;
+            case "returncustompage":
+                action.setReturnCustomPageActionParameters(source.getReturnCustomPageActionParameters());
+                break;
+            default:
+                // Deny and Monitor do not need any additional parameters. In particular,
+                // the API rejects the ResponseCode returned by older Deny rule versions.
+                break;
+        }
+        return action;
+    }
+
+    private SecurityConfig buildCompatibleSecurityConfig(SecurityPolicy updatePolicy) {
+        SecurityConfig securityConfig = new SecurityConfig();
+        if (updatePolicy != null && updatePolicy.getCustomRules() != null) {
+            AclConfig aclConfig = new AclConfig();
+            aclConfig.setSwitch("off");
+            securityConfig.setAclConfig(aclConfig);
+            return securityConfig;
+        }
+        if (updatePolicy != null && updatePolicy.getExceptionRules() != null) {
+            ExceptConfig exceptConfig = new ExceptConfig();
+            exceptConfig.setSwitch("off");
+            securityConfig.setExceptConfig(exceptConfig);
+            return securityConfig;
+        }
+        if (updatePolicy != null && (updatePolicy.getHttpDDoSProtection() != null
+                || updatePolicy.getRateLimitingRules() != null)) {
+            RateLimitConfig rateLimitConfig = new RateLimitConfig();
+            rateLimitConfig.setSwitch("off");
+            securityConfig.setRateLimitConfig(rateLimitConfig);
+            return securityConfig;
+        }
+        if (updatePolicy != null && updatePolicy.getManagedRules() != null) {
+            WafConfig wafConfig = new WafConfig();
+            wafConfig.setSwitch("off");
+            securityConfig.setWafConfig(wafConfig);
+            return securityConfig;
+        }
+        if (updatePolicy != null && (updatePolicy.getBotManagement() != null
+                || updatePolicy.getBotManagementLite() != null)) {
+            BotConfig botConfig = new BotConfig();
+            botConfig.setSwitch("off");
+            securityConfig.setBotConfig(botConfig);
+            return securityConfig;
+        }
+        throw new IllegalArgumentException("SecurityPolicy must contain at least one modifiable policy field");
+    }
+
+    private boolean hasSecurityPolicyUpdates(SecurityPolicy policy) {
+        return policy != null && (policy.getCustomRules() != null
+                || policy.getManagedRules() != null
+                || policy.getHttpDDoSProtection() != null
+                || policy.getRateLimitingRules() != null
+                || policy.getExceptionRules() != null
+                || policy.getBotManagement() != null
+                || policy.getBotManagementLite() != null
+                || policy.getDefaultDenySecurityActionParameters() != null);
     }
 
     private boolean shouldSubmitManagedRules(ManagedRules existing, EdgeOneSecurityPolicyVo config) {
@@ -1894,8 +1996,8 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         if (Assert.notEmpty(secondaryKey) && (secondaryKey.length() < 6 || secondaryKey.length() > 40)) {
             throw new BusinessException("腾讯云 EdgeOne URL 鉴权备密钥必须为 6-40 位");
         }
-        if (timeout < 0) {
-            throw new BusinessException("URL 鉴权过期时间不能小于 0");
+        if (timeout < 1 || timeout > 630720000L) {
+            throw new BusinessException("腾讯云 EdgeOne URL 鉴权有效期必须在 1-630720000 秒之间");
         }
 
         AuthenticationParameters parameters = new AuthenticationParameters();

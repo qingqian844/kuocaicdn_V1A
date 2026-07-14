@@ -2393,8 +2393,8 @@ async function saveUrlAuth(id) {
     }
 
     const expireTimeNum = parseInt(expireTime);
-    if (isNaN(expireTimeNum) || expireTimeNum < 0) {
-        layerWarn("过期时间必须是大于等于0的整数");
+    if (isNaN(expireTimeNum) || expireTimeNum < 1 || expireTimeNum > 630720000) {
+        layerWarn("有效期必须是 1-630720000 之间的整数秒");
         $("#expireTimeInput").focus();
         return;
     }

@@ -832,7 +832,7 @@
                                 <span class="col-sm-3 text-sm-end">过期时间</span>
                                 <div class="col-sm-9">
                                     <div class="input-group">
-                                        <input type="number" class="form-control" id="expireTimeInput" placeholder="大于等于0的整数" min="0" th:value="${domainConfig != null && domainConfig.get('visit') != null && domainConfig.get('visit').get('url_auth') != null ? domainConfig.get('visit').get('url_auth').get('expire_time') : ''}">
+                                        <input type="number" class="form-control" id="expireTimeInput" placeholder="1-630720000 秒" min="1" max="630720000" th:value="${domainConfig != null && domainConfig.get('visit') != null && domainConfig.get('visit').get('url_auth') != null ? domainConfig.get('visit').get('url_auth').get('expire_time') : ''}">
                                         <span class="input-group-text">秒</span>
                                     </div>
                                     <small class="form-text text-muted">
