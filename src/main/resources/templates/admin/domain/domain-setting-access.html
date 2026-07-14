@@ -269,7 +269,7 @@
                 </div>
                 <div class="card-body">
                     <div class="alert alert-soft-primary" role="alert">
-                        对接腾讯云 EdgeOne Web 安全策略，可配置托管规则、Bot 管理、速率限制和例外规则。该区域只更新[[${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteName) ? websiteBaseConfig.websiteName : '系统'}]]创建的策略，不会删除客户在腾讯控制台手动创建的其他规则。
+                        对接腾讯云 EdgeOne Web 安全策略，可配置托管规则、Bot 管理、速率限制和例外规则。腾讯 EO 的 WAF、Bot 和 HTTP DDoS 属于根站点共享策略，同一根域名下的加速域名会共同生效；速率限制和例外规则仍按匹配条件生效。
                     </div>
 
                     <div class="row">

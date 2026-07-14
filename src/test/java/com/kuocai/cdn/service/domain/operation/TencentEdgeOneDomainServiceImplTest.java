@@ -325,6 +325,30 @@ class TencentEdgeOneDomainServiceImplTest {
     }
 
     @Test
+    void edgeOneManagedRulesUseSupportedZoneDefaultPolicyRequest() {
+        ManagedRules managedRules = new ManagedRules();
+        managedRules.setEnabled("on");
+        SecurityPolicy policy = new SecurityPolicy();
+        policy.setManagedRules(managedRules);
+
+        ModifySecurityPolicyRequest request = ReflectionTestUtils.invokeMethod(
+                service,
+                "buildModifyZoneDefaultSecurityPolicyRequest",
+                "zone-test",
+                policy
+        );
+
+        assertNotNull(request);
+        assertEquals("ZoneDefaultPolicy", request.getEntity());
+        assertNull(request.getHost());
+        assertNotNull(request.getSecurityConfig());
+        HashMap<String, String> parameters = new HashMap<>();
+        request.toMap(parameters, "");
+        assertEquals("off", parameters.get("SecurityConfig.WafConfig.Switch"));
+        assertEquals("on", parameters.get("SecurityPolicy.ManagedRules.Enabled"));
+    }
+
+    @Test
     void edgeOneRefererRuleUsesPreciseMatchWithoutDenyParameters() {
         CustomRule rule = ReflectionTestUtils.invokeMethod(
                 service,

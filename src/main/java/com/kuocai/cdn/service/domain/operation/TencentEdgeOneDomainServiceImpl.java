@@ -869,7 +869,9 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
 
     @Override
     public EdgeOneSecurityPolicyVo getEdgeOneSecurityPolicy(CdnDomain cdnDomain) throws BusinessException {
-        return buildEdgeOneSecurityPolicyVo(describeSecurityPolicy(cdnDomain.getDomainName()), cdnDomain.getDomainName());
+        return buildEdgeOneSecurityPolicyVo(
+                describeZoneDefaultSecurityPolicy(cdnDomain.getDomainName()),
+                cdnDomain.getDomainName());
     }
 
     @Override
@@ -877,7 +879,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         ensureDomainReady(cdnDomain);
         String domainName = cdnDomain.getDomainName();
         String zoneId = getZoneId(cdnDomain);
-        SecurityPolicy currentPolicy = describeSecurityPolicy(domainName);
+        SecurityPolicy currentPolicy = describeZoneDefaultSecurityPolicy(domainName);
         if (currentPolicy == null) {
             currentPolicy = new SecurityPolicy();
         }
@@ -1200,7 +1202,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
 
     private void submitSecurityPolicyModule(String zoneId, String domainName, String moduleName,
                                             SecurityPolicy updatePolicy) throws BusinessException {
-        ModifySecurityPolicyRequest request = buildModifySecurityPolicyRequest(zoneId, domainName, updatePolicy);
+        ModifySecurityPolicyRequest request = buildModifyZoneDefaultSecurityPolicyRequest(zoneId, updatePolicy);
         String payload = ModifySecurityPolicyRequest.toJsonString(request);
         int payloadBytes = payload.getBytes(StandardCharsets.UTF_8).length;
         log.info("Modify EdgeOne security policy, domain={}, module={}, payloadBytes={}",
