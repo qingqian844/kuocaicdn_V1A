@@ -196,7 +196,7 @@ public class CdnDomainStatisticsService {
      */
     public JSONObject mergeAllPlatForm(List<CdnDomain> cdnDomains, DateTime start, DateTime end, String type, Long userId) throws BusinessException {
         String domainNameAlls = cdnDomains.stream().map(CdnDomain::getDomainName).sorted().collect(Collectors.joining(","));
-        String key = String.format("Statistics:v3:%d:%s:%s:%s->%s", userId, type, domainNameAlls.hashCode(), start.getTime(), end.getTime());
+        String key = String.format("Statistics:v4:%d:%s:%s:%s->%s", userId, type, domainNameAlls.hashCode(), start.getTime(), end.getTime());
         DateTime now = DateUtil.date();
         if (!start.after(now) && end.after(now)) {
             key = key + ":rt:" + DateUtil.format(now, "yyyyMMddHHmm");
@@ -422,8 +422,10 @@ public class CdnDomainStatisticsService {
         summary.put("bs_flux_byte", virtualBsFlux);
         summary.put("total_flux_byte", totalFlux);
         summary.put("flux_byte", virtualFlux);
-        summary.put("flux", autoReducedFlowUnit(virtualFlux));
-        summary.put("bs_flux", autoReducedFlowUnit(virtualBsFlux));
+        // 云厂商控制台按 SI（1000 进位）展示 GB/TB；原始字节字段保持不变，
+        // 套餐扣量仍直接使用字节，避免展示换算影响客户已有套餐权益。
+        summary.put("flux", autoReducedFlowUnitDecimal(virtualFlux));
+        summary.put("bs_flux", autoReducedFlowUnitDecimal(virtualBsFlux));
 
         JSONObject detail = data.getJSONObject("resource_detail");
         List<Long> bwDetail = Assert.notEmpty(detail.getJSONArray("bw")) ? detail.getJSONArray("bw").toJavaList(Long.class) : new ArrayList<>();
@@ -445,13 +447,13 @@ public class CdnDomainStatisticsService {
 
         List<BigDecimal> fluxData = multiplyVirtualRateList(virtualRate, fluxDetail);
         List<BigDecimal> bsFluxData = multiplyVirtualRateList(virtualRate, bsFluxDetail);
-        String fluxUnit = getSuitableFlowUnit(maxSeriesValue(fluxData, bsFluxData));
+        String fluxUnit = getSuitableFlowUnitDecimal(maxSeriesValue(fluxData, bsFluxData));
         HashMap<String, Object> fluxMap = new HashMap<>();
-        fluxMap.put("data", convertFlowUnit(fluxData, fluxUnit));
+        fluxMap.put("data", convertFlowUnitDecimal(fluxData, fluxUnit));
         fluxMap.put("unit", fluxUnit);
         detail.put("flux", fluxMap);
         HashMap<String, Object> bsFlowMap = new HashMap<>();
-        bsFlowMap.put("data", convertFlowUnit(bsFluxData, fluxUnit));
+        bsFlowMap.put("data", convertFlowUnitDecimal(bsFluxData, fluxUnit));
         bsFlowMap.put("unit", fluxUnit);
         detail.put("bs_flux", bsFlowMap);
 
@@ -483,7 +485,7 @@ public class CdnDomainStatisticsService {
         long hitFluxSummary = summary.getLongValue("hit_flux");
         long hitNumSummary = summary.getLongValue("hit_num");
         summary.put("req_num", multiplyVirtualRate(virtualRate, reqNumSummary));
-        summary.put("hit_flux", autoReducedFlowUnit(multiplyVirtualRate(virtualRate, hitFluxSummary).longValue()));
+        summary.put("hit_flux", autoReducedFlowUnitDecimal(multiplyVirtualRate(virtualRate, hitFluxSummary).longValue()));
         summary.put("hit_num", multiplyVirtualRate(virtualRate, hitNumSummary));
 
         JSONObject detail = data.getJSONObject("visits_detail");
@@ -491,7 +493,7 @@ public class CdnDomainStatisticsService {
         List<Long> hitFluxDetail = Assert.notEmpty(detail.getJSONArray("hit_flux")) ? detail.getJSONArray("hit_flux").toJavaList(Long.class) : new ArrayList<>();
         List<Long> hitNumDetail = Assert.notEmpty(detail.getJSONArray("hit_num")) ? detail.getJSONArray("hit_num").toJavaList(Long.class) : new ArrayList<>();
         detail.put("req_num", multiplyVirtualRateList(virtualRate, reqNumDetail));
-        detail.put("hit_flux", convertFlowUnit(multiplyVirtualRateList(virtualRate, hitFluxDetail)));
+        detail.put("hit_flux", convertFlowUnitDecimal(multiplyVirtualRateList(virtualRate, hitFluxDetail)));
         detail.put("hit_num", multiplyVirtualRateList(virtualRate, hitNumDetail));
 
         data.put("visits_summary", summary);
@@ -529,7 +531,7 @@ public class CdnDomainStatisticsService {
         for (int i = 0; i < fluxResult.size(); i++) {
             JSONObject jsonObject = fluxResult.getJSONObject(i);
             Object value = jsonObject.get("value");
-            jsonObject.put("value", autoReducedFlowUnit(multiplyVirtualRate(virtualRate, value).longValue()));
+            jsonObject.put("value", autoReducedFlowUnitDecimal(multiplyVirtualRate(virtualRate, value).longValue()));
         }
         return data;
     }
