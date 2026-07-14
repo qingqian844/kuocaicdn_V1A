@@ -2537,6 +2537,8 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
             }
             log.info("Save EdgeOne {} rule success, domain={}", featureName, cdnDomain.getDomainName());
         } catch (TencentCloudSDKException e) {
+            log.error("Save EdgeOne {} rule failed, domain={}, error={}",
+                    featureName, cdnDomain.getDomainName(), TencentEdgeOneClient.formatTencentError(e));
             throw new BusinessException("修改腾讯云 EdgeOne " + featureName + "失败："
                     + TencentEdgeOneClient.formatTencentError(e));
         }
