@@ -8,6 +8,7 @@ import com.kuocai.cdn.api.tencent.edgeone.TencentEdgeOneClient;
 import com.kuocai.cdn.entity.CdnDomain;
 import com.kuocai.cdn.vo.EdgeOneSecurityPolicyVo;
 import com.kuocai.cdn.vo.IgnoreQueryStringDTO;
+import com.tencentcloudapi.common.exception.TencentCloudSDKException;
 import com.tencentcloudapi.teo.v20220901.models.AccelerationDomain;
 import com.tencentcloudapi.teo.v20220901.models.AdaptiveFrequencyControl;
 import com.tencentcloudapi.teo.v20220901.models.AICrawlerDetection;
@@ -740,5 +741,19 @@ class TencentEdgeOneDomainServiceImplTest {
         assertEquals(3600, readBack.get(0).getTtl());
         assertEquals(503, readBack.get(1).getCode());
         assertEquals(120, readBack.get(1).getTtl());
+    }
+
+    @Test
+    void edgeOneErrorFormattingKeepsErrorCodeWhenMessageIsEmpty() {
+        TencentCloudSDKException error = new TencentCloudSDKException(
+                "",
+                "request-test",
+                "InvalidParameter"
+        );
+
+        assertEquals(
+                "InvalidParameter，RequestId：request-test",
+                TencentEdgeOneClient.formatTencentError(error)
+        );
     }
 }

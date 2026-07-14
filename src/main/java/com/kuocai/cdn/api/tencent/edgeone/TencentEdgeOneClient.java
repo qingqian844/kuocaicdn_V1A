@@ -576,10 +576,22 @@ public class TencentEdgeOneClient {
     }
 
     public static String formatTencentError(TencentCloudSDKException e) {
+        String errorCode = e.getErrorCode();
+        String message = e.getMessage();
+        String detail;
+        if (Assert.notEmpty(errorCode) && Assert.notEmpty(message)) {
+            detail = errorCode + "：" + message;
+        } else if (Assert.notEmpty(errorCode)) {
+            detail = errorCode;
+        } else if (Assert.notEmpty(message)) {
+            detail = message;
+        } else {
+            detail = "腾讯云接口返回未知错误";
+        }
         String requestId = e.getRequestId();
         if (Assert.notEmpty(requestId)) {
-            return e.getMessage() + "，RequestId：" + requestId;
+            return detail + "，RequestId：" + requestId;
         }
-        return e.getMessage();
+        return detail;
     }
 }
