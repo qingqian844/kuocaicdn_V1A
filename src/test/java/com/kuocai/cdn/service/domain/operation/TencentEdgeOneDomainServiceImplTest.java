@@ -30,6 +30,7 @@ import com.tencentcloudapi.teo.v20220901.models.ManagedRuleGroupMeta;
 import com.tencentcloudapi.teo.v20220901.models.ManagedRules;
 import com.tencentcloudapi.teo.v20220901.models.MinimalRequestBodyTransferRate;
 import com.tencentcloudapi.teo.v20220901.models.ModifyAccelerationDomainRequest;
+import com.tencentcloudapi.teo.v20220901.models.ModifyL7AccRuleRequest;
 import com.tencentcloudapi.teo.v20220901.models.ModifySecurityPolicyRequest;
 import com.tencentcloudapi.teo.v20220901.models.NoCache;
 import com.tencentcloudapi.teo.v20220901.models.OriginDetail;
@@ -755,5 +756,31 @@ class TencentEdgeOneDomainServiceImplTest {
                 "InvalidParameter，RequestId：request-test",
                 TencentEdgeOneClient.formatTencentError(error)
         );
+    }
+
+    @Test
+    void edgeOneModifyRuleDoesNotSubmitReadOnlyPriority() {
+        RuleEngineItem existing = new RuleEngineItem();
+        existing.setRuleId("rule-test");
+        existing.setRulePriority(9L);
+        RuleEngineItem desired = ReflectionTestUtils.invokeMethod(
+                service,
+                "buildStatusCodeCacheRule",
+                "static.example.com",
+                Collections.singletonList(ErrorCodeCacheDTO.builder().code(404).ttl(300).build())
+        );
+
+        ModifyL7AccRuleRequest request = ReflectionTestUtils.invokeMethod(
+                service,
+                "buildModifyL7AccRuleRequest",
+                "zone-test",
+                existing,
+                desired
+        );
+
+        assertNotNull(request);
+        String json = ModifyL7AccRuleRequest.toJsonString(request);
+        assertTrue(json.contains("\"RuleId\":\"rule-test\""));
+        assertFalse(json.contains("RulePriority"));
     }
 }

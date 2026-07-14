@@ -2291,13 +2291,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
 
             RuleEngineItem rule = buildCacheRuleEngineItem(cdnDomain.getDomainName(), rules);
             if (existingRule != null && Assert.notEmpty(existingRule.getRuleId())) {
-                rule.setRuleId(existingRule.getRuleId());
-                if (existingRule.getRulePriority() != null) {
-                    rule.setRulePriority(existingRule.getRulePriority());
-                }
-                ModifyL7AccRuleRequest request = new ModifyL7AccRuleRequest();
-                request.setZoneId(zoneId);
-                request.setRule(rule);
+                ModifyL7AccRuleRequest request = buildModifyL7AccRuleRequest(zoneId, existingRule, rule);
                 log.info("Modify EdgeOne cache rule request, domain={}, request={}",
                         cdnDomain.getDomainName(), ModifyL7AccRuleRequest.toJsonString(request));
                 TencentEdgeOneClient.getClient().ModifyL7AccRule(request);
@@ -2499,6 +2493,17 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         return rule;
     }
 
+    private ModifyL7AccRuleRequest buildModifyL7AccRuleRequest(String zoneId, RuleEngineItem existingRule,
+                                                                RuleEngineItem desiredRule) {
+        desiredRule.setRuleId(existingRule.getRuleId());
+        // RulePriority is returned by DescribeL7AccRules but is read-only for ModifyL7AccRule.
+        desiredRule.setRulePriority(null);
+        ModifyL7AccRuleRequest request = new ModifyL7AccRuleRequest();
+        request.setZoneId(zoneId);
+        request.setRule(desiredRule);
+        return request;
+    }
+
     private void saveEdgeOneManagedL7Rule(CdnDomain cdnDomain, String ruleName, RuleEngineItem desiredRule,
                                            String featureName) throws BusinessException {
         String zoneId = getZoneId(cdnDomain);
@@ -2517,13 +2522,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
             }
 
             if (existingRule != null && Assert.notEmpty(existingRule.getRuleId())) {
-                desiredRule.setRuleId(existingRule.getRuleId());
-                if (existingRule.getRulePriority() != null) {
-                    desiredRule.setRulePriority(existingRule.getRulePriority());
-                }
-                ModifyL7AccRuleRequest request = new ModifyL7AccRuleRequest();
-                request.setZoneId(zoneId);
-                request.setRule(desiredRule);
+                ModifyL7AccRuleRequest request = buildModifyL7AccRuleRequest(zoneId, existingRule, desiredRule);
                 log.info("Modify EdgeOne {} rule request, domain={}, request={}",
                         featureName, cdnDomain.getDomainName(), ModifyL7AccRuleRequest.toJsonString(request));
                 TencentEdgeOneClient.getClient().ModifyL7AccRule(request);
@@ -2563,13 +2562,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
 
             RuleEngineItem rule = buildUrlAuthRule(cdnDomain.getDomainName(), urlAuth);
             if (existingRule != null && Assert.notEmpty(existingRule.getRuleId())) {
-                rule.setRuleId(existingRule.getRuleId());
-                if (existingRule.getRulePriority() != null) {
-                    rule.setRulePriority(existingRule.getRulePriority());
-                }
-                ModifyL7AccRuleRequest request = new ModifyL7AccRuleRequest();
-                request.setZoneId(zoneId);
-                request.setRule(rule);
+                ModifyL7AccRuleRequest request = buildModifyL7AccRuleRequest(zoneId, existingRule, rule);
                 log.info("Modify EdgeOne URL auth rule request, domain={}, request={}",
                         cdnDomain.getDomainName(), ModifyL7AccRuleRequest.toJsonString(request));
                 TencentEdgeOneClient.getClient().ModifyL7AccRule(request);
@@ -2678,13 +2671,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
 
             RuleEngineItem rule = buildOriginFollowRedirectRule(cdnDomain.getDomainName(), resolveOriginFollowRedirectMaxTimes(config));
             if (existingRule != null && Assert.notEmpty(existingRule.getRuleId())) {
-                rule.setRuleId(existingRule.getRuleId());
-                if (existingRule.getRulePriority() != null) {
-                    rule.setRulePriority(existingRule.getRulePriority());
-                }
-                ModifyL7AccRuleRequest request = new ModifyL7AccRuleRequest();
-                request.setZoneId(zoneId);
-                request.setRule(rule);
+                ModifyL7AccRuleRequest request = buildModifyL7AccRuleRequest(zoneId, existingRule, rule);
                 TencentEdgeOneClient.getClient().ModifyL7AccRule(request);
                 log.info("Modify EdgeOne origin follow redirect rule success, domain={}, ruleId={}",
                         cdnDomain.getDomainName(), existingRule.getRuleId());
@@ -3263,13 +3250,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
 
             RuleEngineItem rule = buildResponseHeaderRule(cdnDomain.getDomainName(), headerActions);
             if (existingRule != null && Assert.notEmpty(existingRule.getRuleId())) {
-                rule.setRuleId(existingRule.getRuleId());
-                if (existingRule.getRulePriority() != null) {
-                    rule.setRulePriority(existingRule.getRulePriority());
-                }
-                ModifyL7AccRuleRequest request = new ModifyL7AccRuleRequest();
-                request.setZoneId(zoneId);
-                request.setRule(rule);
+                ModifyL7AccRuleRequest request = buildModifyL7AccRuleRequest(zoneId, existingRule, rule);
                 TencentEdgeOneClient.getClient().ModifyL7AccRule(request);
                 log.info("Modify EdgeOne response header rule success, domain={}, ruleId={}",
                         cdnDomain.getDomainName(), existingRule.getRuleId());
