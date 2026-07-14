@@ -68,21 +68,10 @@ public class TencentEdgeOneDomainStatisticsServiceImpl extends BaseService<CdnDo
                     continue;
                 }
                 DescribeTimingL7AnalysisDataResponse accessResponse = queryAccess(target, start, end, ACCESS_FLUX, ACCESS_BANDWIDTH);
-                Series realtimeAccessFlux = extractSeries(accessResponse.getData(), ACCESS_FLUX, size);
-                Series accessFluxSeries = realtimeAccessFlux;
-                if (containsCompletedDay(start)) {
-                    try {
-                        DescribeBillingDataResponse billingFluxResponse = queryBillingFlux(target, start, end);
-                        Series billingAccessFlux = extractBillingSeries(billingFluxResponse.getData(), target.domainName, size);
-                        if (!billingAccessFlux.isEmpty()) {
-                            // 历史数据以腾讯计费控制台使用的 acc_flux 为准；如果末尾尚未结算，
-                            // 则用实时 L7 数据补齐，兼顾控制台一致性和当天更新速度。
-                            accessFluxSeries = billingAccessFlux.preferNonZeroWithFallback(realtimeAccessFlux);
-                        }
-                    } catch (BusinessException billingError) {
-                        log.warn("EdgeOne billing flux unavailable, fallback to realtime L7 data, domain: {}, message: {}",
-                                target.domainName, billingError.getMessage());
-                    }
+                Series accessFluxSeries = extractSeries(accessResponse.getData(), ACCESS_FLUX, size);
+                if (accessFluxSeries.isEmpty()) {
+                    DescribeBillingDataResponse billingFluxResponse = queryBillingFlux(target, start, end);
+                    accessFluxSeries = extractBillingSeries(billingFluxResponse.getData(), target.domainName, size);
                 }
                 accessFlux.add(accessFluxSeries);
                 accessBandwidth.add(extractSeries(accessResponse.getData(), ACCESS_BANDWIDTH, size));
@@ -340,10 +329,6 @@ public class TencentEdgeOneDomainStatisticsServiceImpl extends BaseService<CdnDo
         return between > 1 ? "day" : "hour";
     }
 
-    private boolean containsCompletedDay(DateTime start) {
-        return start.before(DateUtil.beginOfDay(DateUtil.date()));
-    }
-
     private String formatTime(DateTime time) {
         return DateUtil.format(time, "yyyy-MM-dd'T'HH:mm:ssXXX");
     }
@@ -409,17 +394,5 @@ public class TencentEdgeOneDomainStatisticsServiceImpl extends BaseService<CdnDo
             return values.isEmpty() || values.stream().allMatch(value -> value == null || value == 0L);
         }
 
-        private Series preferNonZeroWithFallback(Series fallback) {
-            Series result = new Series(size);
-            int max = Math.max(values.size(), fallback == null ? 0 : fallback.values.size());
-            for (int i = 0; i < max; i++) {
-                long authoritativeValue = i < values.size() && values.get(i) != null ? values.get(i) : 0L;
-                long fallbackValue = fallback != null && i < fallback.values.size() && fallback.values.get(i) != null
-                        ? fallback.values.get(i)
-                        : 0L;
-                result.append(authoritativeValue > 0L ? authoritativeValue : fallbackValue);
-            }
-            return result;
-        }
     }
 }
