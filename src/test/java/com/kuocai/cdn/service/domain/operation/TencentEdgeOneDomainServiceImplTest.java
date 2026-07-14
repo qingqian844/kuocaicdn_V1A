@@ -3,6 +3,8 @@ package com.kuocai.cdn.service.domain.operation;
 import com.kuocai.cdn.api.huawei.cdn.dto.CacheRuleDTO;
 import com.kuocai.cdn.api.huawei.cdn.dto.UrlAuthDTO;
 import com.kuocai.cdn.api.tencent.edgeone.TencentEdgeOneClient;
+import com.kuocai.cdn.entity.CdnDomain;
+import com.tencentcloudapi.teo.v20220901.models.AccelerationDomain;
 import com.tencentcloudapi.teo.v20220901.models.CacheConfigCustomTime;
 import com.tencentcloudapi.teo.v20220901.models.CacheConfigParameters;
 import com.tencentcloudapi.teo.v20220901.models.CustomRule;
@@ -12,6 +14,7 @@ import com.tencentcloudapi.teo.v20220901.models.IPv6Parameters;
 import com.tencentcloudapi.teo.v20220901.models.ModifyAccelerationDomainRequest;
 import com.tencentcloudapi.teo.v20220901.models.ModifySecurityPolicyRequest;
 import com.tencentcloudapi.teo.v20220901.models.NoCache;
+import com.tencentcloudapi.teo.v20220901.models.OriginDetail;
 import com.tencentcloudapi.teo.v20220901.models.RuleEngineItem;
 import com.tencentcloudapi.teo.v20220901.models.SecurityAction;
 import com.tencentcloudapi.teo.v20220901.models.SecurityPolicy;
@@ -216,6 +219,58 @@ class TencentEdgeOneDomainServiceImplTest {
 
         assertEquals("1", enabled);
         assertEquals("0", explicitlyDisabled);
+    }
+
+    @Test
+    void edgeOneCreateBuildsLocalPendingRecordBeforeCallingUpstream() {
+        CdnDomain pending = ReflectionTestUtils.invokeMethod(
+                service,
+                "buildPendingCreateDomain",
+                null,
+                1001L,
+                "static.example.com",
+                "download",
+                "outside_mainland_china",
+                "zone-test"
+        );
+
+        assertNotNull(pending);
+        assertEquals(1001L, pending.getUserId());
+        assertEquals("static.example.com", pending.getDomainName());
+        assertEquals("zone-test", pending.getDomainId());
+        assertEquals("configuring", pending.getDomainStatus());
+        assertEquals("tencent_edgeone", pending.getRoute());
+        assertNotNull(pending.getCreateTime());
+        assertNotNull(pending.getUpdateTime());
+    }
+
+    @Test
+    void edgeOneOrphanRecoveryRequiresMatchingUpstreamOrigin() {
+        OriginDetail origin = new OriginDetail();
+        origin.setOriginType("IP_DOMAIN");
+        origin.setOrigin("192.0.2.10");
+        AccelerationDomain upstream = new AccelerationDomain();
+        upstream.setOriginDetail(origin);
+
+        Boolean matched = ReflectionTestUtils.invokeMethod(
+                service,
+                "isRequestedOriginMatched",
+                upstream,
+                "ipaddr",
+                "192.0.2.10"
+        );
+        Boolean mismatched = ReflectionTestUtils.invokeMethod(
+                service,
+                "isRequestedOriginMatched",
+                upstream,
+                "ipaddr",
+                "192.0.2.11"
+        );
+
+        assertNotNull(matched);
+        assertTrue(matched);
+        assertNotNull(mismatched);
+        assertFalse(mismatched);
     }
 
     @Test

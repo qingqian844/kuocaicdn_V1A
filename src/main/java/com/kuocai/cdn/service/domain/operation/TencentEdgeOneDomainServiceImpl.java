@@ -132,7 +132,10 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -156,6 +159,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
     private static final String EO_ACTION_AUTHENTICATION = "Authentication";
     private static final String EO_URL_AUTH_PARAM = "sign";
     private static final Pattern CONDITION_VALUE_PATTERN = Pattern.compile("'((?:\\\\'|[^'])*)'");
+    private final Map<String, Object> domainCreateLocks = new ConcurrentHashMap<>();
 
     @Override
     protected String getPlatformName() {
@@ -291,9 +295,43 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
     @Override
     public CdnDomain create(Long userId, String domainName, String businessType, String serviceArea, String originType, String ipOrDomain,
                             String originProtocol, Integer httpPort, Integer httpsPort, String originHost, Integer originWeight) throws BusinessException {
+        String normalizedDomain = normalize(domainName).toLowerCase();
+        if (Assert.isEmpty(normalizedDomain)) {
+            throw new BusinessException("加速域名不能为空");
+        }
+        Object createLock = domainCreateLocks.computeIfAbsent(normalizedDomain, key -> new Object());
         try {
-            String zoneId = resolveZoneIdForCreate(userId, domainName, serviceArea);
+            synchronized (createLock) {
+                return createDomainLocked(userId, normalizedDomain, businessType, serviceArea, originType, ipOrDomain,
+                        originProtocol, httpPort, httpsPort);
+            }
+        } finally {
+            domainCreateLocks.remove(normalizedDomain, createLock);
+        }
+    }
+
+    private CdnDomain createDomainLocked(Long userId, String domainName, String businessType, String serviceArea,
+                                         String originType, String ipOrDomain, String originProtocol,
+                                         Integer httpPort, Integer httpsPort) throws BusinessException {
+        CdnDomain localDomain = findLocalEdgeOneDomain(domainName);
+        if (localDomain != null && !userId.equals(localDomain.getUserId())) {
+            throw new BusinessException("该加速域名已被其他用户添加，无法恢复到当前账号");
+        }
+        boolean localRecordExisted = localDomain != null;
+        String zoneId = null;
+        try {
+            zoneId = resolveZoneIdForCreate(userId, domainName, serviceArea);
             TencentEdgeOneClient.ensureZoneBoundToConfiguredPlan(zoneId);
+            localDomain = save(buildPendingCreateDomain(localDomain, userId, domainName, businessType, serviceArea, zoneId));
+
+            if (localRecordExisted) {
+                AccelerationDomain existingDomain = tryGetAccelerationDomain(zoneId, domainName);
+                if (existingDomain != null) {
+                    log.info("Recover existing EdgeOne domain {} from Tencent before duplicate create", domainName);
+                    return completePendingCreate(localDomain, existingDomain, businessType, serviceArea, zoneId);
+                }
+            }
+
             CreateAccelerationDomainResponse response;
             try {
                 response = createAccelerationDomain(domainName, originType, ipOrDomain, zoneId, originProtocol, httpPort, httpsPort);
@@ -304,32 +342,125 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
                 TencentEdgeOneClient.invalidateZoneIdCache(domainName);
                 zoneId = TencentEdgeOneClient.resolveZoneId(domainName, serviceArea);
                 TencentEdgeOneClient.ensureZoneBoundToConfiguredPlan(zoneId);
+                localDomain.setDomainId(zoneId);
+                localDomain = save(localDomain);
                 response = createAccelerationDomain(domainName, originType, ipOrDomain, zoneId, originProtocol, httpPort, httpsPort);
             }
             log.info("Create EdgeOne domain {} success: {}", domainName, CreateAccelerationDomainResponse.toJsonString(response));
-            AccelerationDomain domain = getAccelerationDomain(domainName);
-            CdnDomain cdnDomain = CdnDomain.builder()
-                    .userId(userId)
-                    .domainName(domainName)
-                    .businessType(businessType)
-                    .serviceArea(serviceArea)
-                    .domainId(zoneId)
-                    .cnameTencent(domain == null ? null : domain.getCname())
-                    .domainStatus(convertDomainStatus(domain == null ? "processing" : domain.getDomainStatus()))
-                    .route(CdnRoute.TENCENT_EDGEONE.getCode())
-                    .build();
-            return save(cdnDomain);
+            AccelerationDomain domain = tryGetAccelerationDomain(zoneId, domainName);
+            CdnDomain savedDomain = completePendingCreate(localDomain, domain, businessType, serviceArea, zoneId);
+            if (domain != null) {
+                tryEnableDefaultOriginFollowRedirect(savedDomain);
+            }
+            return savedDomain;
         } catch (BusinessException e) {
+            CdnDomain recovered = tryRecoverPendingCreate(localDomain, zoneId, domainName, businessType, serviceArea, originType, ipOrDomain, localRecordExisted);
+            if (recovered != null) {
+                return recovered;
+            }
+            markPendingCreateFailed(localDomain);
             throw e;
         } catch (TencentCloudSDKException e) {
             log.error("Create EdgeOne domain {} failed: {} - {}", domainName, e.getErrorCode(), e.getMessage());
+            CdnDomain recovered = tryRecoverPendingCreate(localDomain, zoneId, domainName, businessType, serviceArea, originType, ipOrDomain, localRecordExisted);
+            if (recovered != null) {
+                return recovered;
+            }
+            markPendingCreateFailed(localDomain);
             if (isUnauthorized(e)) {
                 throw new BusinessException("创建腾讯云 EdgeOne 域名失败：根域名已完成归属权验证并已写入 eo-user 授权标签，但当前 EdgeOne Secret 仍缺少 teo:CreateAccelerationDomain 创建加速域名权限，或腾讯云 CAM 策略的资源范围/条件未匹配。请在腾讯云 CAM 中给该密钥放行 EdgeOne 创建加速域名权限后重试。错误代码：" + e.getErrorCode() + "，" + TencentEdgeOneClient.formatTencentError(e));
             }
             throw new BusinessException("创建腾讯云 EdgeOne 域名失败：" + TencentEdgeOneClient.formatTencentError(e));
         } catch (Exception e) {
             log.error("Create EdgeOne domain {} failed", domainName, e);
+            CdnDomain recovered = tryRecoverPendingCreate(localDomain, zoneId, domainName, businessType, serviceArea, originType, ipOrDomain, localRecordExisted);
+            if (recovered != null) {
+                return recovered;
+            }
+            markPendingCreateFailed(localDomain);
             throw new BusinessException("创建腾讯云 EdgeOne 域名失败：" + e.getMessage());
+        }
+    }
+
+    private CdnDomain findLocalEdgeOneDomain(String domainName) {
+        List<CdnDomain> domains = queryByWrapper(new QueryWrapper<CdnDomain>()
+                .eq("route", CdnRoute.TENCENT_EDGEONE.getCode())
+                .eq("domain_name", domainName)
+                .last("LIMIT 1"));
+        return domains == null || domains.isEmpty() ? null : domains.get(0);
+    }
+
+    private CdnDomain buildPendingCreateDomain(CdnDomain localDomain, Long userId, String domainName,
+                                                String businessType, String serviceArea, String zoneId) {
+        Date now = new Date();
+        CdnDomain pending = localDomain == null ? new CdnDomain() : localDomain;
+        pending.setUserId(userId);
+        pending.setDomainName(domainName);
+        pending.setBusinessType(businessType);
+        pending.setServiceArea(serviceArea);
+        pending.setDomainId(zoneId);
+        pending.setDomainStatus("configuring");
+        pending.setRoute(CdnRoute.TENCENT_EDGEONE.getCode());
+        if (pending.getCreateTime() == null) {
+            pending.setCreateTime(now);
+        }
+        pending.setUpdateTime(now);
+        return pending;
+    }
+
+    private CdnDomain completePendingCreate(CdnDomain localDomain, AccelerationDomain upstreamDomain,
+                                             String businessType, String serviceArea, String zoneId) {
+        localDomain.setBusinessType(businessType);
+        localDomain.setServiceArea(serviceArea);
+        localDomain.setDomainId(zoneId);
+        localDomain.setRoute(CdnRoute.TENCENT_EDGEONE.getCode());
+        localDomain.setDomainStatus(convertDomainStatus(upstreamDomain == null ? "processing" : upstreamDomain.getDomainStatus()));
+        if (upstreamDomain != null && Assert.notEmpty(upstreamDomain.getCname())) {
+            localDomain.setCnameTencent(upstreamDomain.getCname());
+        }
+        localDomain.setUpdateTime(new Date());
+        return save(localDomain);
+    }
+
+    private CdnDomain tryRecoverPendingCreate(CdnDomain localDomain, String zoneId, String domainName,
+                                               String businessType, String serviceArea, String originType,
+                                               String ipOrDomain, boolean localRecordExisted) {
+        if (localDomain == null || Assert.isEmpty(zoneId)) {
+            return null;
+        }
+        AccelerationDomain upstreamDomain = tryGetAccelerationDomain(zoneId, domainName);
+        if (upstreamDomain == null) {
+            return null;
+        }
+        if (!localRecordExisted && !isRequestedOriginMatched(upstreamDomain, originType, ipOrDomain)) {
+            log.warn("Refuse to recover EdgeOne domain {} because upstream origin does not match current request", domainName);
+            return null;
+        }
+        log.info("Recovered EdgeOne domain {} after create response failed or reported duplicate", domainName);
+        return completePendingCreate(localDomain, upstreamDomain, businessType, serviceArea, zoneId);
+    }
+
+    private boolean isRequestedOriginMatched(AccelerationDomain upstreamDomain, String originType, String ipOrDomain) {
+        if (upstreamDomain == null || upstreamDomain.getOriginDetail() == null) {
+            return false;
+        }
+        OriginDetail origin = upstreamDomain.getOriginDetail();
+        String requestedOrigin = firstOriginOrEmpty(ipOrDomain);
+        String requestedType = convertOriginType(originType);
+        return normalize(requestedOrigin).equalsIgnoreCase(normalize(origin.getOrigin()))
+                && normalize(requestedType).equalsIgnoreCase(normalize(origin.getOriginType()));
+    }
+
+    private void markPendingCreateFailed(CdnDomain localDomain) {
+        if (localDomain == null || localDomain.getId() == null) {
+            return;
+        }
+        try {
+            localDomain.setDomainStatus("configure_failed");
+            localDomain.setUpdateTime(new Date());
+            save(localDomain);
+        } catch (Exception e) {
+            log.error("Mark EdgeOne pending domain {} as failed error", localDomain.getDomainName(), e);
         }
     }
 
@@ -2695,19 +2826,35 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
 
     private AccelerationDomain getAccelerationDomain(String domainName) throws BusinessException {
         try {
-            DescribeAccelerationDomainsRequest request = new DescribeAccelerationDomainsRequest();
-            request.setZoneId(TencentEdgeOneClient.resolveZoneId(domainName));
-            request.setLimit(1L);
-            request.setFilters(new AdvancedFilter[]{filter("domain-name", domainName)});
-            DescribeAccelerationDomainsResponse response = TencentEdgeOneClient.getClient().DescribeAccelerationDomains(request);
-            if (response.getAccelerationDomains() == null || response.getAccelerationDomains().length == 0) {
-                return null;
-            }
-            return response.getAccelerationDomains()[0];
+            return getAccelerationDomain(TencentEdgeOneClient.resolveZoneId(domainName), domainName);
         } catch (BusinessException e) {
             throw e;
         } catch (TencentCloudSDKException e) {
             throw new BusinessException("获取腾讯云 EdgeOne 域名信息失败：" + TencentEdgeOneClient.formatTencentError(e));
+        }
+    }
+
+    private AccelerationDomain getAccelerationDomain(String zoneId, String domainName) throws TencentCloudSDKException, BusinessException {
+        DescribeAccelerationDomainsRequest request = new DescribeAccelerationDomainsRequest();
+        request.setZoneId(zoneId);
+        request.setLimit(1L);
+        request.setFilters(new AdvancedFilter[]{filter("domain-name", domainName)});
+        DescribeAccelerationDomainsResponse response = TencentEdgeOneClient.getClient().DescribeAccelerationDomains(request);
+        if (response.getAccelerationDomains() == null || response.getAccelerationDomains().length == 0) {
+            return null;
+        }
+        return response.getAccelerationDomains()[0];
+    }
+
+    private AccelerationDomain tryGetAccelerationDomain(String zoneId, String domainName) {
+        if (Assert.isEmpty(zoneId) || Assert.isEmpty(domainName)) {
+            return null;
+        }
+        try {
+            return getAccelerationDomain(zoneId, domainName);
+        } catch (Exception e) {
+            log.warn("Query EdgeOne domain {} for create recovery failed: {}", domainName, e.getMessage());
+            return null;
         }
     }
 

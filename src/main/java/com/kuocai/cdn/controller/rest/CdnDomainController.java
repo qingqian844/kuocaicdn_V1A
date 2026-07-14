@@ -141,6 +141,23 @@ public class CdnDomainController extends BaseController {
         }
     }
 
+    @RateLimiter
+    @GetMapping("createStatus")
+    public RespResult createStatus(@RequestParam("domainName") String domainName) {
+        if (Assert.isEmpty(domainName)) {
+            return RespResult.paramEmpty("domainName");
+        }
+        CdnDomain cdnDomain = service.queryByDomainName(domainName.trim().toLowerCase());
+        if (cdnDomain == null) {
+            return RespResult.fail("暂未检测到本地创建记录，请继续等待或重新提交");
+        }
+        RespResult accessResult = checkDomainAccess(cdnDomain);
+        if (accessResult != null) {
+            return accessResult;
+        }
+        return RespResult.success("域名已进入创建流程", cdnDomain);
+    }
+
     private boolean isConfigurableStatus(String domainStatus) {
         return "online".equals(domainStatus) || "offline".equals(domainStatus);
     }
@@ -180,6 +197,7 @@ public class CdnDomainController extends BaseController {
         if (Assert.isEmpty(domainName) || Assert.isEmpty(businessType) || Assert.isEmpty(serviceArea) || Assert.isEmpty(originType)) {
             return RespResult.paramEmpty();
         }
+        domainName = domainName.trim().toLowerCase();
         // 判断域名是否合法
         if (domainName.length() - domainName.replaceAll("\\.", "").length() > 9) {
             return RespResult.fail("子域名级数超出限制，最多支持 10 级域名");
@@ -197,10 +215,31 @@ public class CdnDomainController extends BaseController {
         if (portCheck != null) {
             return portCheck;
         }
-        if (Assert.notEmpty(cdnDomainService.queryByDomainName(domainName))) {
-            return RespResult.fail("加速域名已创建，不可重复添加");
+        boolean edgeOneRoute = isTencentEdgeOneRoute();
+        boolean edgeOneResume = false;
+        CdnDomain existingDomain = cdnDomainService.queryByDomainName(domainName);
+        if (Assert.notEmpty(existingDomain)) {
+            boolean ownedEdgeOneDomain = edgeOneRoute
+                    && "tencent_edgeone".equals(existingDomain.getRoute())
+                    && ObjectUtil.equal(loginUserId, existingDomain.getUserId());
+            if (!ownedEdgeOneDomain) {
+                return RespResult.fail("加速域名已创建，不可重复添加");
+            }
+            if (!"configure_failed".equals(existingDomain.getDomainStatus())) {
+                return RespResult.success("该域名已进入创建流程，请在域名列表查看状态", existingDomain);
+            }
+            edgeOneResume = true;
         }
-        if ("user".equals(loginUserRoleCode) && !"tencent_edgeone".equals(route)) {
+        if (edgeOneRoute) {
+            SysUser sysUser = sysUserService.queryById(loginUserId);
+            if ("outside_mainland_china".equals(serviceArea) && (sysUser.getEnableOverseas() == null || sysUser.getEnableOverseas() != 1)) {
+                return RespResult.fail("当前账号未开启EdgeOne境外加速区，请联系管理员开启");
+            }
+            if ("global".equals(serviceArea) && (sysUser.getEnableGlobal() == null || sysUser.getEnableGlobal() != 1)) {
+                return RespResult.fail("当前账号未开启EdgeOne全球加速区，请联系管理员开启");
+            }
+        }
+        if ("user".equals(loginUserRoleCode) && !edgeOneRoute) {
             // 数量检查
             int userDomainCount = service.queryUserDomainCount(loginUserId);
             SysUser sysUser = sysUserService.queryById(loginUserId);
@@ -221,7 +260,7 @@ public class CdnDomainController extends BaseController {
 //                route = CdnOperationRoute.ALIYUN.getRoute();
 //            } */
 //        }
-        if ("user".equals(loginUserRoleCode) && "tencent_edgeone".equals(route)) {
+        if ("user".equals(loginUserRoleCode) && edgeOneRoute && !edgeOneResume) {
             try {
                 edgeOneDomainQuotaService.checkCreateQuota(loginUserId, domainName);
             } catch (BusinessException e) {
@@ -290,7 +329,9 @@ public class CdnDomainController extends BaseController {
                 }
                 return RespResult.fail(e.getMessage(), data);
             }
-            JedisUtil.delKey(key);
+            if (!edgeOneRoute) {
+                JedisUtil.delKey(key);
+            }
             return RespResult.fail(e.getMessage());
         }
     }
@@ -306,6 +347,24 @@ public class CdnDomainController extends BaseController {
             return RespResult.fail("权重必须在1-100范围内");
         }
         return null;
+    }
+
+    private boolean isTencentEdgeOneRoute() {
+        if ("tencent_edgeone".equals(route)) {
+            return true;
+        }
+        if (Assert.notEmpty(loginUser) && "tencent_edgeone".equals(loginUser.getRoute())) {
+            route = loginUser.getRoute();
+            return true;
+        }
+        if (Assert.notEmpty(loginUserId)) {
+            SysUser sysUser = sysUserService.queryById(loginUserId);
+            if (Assert.notEmpty(sysUser) && "tencent_edgeone".equals(sysUser.getRoute())) {
+                route = sysUser.getRoute();
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean isDomainVerifyRequired(String message) {

@@ -12,6 +12,7 @@ import com.kuocai.cdn.entity.SysUser;
 import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.service.CdnDomainService;
 import com.kuocai.cdn.service.CdnDomainStatisticsService;
+import com.kuocai.cdn.service.EdgeOneDomainQuotaService;
 import com.kuocai.cdn.service.SysUserService;
 import com.kuocai.cdn.service.domain.operation.AliyunDomainServiceImpl;
 import com.kuocai.cdn.service.domain.operation.ICdnPlatformService;
@@ -53,6 +54,9 @@ public class DomainTask {
 
     @Resource
     private CdnDomainService cdnDomainService;
+
+    @Resource
+    private EdgeOneDomainQuotaService edgeOneDomainQuotaService;
 
     DomainTask(AliyunDomainServiceImpl aliyunDomainService, SmsAsync smsAsync, CdnDomainStatisticsService statisticsService,
                SysUserService sysUserService, @Qualifier("cdnDomainExecutor") Executor taskExecutor) {
@@ -159,17 +163,44 @@ public class DomainTask {
                         DomainBasicInfo domainBasicInfo = domainConfig.getDomainBasicInfo();
                         String domainStatus = domainBasicInfo.getDomainStatus();
                         log.info("从服务商处获取到域名[{}]的原始状态为: {}", cdnDomain.getDomainName(), domainStatus);
+                        boolean edgeOneDomain = "tencent_edgeone".equals(cdnDomain.getRoute());
+                        boolean changed = false;
+                        if (edgeOneDomain && Assert.notEmpty(domainBasicInfo.getCname())
+                                && ObjectUtil.notEqual(domainBasicInfo.getCname(), cdnDomain.getCnameTencent())) {
+                            cdnDomain.setCnameTencent(domainBasicInfo.getCname());
+                            changed = true;
+                        }
                         if (ObjectUtil.notEqual(domainStatus, "configuring")) {
                             log.info("[{}]域名状态发生变更，准备更新：旧状态: {}, 新状态: {}", cdnDomain.getDomainName(), cdnDomain.getDomainStatus(), domainStatus);
                             cdnDomain.setDomainName(domainBasicInfo.getDomainName());
                             cdnDomain.setBusinessType(domainBasicInfo.getBusinessType());
                             cdnDomain.setServiceArea(domainBasicInfo.getServiceArea());
                             cdnDomain.setDomainStatus(domainStatus);
+                            changed = true;
+                        }
+                        if (changed) {
                             cdnDomainService.save(cdnDomain);
+                        }
+                        if (edgeOneDomain) {
+                            edgeOneDomainQuotaService.recordRootDomain(cdnDomain.getUserId(), cdnDomain.getDomainName(), cdnDomain.getId());
+                        }
+                        if (edgeOneDomain && cdnDomain.getTencentDnsId() == null && Assert.notEmpty(cdnDomain.getCnameTencent())) {
+                            try {
+                                cdnPlatformService.configDNS(cdnDomain);
+                            } catch (Exception e) {
+                                log.warn("自动补齐 EdgeOne 域名[{}] CNAME 解析失败，稍后重试：{}", cdnDomain.getDomainName(), e.getMessage());
+                            }
                         }
                     } catch (BusinessException e) {
                         String errorMsg = e.getMessage();
                         log.error("查询域名[{}] - [{}] 状态时捕获到业务异常: {}", cdnDomain.getRoute(), cdnDomain.getDomainName(), errorMsg, e);
+                        if ("tencent_edgeone".equals(cdnDomain.getRoute())
+                                && errorMsg != null && errorMsg.contains("域名不存在")
+                                && isStalePendingCreate(cdnDomain)) {
+                            log.warn("EdgeOne 域名[{}]创建记录长时间未在上游出现，标记为创建失败并允许用户重试", cdnDomain.getDomainName());
+                            cdnDomain.setDomainStatus("configure_failed");
+                            cdnDomainService.save(cdnDomain);
+                        }
                         // 如果错误明确指出域名在供应商处不存在，则更新本地数据库状态
                         if (errorMsg != null && errorMsg.contains("账号下无此域名")) {
                             log.info("检测到域名 [{}] 在供应商 [{}] 处不存在，将本地状态更新为 'deleted'", cdnDomain.getDomainName(), cdnDomain.getRoute());
@@ -180,6 +211,11 @@ public class DomainTask {
                 }
             });
         }
+    }
+
+    private boolean isStalePendingCreate(CdnDomain cdnDomain) {
+        Date lastChange = cdnDomain.getUpdateTime() == null ? cdnDomain.getCreateTime() : cdnDomain.getUpdateTime();
+        return lastChange != null && System.currentTimeMillis() - lastChange.getTime() >= 5 * 60 * 1000L;
     }
 
     /**

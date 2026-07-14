@@ -363,22 +363,149 @@ async function bindingEmail() {
 /**
  * 验证域名解析
  */
+const DOMAIN_CREATE_PENDING_KEY = 'kuocaiPendingDomainCreate';
+let domainCreateInProgress = false;
+
+function savePendingDomainCreate(payload) {
+    try {
+        localStorage.setItem(DOMAIN_CREATE_PENDING_KEY, JSON.stringify({
+            domainName: payload.domainName,
+            startedAt: Date.now()
+        }));
+    } catch (e) {
+    }
+}
+
+function clearPendingDomainCreate() {
+    try {
+        localStorage.removeItem(DOMAIN_CREATE_PENDING_KEY);
+    } catch (e) {
+    }
+}
+
+function showDomainCreateProgress(message) {
+    domainCreateInProgress = true;
+    let overlay = document.getElementById('domainCreateProgressOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'domainCreateProgressOverlay';
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:20050;background:rgba(20,28,45,.58);display:flex;align-items:center;justify-content:center;padding:20px;';
+        overlay.innerHTML = '<div style="width:min(440px,92vw);background:#fff;border-radius:14px;padding:30px 26px;text-align:center;box-shadow:0 18px 55px rgba(0,0,0,.22)">' +
+            '<div class="spinner-border text-primary mb-3" role="status" aria-hidden="true"></div>' +
+            '<h4 class="mb-2">正在创建加速域名</h4>' +
+            '<p id="domainCreateProgressMessage" class="text-muted mb-2"></p>' +
+            '<p class="small text-warning mb-0">请勿刷新、关闭页面或重复点击，系统会自动保存创建进度。</p>' +
+            '</div>';
+        document.body.appendChild(overlay);
+    }
+    const messageElement = document.getElementById('domainCreateProgressMessage');
+    if (messageElement) {
+        messageElement.textContent = message || '正在向云厂商提交配置，通常需要几十秒，请耐心等待。';
+    }
+    $('#createDomainBtn, #dnsVerifyDomainBtn, #fileVerifyDomainBtn').each(function() {
+        if (this.dataset.domainCreateOriginalDisabled === undefined) {
+            this.dataset.domainCreateOriginalDisabled = this.disabled ? '1' : '0';
+        }
+        this.disabled = true;
+    });
+}
+
+function hideDomainCreateProgress() {
+    domainCreateInProgress = false;
+    const overlay = document.getElementById('domainCreateProgressOverlay');
+    if (overlay) {
+        overlay.remove();
+    }
+    $('#createDomainBtn, #dnsVerifyDomainBtn, #fileVerifyDomainBtn').each(function() {
+        this.disabled = this.dataset.domainCreateOriginalDisabled === '1';
+        delete this.dataset.domainCreateOriginalDisabled;
+    });
+}
+
+function queryDomainCreateStatus(domainName) {
+    return new Promise(function(resolve) {
+        $.ajax({
+            type: 'GET',
+            url: 'CdnDomain/createStatus',
+            data: { domainName: domainName },
+            dataType: 'json',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            success: function(data) { resolve(data); },
+            error: function() { resolve(null); }
+        });
+    });
+}
+
+function waitDomainCreateInterval(milliseconds) {
+    return new Promise(function(resolve) { setTimeout(resolve, milliseconds); });
+}
+
+async function waitForDomainCreateRecord(domainName, attempts = 15) {
+    for (let i = 0; i < attempts; i++) {
+        const status = await queryDomainCreateStatus(domainName);
+        if (status && status.code === 'SUCCESS' && status.data) {
+            return status.data;
+        }
+        await waitDomainCreateInterval(2000);
+    }
+    return null;
+}
+
+async function recoverInterruptedDomainCreate(domainName) {
+    showDomainCreateProgress('页面连接已中断，正在查询服务器保存的创建进度…');
+    const domain = await waitForDomainCreateRecord(domainName);
+    if (domain) {
+        clearPendingDomainCreate();
+        domainCreateInProgress = false;
+        layerSuccess('创建记录已恢复，正在进入域名列表…');
+        setTimeout(function() { window.location.href = 'domain-list'; }, 500);
+        return true;
+    }
+    clearPendingDomainCreate();
+    hideDomainCreateProgress();
+    layerWarn('暂未找到创建记录，请确认信息后重新点击创建');
+    return false;
+}
+
+window.addEventListener('beforeunload', function(event) {
+    if (!domainCreateInProgress) {
+        return;
+    }
+    event.preventDefault();
+    event.returnValue = '';
+});
+
 async function verifyDomainRecord(domainName, verifyType = 'dns', serviceArea, afterSuccess) {
-    const data = await sendRequest("POST", "CdnDomain/verifyDomainRecord", {
-        area: serviceArea,
-        domainName: domainName,
-        verifyType: verifyType
-    })
+    if (domainCreateInProgress) {
+        return;
+    }
+    showDomainCreateProgress('正在检查 TXT 或文件验证记录，请稍候…');
+    let data;
+    try {
+        data = await sendRequest("POST", "CdnDomain/verifyDomainRecord", {
+            area: serviceArea,
+            domainName: domainName,
+            verifyType: verifyType
+        }, 'application/x-www-form-urlencoded; charset=UTF-8', false)
+    } catch (e) {
+        hideDomainCreateProgress();
+        return;
+    }
     if (data['code'] === 'SUCCESS') {
-        $('#verifyDomainModal').modal('hide');
+        autoLayer(data);
         if (typeof afterSuccess === 'function') {
-            setTimeout(afterSuccess, 600);
+            hideDomainCreateProgress();
+            await afterSuccess();
         } else {
+            hideDomainCreateProgress();
+            $('#verifyDomainModal').modal('hide');
             setTimeout(function() {
                 window.location.href = 'domain-create'
             }, 1e3);
         }
+        return;
     }
+    hideDomainCreateProgress();
     autoLayer(data);
 }
 
@@ -408,18 +535,22 @@ function showDomainVerifyModal(domainName, serviceArea, info, pendingCreatePaylo
     link.textContent = info['fileVerifyName'] || 'domain-verify.txt'
     verifyDomainModal.find('.txt-verify-file').html(link)
     verifyDomainModal.find('#dnsVerifyDomainBtn').off('click').on('click', function() {
-        verifyDomainRecord(verifyDomainName, 'dns', serviceArea, function() {
-            if (pendingCreatePayload) {
-                retryCreateDomainAfterVerify(pendingCreatePayload)
-            }
-        })
+        if (pendingCreatePayload) {
+            verifyDomainRecord(verifyDomainName, 'dns', serviceArea, async function() {
+                await retryCreateDomainAfterVerify(pendingCreatePayload)
+            })
+        } else {
+            verifyDomainRecord(verifyDomainName, 'dns', serviceArea)
+        }
     })
     verifyDomainModal.find('#fileVerifyDomainBtn').off('click').on('click', function() {
-        verifyDomainRecord(verifyDomainName, 'file', serviceArea, function() {
-            if (pendingCreatePayload) {
-                retryCreateDomainAfterVerify(pendingCreatePayload)
-            }
-        })
+        if (pendingCreatePayload) {
+            verifyDomainRecord(verifyDomainName, 'file', serviceArea, async function() {
+                await retryCreateDomainAfterVerify(pendingCreatePayload)
+            })
+        } else {
+            verifyDomainRecord(verifyDomainName, 'file', serviceArea)
+        }
     })
     verifyDomainModal.one('hidden.bs.modal', function() {
         verifyDomainModal.find('#dnsVerifyDomainBtn').off('click')
@@ -432,13 +563,13 @@ function showDomainVerifyModal(domainName, serviceArea, info, pendingCreatePaylo
 /**
  * 域名解析校验
  */
-async function createVerifyRecord(domainName, serviceArea) {
+async function createVerifyRecord(domainName, serviceArea, pendingCreatePayload) {
     const data = await sendRequest("POST", "CdnDomain/createVerifyRecord", {
         area: serviceArea,
         domainName: domainName
     })
     if (data['code'] === 'SUCCESS') {
-        showDomainVerifyModal((data['data'] && data['data']['domainName']) || domainName, serviceArea, data['data'])
+        showDomainVerifyModal((data['data'] && data['data']['domainName']) || domainName, serviceArea, data['data'], pendingCreatePayload)
     } else {
         autoLayer(data);
     }
@@ -469,25 +600,52 @@ function shouldShowDomainVerifyModal(response) {
 }
 
 async function retryCreateDomainAfterVerify(payload) {
-    const data = await sendRequest("POST", "CdnDomain/create", payload);
+    return submitDomainCreate(payload, true);
+}
+
+async function submitDomainCreate(payload, verified = false) {
+    if (domainCreateInProgress) {
+        return;
+    }
+    savePendingDomainCreate(payload);
+    showDomainCreateProgress(verified
+        ? '验证已通过，正在向云厂商创建域名并保存到本站，请耐心等待…'
+        : '正在向云厂商创建域名并保存到本站，通常需要几十秒，请耐心等待…');
+    let data;
+    try {
+        data = await sendRequest("POST", "CdnDomain/create", payload,
+            'application/x-www-form-urlencoded; charset=UTF-8', false);
+    } catch (e) {
+        await recoverInterruptedDomainCreate(payload.domainName);
+        return;
+    }
     if (data['code'] === 'SUCCESS') {
+        clearPendingDomainCreate();
+        domainCreateInProgress = false;
         layerSuccess('创建成功，正在跳转...');
         setTimeout(function() {
             window.location.href = 'domain-list'
         }, 1000);
         return;
     }
+    clearPendingDomainCreate();
+    hideDomainCreateProgress();
     if (shouldShowEdgeOneQuotaModal(data)) {
+        $('#verifyDomainModal').modal('hide');
         showEdgeOneQuotaModal(data);
         return;
     }
     autoLayer(data);
+    if (data['message'] === '当前页面已失效，请刷新页面后再试') {
+        setTimeout(function() { window.location.href = 'domain-create'; }, 1000);
+        return;
+    }
     if (shouldShowDomainVerifyModal(data)) {
         if (data.data && data.data.verifyInfo) {
             const verifyDomainName = data.data.domainName || data.data.verifyDomainName || data.data.verifyInfo.domainName || payload.domainName;
             showDomainVerifyModal(verifyDomainName, payload.serviceArea, data.data.verifyInfo, payload);
         } else {
-            await createVerifyRecord((data.data && data.data.domainName) || payload.domainName, payload.serviceArea);
+            await createVerifyRecord((data.data && data.data.domainName) || payload.domainName, payload.serviceArea, payload);
         }
     }
 }
@@ -543,32 +701,28 @@ async function createDomain() {
         originWeight: originWeight,
         verifyCode: verifyCode,
     };
-    let data = await sendRequest("POST", "CdnDomain/create", payload);
-    if (data['code'] !== 'SUCCESS') {
-        if (shouldShowEdgeOneQuotaModal(data)) {
-            showEdgeOneQuotaModal(data);
-            return;
-        }
-        autoLayer(data);
-        if (data['message'] === '当前页面已失效，请刷新页面后再试') {
-            setTimeout(function() {
-                window.location.href = 'domain-create'
-            }, 1000);
-        } else if (shouldShowDomainVerifyModal(data)) {
-            if (data.data && data.data.verifyInfo) {
-                const verifyDomainName = data.data.domainName || data.data.verifyDomainName || data.data.verifyInfo.domainName || domainName;
-                showDomainVerifyModal(verifyDomainName, serviceArea, data.data.verifyInfo, payload);
-            } else {
-                await createVerifyRecord((data.data && data.data.domainName) || domainName, serviceArea);
-            }
-        }
-    } else {
-        layerSuccess('创建成功，正在跳转...');
-        setTimeout(function() {
-            window.location.href = 'domain-list'
-        }, 1000);
-    }
+    await submitDomainCreate(payload);
 }
+
+$(async function() {
+    if (!document.getElementById('domainName')) {
+        return;
+    }
+    let pending = null;
+    try {
+        pending = JSON.parse(localStorage.getItem(DOMAIN_CREATE_PENDING_KEY) || 'null');
+    } catch (e) {
+        clearPendingDomainCreate();
+    }
+    if (!pending || !pending.domainName) {
+        return;
+    }
+    if (!pending.startedAt || Date.now() - pending.startedAt > 20 * 60 * 1000) {
+        clearPendingDomainCreate();
+        return;
+    }
+    await recoverInterruptedDomainCreate(pending.domainName);
+});
 
 function validPort(port) {
     if (!numberReg(port)) {

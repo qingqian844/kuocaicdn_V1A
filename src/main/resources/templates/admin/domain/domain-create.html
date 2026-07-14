@@ -491,10 +491,10 @@
                         <!-- Body -->
                         <div class="card-footer" th:if="${availableCount > 0}">
                             <div class="d-flex justify-content-end">
-                                <a class="btn btn-outline-danger" style="margin: 0px 5px" href="domain-list">
-                                取消
-                            </a>
-                                <button type="button" class="btn btn-primary"
+                                <a id="cancelDomainCreateBtn" class="btn btn-outline-danger" style="margin: 0px 5px" href="domain-list">
+                                    取消
+                                </a>
+                                <button id="createDomainBtn" type="button" class="btn btn-primary"
                                         th:disabled="${routeAuthorized == false}"
                                         onclick="createDomain()">
                                 创建
@@ -618,7 +618,7 @@
     <script th:src="@{common/layer/layer.js}"></script>
     <script th:src="@{common/util/reg.js}"></script>
     <script th:src="@{common/custom.js}"></script>
-    <script th:src="@{common/custom_ceo.js(v='20260708-domain-create-method')}"></script>
+    <script th:src="@{common/custom_ceo.js(v='20260714-domain-create-recovery')}"></script>
     <script th:src="@{common/custom_cmo.js}"></script>
     <script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
 
