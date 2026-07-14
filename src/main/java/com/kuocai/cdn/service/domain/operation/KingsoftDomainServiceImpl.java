@@ -816,8 +816,7 @@ public class KingsoftDomainServiceImpl extends BaseService<CdnDomain> implements
         }
     }
 
-
-
+    @Override
     public void saveIgnoreQueryString(CdnDomain cdnDomain, IgnoreQueryStringDTO config) throws BusinessException {
         String domainId = getAndCheckDomainId(cdnDomain);
         log.info("金山云CDN更新过滤参数配置，域名：{}，配置：{}", cdnDomain.getDomainName(), JSON.toJSONString(config));

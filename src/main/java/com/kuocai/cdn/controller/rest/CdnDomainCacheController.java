@@ -14,7 +14,6 @@ import com.kuocai.cdn.service.CacheTaskService;
 import com.kuocai.cdn.service.CdnDomainCacheService;
 import com.kuocai.cdn.service.CdnDomainService;
 import com.kuocai.cdn.service.domain.operation.ICdnPlatformService;
-import com.kuocai.cdn.service.domain.operation.KingsoftDomainServiceImpl;
 import com.kuocai.cdn.service.factory.CdnPlatformFactory;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.util.BrowserUtils;
@@ -107,11 +106,7 @@ public class CdnDomainCacheController extends BaseController {
         }
         try {
             ICdnPlatformService iCdnPlatformService = CdnPlatformFactory.getCdnPlatform(cdnDomain.getRoute());
-            if (iCdnPlatformService instanceof KingsoftDomainServiceImpl) {
-                ((KingsoftDomainServiceImpl) iCdnPlatformService).saveIgnoreQueryString(cdnDomain, config);
-            } else {
-                return RespResult.fail("该线路不支持过滤参数功能");
-            }
+            iCdnPlatformService.saveIgnoreQueryString(cdnDomain, config);
         } catch (Exception e) {
             return RespResult.fail(e.getMessage());
         }

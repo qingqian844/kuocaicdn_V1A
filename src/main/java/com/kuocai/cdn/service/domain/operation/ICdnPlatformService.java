@@ -78,6 +78,11 @@ public interface ICdnPlatformService {
     // 保存缓存规则
     void saveCacheRules(CdnDomain cdnDomain, SettingCacheVo config) throws BusinessException;
 
+    // 保存缓存键中的查询参数过滤规则
+    default void saveIgnoreQueryString(CdnDomain cdnDomain, IgnoreQueryStringDTO config) throws BusinessException {
+        throw new BusinessException("当前厂商暂不支持过滤参数配置");
+    }
+
     // 缓存遵循源站 未使用
     void saveCacheFollowOriginStatusSwitch(CdnDomain cdnDomain, SettingCacheVo config) throws BusinessException;
 

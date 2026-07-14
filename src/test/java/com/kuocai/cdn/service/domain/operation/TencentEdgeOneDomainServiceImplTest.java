@@ -1,10 +1,13 @@
 package com.kuocai.cdn.service.domain.operation;
 
+import com.kuocai.cdn.api.DomainCacheInfo;
 import com.kuocai.cdn.api.huawei.cdn.dto.CacheRuleDTO;
+import com.kuocai.cdn.api.huawei.cdn.dto.ErrorCodeCacheDTO;
 import com.kuocai.cdn.api.huawei.cdn.dto.UrlAuthDTO;
 import com.kuocai.cdn.api.tencent.edgeone.TencentEdgeOneClient;
 import com.kuocai.cdn.entity.CdnDomain;
 import com.kuocai.cdn.vo.EdgeOneSecurityPolicyVo;
+import com.kuocai.cdn.vo.IgnoreQueryStringDTO;
 import com.tencentcloudapi.teo.v20220901.models.AccelerationDomain;
 import com.tencentcloudapi.teo.v20220901.models.AdaptiveFrequencyControl;
 import com.tencentcloudapi.teo.v20220901.models.AICrawlerDetection;
@@ -42,6 +45,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -646,5 +650,95 @@ class TencentEdgeOneDomainServiceImplTest {
         assertTrue(json.contains("\"AuthType\":\"TypeB\""));
         assertTrue(json.contains("\"SecretKey\":\"abcdef123456\""));
         assertTrue(json.contains("\"Timeout\":1800"));
+    }
+
+    @Test
+    void edgeOneIgnoreQueryStringUsesCacheKeyActionAndCanBeReadBack() {
+        IgnoreQueryStringDTO config = new IgnoreQueryStringDTO();
+        config.setEnable("on");
+        config.setType("allow");
+        config.setHashKeyArgs("name,age");
+
+        RuleEngineItem item = ReflectionTestUtils.invokeMethod(
+                service,
+                "buildIgnoreQueryStringRule",
+                "static.example.com",
+                config
+        );
+
+        assertNotNull(item);
+        String json = RuleEngineItem.toJsonString(item);
+        assertTrue(json.contains("\"Name\":\"CacheKey\""));
+        assertTrue(json.contains("\"FullURLCache\":\"off\""));
+        assertTrue(json.contains("\"Action\":\"includeCustom\""));
+        assertTrue(json.contains("\"Values\":[\"name\",\"age\"]"));
+        assertTrue(json.contains("kuocai_cache_key_static_example_com"));
+
+        IgnoreQueryStringDTO readBack = ReflectionTestUtils.invokeMethod(
+                service,
+                "parseIgnoreQueryStringRule",
+                item
+        );
+        assertNotNull(readBack);
+        assertEquals("on", readBack.getEnable());
+        assertEquals("allow", readBack.getType());
+        assertEquals("name,age", readBack.getHashKeyArgs());
+    }
+
+    @Test
+    void edgeOneBlockedQueryParametersUseExcludeCustom() {
+        IgnoreQueryStringDTO config = new IgnoreQueryStringDTO();
+        config.setEnable("on");
+        config.setType("block");
+        config.setHashKeyArgs("token,debug");
+
+        RuleEngineItem item = ReflectionTestUtils.invokeMethod(
+                service,
+                "buildIgnoreQueryStringRule",
+                "static.example.com",
+                config
+        );
+
+        assertNotNull(item);
+        assertTrue(RuleEngineItem.toJsonString(item).contains("\"Action\":\"excludeCustom\""));
+        IgnoreQueryStringDTO readBack = ReflectionTestUtils.invokeMethod(
+                service,
+                "parseIgnoreQueryStringRule",
+                item
+        );
+        assertNotNull(readBack);
+        assertEquals("block", readBack.getType());
+    }
+
+    @Test
+    void edgeOneStatusCodeCacheUsesRuleEngineActionAndCanBeReadBack() {
+        RuleEngineItem item = ReflectionTestUtils.invokeMethod(
+                service,
+                "buildStatusCodeCacheRule",
+                "static.example.com",
+                Arrays.asList(
+                        ErrorCodeCacheDTO.builder().code(503).ttl(120).build(),
+                        ErrorCodeCacheDTO.builder().code(404).ttl(3600).build()
+                )
+        );
+
+        assertNotNull(item);
+        String json = RuleEngineItem.toJsonString(item);
+        assertTrue(json.contains("\"Name\":\"StatusCodeCache\""));
+        assertTrue(json.contains("\"StatusCode\":503"));
+        assertTrue(json.contains("\"CacheTime\":120"));
+        assertTrue(json.contains("kuocai_status_code_cache_static_example_com"));
+
+        List<DomainCacheInfo.ErrorCodeCache> readBack = ReflectionTestUtils.invokeMethod(
+                service,
+                "parseStatusCodeCacheRule",
+                item
+        );
+        assertNotNull(readBack);
+        assertEquals(2, readBack.size());
+        assertEquals(404, readBack.get(0).getCode());
+        assertEquals(3600, readBack.get(0).getTtl());
+        assertEquals(503, readBack.get(1).getCode());
+        assertEquals(120, readBack.get(1).getTtl());
     }
 }
