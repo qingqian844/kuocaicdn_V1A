@@ -111,13 +111,19 @@ import com.tencentcloudapi.teo.v20220901.models.FollowOrigin;
 import com.tencentcloudapi.teo.v20220901.models.ForceRedirectHTTPSParameters;
 import com.tencentcloudapi.teo.v20220901.models.HTTP2Parameters;
 import com.tencentcloudapi.teo.v20220901.models.HttpDDoSProtection;
+import com.tencentcloudapi.teo.v20220901.models.FrequentScanningProtection;
+import com.tencentcloudapi.teo.v20220901.models.ManagedRuleAction;
 import com.tencentcloudapi.teo.v20220901.models.ManagedRuleAutoUpdate;
+import com.tencentcloudapi.teo.v20220901.models.ManagedRuleGroup;
 import com.tencentcloudapi.teo.v20220901.models.ManagedRules;
+import com.tencentcloudapi.teo.v20220901.models.MinimalRequestBodyTransferRate;
 import com.tencentcloudapi.teo.v20220901.models.NoCache;
 import com.tencentcloudapi.teo.v20220901.models.OCSPStaplingParameters;
 import com.tencentcloudapi.teo.v20220901.models.RateLimitingRule;
 import com.tencentcloudapi.teo.v20220901.models.RateLimitingRules;
 import com.tencentcloudapi.teo.v20220901.models.RateLimitConfig;
+import com.tencentcloudapi.teo.v20220901.models.RequestBodyTransferTimeout;
+import com.tencentcloudapi.teo.v20220901.models.RequestFieldsForException;
 import com.tencentcloudapi.teo.v20220901.models.SlowAttackDefense;
 import com.tencentcloudapi.teo.v20220901.models.TLSConfigParameters;
 import com.tencentcloudapi.teo.v20220901.models.UpstreamFollowRedirectParameters;
@@ -129,6 +135,7 @@ import lombok.extern.slf4j.Slf4j;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -862,48 +869,53 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
     @Override
     public void saveEdgeOneSecurityPolicy(CdnDomain cdnDomain, EdgeOneSecurityPolicyVo config) throws BusinessException {
         ensureDomainReady(cdnDomain);
-        try {
-            SecurityPolicy currentPolicy = describeSecurityPolicy(cdnDomain.getDomainName());
-            if (currentPolicy == null) {
-                currentPolicy = new SecurityPolicy();
-            }
+        String domainName = cdnDomain.getDomainName();
+        String zoneId = getZoneId(cdnDomain);
+        SecurityPolicy currentPolicy = describeSecurityPolicy(domainName);
+        if (currentPolicy == null) {
+            currentPolicy = new SecurityPolicy();
+        }
 
-            SecurityPolicy updatePolicy = new SecurityPolicy();
-            if (shouldSubmitManagedRules(currentPolicy.getManagedRules(), config)) {
-                updatePolicy.setManagedRules(buildManagedRules(currentPolicy.getManagedRules(), config));
-            }
-            if (shouldSubmitBotManagement(currentPolicy.getBotManagement(), config)) {
-                updatePolicy.setBotManagement(buildBotManagement(currentPolicy.getBotManagement(), config));
-            }
-            if (shouldSubmitBotManagementLite(currentPolicy.getBotManagementLite(), config)) {
-                updatePolicy.setBotManagementLite(buildBotManagementLite(currentPolicy.getBotManagementLite(), config));
-            }
-            if (shouldSubmitHttpDdosProtection(currentPolicy.getHttpDDoSProtection(), config)) {
-                updatePolicy.setHttpDDoSProtection(buildHttpDDoSProtection(currentPolicy.getHttpDDoSProtection(), config));
-            }
-            if (shouldSubmitRateLimitingRules(currentPolicy.getRateLimitingRules(), config)) {
-                updatePolicy.setRateLimitingRules(buildRateLimitingRules(currentPolicy.getRateLimitingRules(), config, cdnDomain.getDomainName()));
-            }
-            if (shouldSubmitExceptionRules(currentPolicy.getExceptionRules(), config)) {
-                updatePolicy.setExceptionRules(buildExceptionRules(currentPolicy.getExceptionRules(), config));
-            }
+        int submittedModules = 0;
+        if (shouldSubmitManagedRules(currentPolicy.getManagedRules(), config)) {
+            SecurityPolicy update = new SecurityPolicy();
+            update.setManagedRules(buildManagedRules(currentPolicy.getManagedRules(), config));
+            submitSecurityPolicyModule(zoneId, domainName, "managed-rules", update);
+            submittedModules++;
+        }
+        if (shouldSubmitBotManagement(currentPolicy.getBotManagement(), config)) {
+            SecurityPolicy update = new SecurityPolicy();
+            update.setBotManagement(buildBotManagement(config));
+            submitSecurityPolicyModule(zoneId, domainName, "bot-management", update);
+            submittedModules++;
+        }
+        if (shouldSubmitBotManagementLite(currentPolicy.getBotManagementLite(), config)) {
+            SecurityPolicy update = new SecurityPolicy();
+            update.setBotManagementLite(buildBotManagementLite(config));
+            submitSecurityPolicyModule(zoneId, domainName, "bot-management-lite", update);
+            submittedModules++;
+        }
+        if (shouldSubmitHttpDdosProtection(currentPolicy.getHttpDDoSProtection(), config)) {
+            SecurityPolicy update = new SecurityPolicy();
+            update.setHttpDDoSProtection(buildHttpDDoSProtection(currentPolicy.getHttpDDoSProtection(), config));
+            submitSecurityPolicyModule(zoneId, domainName, "http-ddos-protection", update);
+            submittedModules++;
+        }
+        if (shouldSubmitRateLimitingRules(currentPolicy.getRateLimitingRules(), config, domainName)) {
+            SecurityPolicy update = new SecurityPolicy();
+            update.setRateLimitingRules(buildRateLimitingRules(currentPolicy.getRateLimitingRules(), config, domainName));
+            submitSecurityPolicyModule(zoneId, domainName, "rate-limiting-rules", update);
+            submittedModules++;
+        }
+        if (shouldSubmitExceptionRules(currentPolicy.getExceptionRules(), config)) {
+            SecurityPolicy update = new SecurityPolicy();
+            update.setExceptionRules(buildExceptionRules(currentPolicy.getExceptionRules(), config));
+            submitSecurityPolicyModule(zoneId, domainName, "exception-rules", update);
+            submittedModules++;
+        }
 
-            if (!hasSecurityPolicyUpdates(updatePolicy)) {
-                log.info("Skip EdgeOne security policy update because no effective policy field changed, domain={}",
-                        cdnDomain.getDomainName());
-                return;
-            }
-
-            ModifySecurityPolicyRequest request = buildModifySecurityPolicyRequest(getZoneId(cdnDomain), cdnDomain.getDomainName(), updatePolicy);
-            log.info("Modify EdgeOne security policy request, domain={}, request={}",
-                    cdnDomain.getDomainName(), ModifySecurityPolicyRequest.toJsonString(request));
-            ModifySecurityPolicyResponse response = TencentEdgeOneClient.getClient().ModifySecurityPolicy(request);
-            log.info("Modify EdgeOne security policy success, domain={}, response={}",
-                    cdnDomain.getDomainName(), ModifySecurityPolicyResponse.toJsonString(response));
-        } catch (BusinessException e) {
-            throw e;
-        } catch (TencentCloudSDKException e) {
-            throw new BusinessException("修改腾讯云 EdgeOne 安全防护策略失败：" + TencentEdgeOneClient.formatTencentError(e));
+        if (submittedModules == 0) {
+            log.info("Skip EdgeOne security policy update because no policy field changed, domain={}", domainName);
         }
     }
 
@@ -1166,6 +1178,23 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         return request;
     }
 
+    private void submitSecurityPolicyModule(String zoneId, String domainName, String moduleName,
+                                            SecurityPolicy updatePolicy) throws BusinessException {
+        ModifySecurityPolicyRequest request = buildModifySecurityPolicyRequest(zoneId, domainName, updatePolicy);
+        String payload = ModifySecurityPolicyRequest.toJsonString(request);
+        int payloadBytes = payload.getBytes(StandardCharsets.UTF_8).length;
+        log.info("Modify EdgeOne security policy, domain={}, module={}, payloadBytes={}",
+                domainName, moduleName, payloadBytes);
+        try {
+            ModifySecurityPolicyResponse response = TencentEdgeOneClient.getClient().ModifySecurityPolicy(request);
+            log.info("Modify EdgeOne security policy success, domain={}, module={}, requestId={}",
+                    domainName, moduleName, response == null ? null : response.getRequestId());
+        } catch (TencentCloudSDKException e) {
+            throw new BusinessException("修改腾讯云 EdgeOne 安全防护策略失败（" + moduleName + "）："
+                    + TencentEdgeOneClient.formatTencentError(e));
+        }
+    }
+
     private ModifySecurityPolicyRequest buildModifyZoneDefaultSecurityPolicyRequest(String zoneId, SecurityPolicy updatePolicy) {
         ModifySecurityPolicyRequest request = new ModifySecurityPolicyRequest();
         request.setZoneId(zoneId);
@@ -1264,74 +1293,193 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         throw new IllegalArgumentException("SecurityPolicy must contain at least one modifiable policy field");
     }
 
-    private boolean hasSecurityPolicyUpdates(SecurityPolicy policy) {
-        return policy != null && (policy.getCustomRules() != null
-                || policy.getManagedRules() != null
-                || policy.getHttpDDoSProtection() != null
-                || policy.getRateLimitingRules() != null
-                || policy.getExceptionRules() != null
-                || policy.getBotManagement() != null
-                || policy.getBotManagementLite() != null
-                || policy.getDefaultDenySecurityActionParameters() != null);
-    }
-
     private boolean shouldSubmitManagedRules(ManagedRules existing, EdgeOneSecurityPolicyVo config) {
-        return existing != null
-                || "on".equals(normalizeSwitch(config == null ? null : config.getManagedRulesEnabled()))
-                || "on".equals(normalizeSwitch(config == null ? null : config.getManagedRulesDetectionOnly()))
-                || "on".equals(normalizeSwitch(config == null ? null : config.getManagedRulesSemanticAnalysis()));
+        ManagedRuleAutoUpdate autoUpdate = existing == null ? null : existing.getAutoUpdate();
+        String currentAutoUpdate = autoUpdate == null
+                ? "on"
+                : normalizeSwitch(autoUpdate.getAutoUpdateToLatestVersion());
+        return !normalizeSwitch(existing == null ? null : existing.getEnabled())
+                .equals(normalizeSwitch(config == null ? null : config.getManagedRulesEnabled()))
+                || !normalizeSwitch(existing == null ? null : existing.getDetectionOnly())
+                .equals(normalizeSwitch(config == null ? null : config.getManagedRulesDetectionOnly()))
+                || !normalizeSwitch(existing == null ? null : existing.getSemanticAnalysis())
+                .equals(normalizeSwitch(config == null ? null : config.getManagedRulesSemanticAnalysis()))
+                || !currentAutoUpdate.equals(normalizeSwitch(config == null ? null : config.getManagedRulesAutoUpdate()));
     }
 
     private boolean shouldSubmitBotManagement(BotManagement existing, EdgeOneSecurityPolicyVo config) {
-        return existing != null || "on".equals(normalizeSwitch(config == null ? null : config.getBotManagementEnabled()));
+        return !normalizeSwitch(existing == null ? null : existing.getEnabled())
+                .equals(normalizeSwitch(config == null ? null : config.getBotManagementEnabled()));
     }
 
     private boolean shouldSubmitBotManagementLite(BotManagementLite existing, EdgeOneSecurityPolicyVo config) {
-        return existing != null
-                || "on".equals(normalizeSwitch(config == null ? null : config.getCaptchaPageChallengeEnabled()))
-                || "on".equals(normalizeSwitch(config == null ? null : config.getAiCrawlerDetectionEnabled()));
+        CAPTCHAPageChallenge captcha = existing == null ? null : existing.getCAPTCHAPageChallenge();
+        AICrawlerDetection aiCrawler = existing == null ? null : existing.getAICrawlerDetection();
+        String requestedAction = normalizeSecurityActionName(buildSecurityAction(
+                config == null ? null : config.getAiCrawlerDetectionAction(), "ManagedChallenge"));
+        return !normalizeSwitch(captcha == null ? null : captcha.getEnabled())
+                .equals(normalizeSwitch(config == null ? null : config.getCaptchaPageChallengeEnabled()))
+                || !normalizeSwitch(aiCrawler == null ? null : aiCrawler.getEnabled())
+                .equals(normalizeSwitch(config == null ? null : config.getAiCrawlerDetectionEnabled()))
+                || !normalizeSecurityActionName(aiCrawler == null ? null : aiCrawler.getAction()).equals(requestedAction);
     }
 
     private boolean shouldSubmitHttpDdosProtection(HttpDDoSProtection existing, EdgeOneSecurityPolicyVo config) {
-        return existing != null
-                || "on".equals(normalizeSwitch(config == null ? null : config.getHttpDdosAdaptiveFrequencyControlEnabled()))
-                || "on".equals(normalizeSwitch(config == null ? null : config.getHttpDdosClientFilteringEnabled()))
-                || "on".equals(normalizeSwitch(config == null ? null : config.getHttpDdosBandwidthAbuseDefenseEnabled()))
-                || "on".equals(normalizeSwitch(config == null ? null : config.getHttpDdosSlowAttackDefenseEnabled()));
+        AdaptiveFrequencyControl adaptive = existing == null ? null : existing.getAdaptiveFrequencyControl();
+        ClientFiltering clientFiltering = existing == null ? null : existing.getClientFiltering();
+        BandwidthAbuseDefense bandwidth = existing == null ? null : existing.getBandwidthAbuseDefense();
+        SlowAttackDefense slowAttack = existing == null ? null : existing.getSlowAttackDefense();
+        return !normalizeSwitch(adaptive == null ? null : adaptive.getEnabled())
+                .equals(normalizeSwitch(config == null ? null : config.getHttpDdosAdaptiveFrequencyControlEnabled()))
+                || !normalizeDdosSensitivity(adaptive == null ? null : adaptive.getSensitivity())
+                .equals(normalizeDdosSensitivity(config == null ? null : config.getHttpDdosAdaptiveFrequencyControlSensitivity()))
+                || !normalizeSwitch(clientFiltering == null ? null : clientFiltering.getEnabled())
+                .equals(normalizeSwitch(config == null ? null : config.getHttpDdosClientFilteringEnabled()))
+                || !normalizeSwitch(bandwidth == null ? null : bandwidth.getEnabled())
+                .equals(normalizeSwitch(config == null ? null : config.getHttpDdosBandwidthAbuseDefenseEnabled()))
+                || !normalizeSwitch(slowAttack == null ? null : slowAttack.getEnabled())
+                .equals(normalizeSwitch(config == null ? null : config.getHttpDdosSlowAttackDefenseEnabled()));
     }
 
-    private boolean shouldSubmitRateLimitingRules(RateLimitingRules existing, EdgeOneSecurityPolicyVo config) {
-        return existing != null || "on".equals(normalizeSwitch(config == null ? null : config.getRateLimitEnabled()));
+    private boolean shouldSubmitRateLimitingRules(RateLimitingRules existing, EdgeOneSecurityPolicyVo config,
+                                                  String domainName) {
+        RateLimitingRule current = findKuocaiRateLimitingRule(existing);
+        boolean requestedEnabled = "on".equals(normalizeSwitch(config == null ? null : config.getRateLimitEnabled()));
+        if (!requestedEnabled) {
+            return current != null;
+        }
+        if (current == null || !"on".equals(normalizeSwitch(current.getEnabled()))) {
+            return true;
+        }
+
+        List<String> currentCountBy = current.getCountBy() == null
+                ? Collections.singletonList("http.request.ip")
+                : Arrays.asList(current.getCountBy());
+        List<String> requestedCountBy = splitRuleValues(normalizeDefault(
+                config.getRateLimitCountBy(), "http.request.ip"));
+        String requestedAction = normalizeSecurityActionName(buildSecurityAction(
+                config.getRateLimitAction(), config.getRateLimitChallengeOption()));
+        SecurityAction currentAction = current.getAction();
+        if (!normalizeDefault(current.getCondition(), hostCondition(domainName))
+                .equals(normalizeDefault(config.getRateLimitCondition(), hostCondition(domainName)))
+                || !normalizeRateLimitMode(current.getMode()).equals(normalizeRateLimitMode(config.getRateLimitMode()))
+                || !sameRuleValues(currentCountBy, requestedCountBy)
+                || !Long.valueOf(current.getMaxRequestThreshold() == null ? 1000L : current.getMaxRequestThreshold())
+                .equals(config.getRateLimitThreshold() == null ? 1000L : config.getRateLimitThreshold())
+                || !normalizeDefault(current.getCountingPeriod(), "1m")
+                .equals(normalizeDefault(config.getRateLimitPeriod(), "1m"))
+                || !normalizeDefault(current.getActionDuration(), "10m")
+                .equals(normalizeDefault(config.getRateLimitActionDuration(), "10m"))
+                || !normalizeSecurityActionName(currentAction).equals(requestedAction)) {
+            return true;
+        }
+        if (!"Challenge".equals(requestedAction)) {
+            return false;
+        }
+        ChallengeActionParameters currentChallenge = currentAction == null
+                ? null
+                : currentAction.getChallengeActionParameters();
+        String currentOption = currentChallenge == null
+                ? normalizeChallengeOption(currentAction)
+                : normalizeDefault(currentChallenge.getChallengeOption(), "ManagedChallenge");
+        String requestedOption = "JSChallenge".equals(normalize(config.getRateLimitChallengeOption()))
+                ? "JSChallenge"
+                : "ManagedChallenge";
+        return !currentOption.equals(requestedOption);
     }
 
     private boolean shouldSubmitExceptionRules(ExceptionRules existing, EdgeOneSecurityPolicyVo config) {
-        return existing != null || "on".equals(normalizeSwitch(config == null ? null : config.getExceptionEnabled()));
+        ExceptionRule current = findKuocaiExceptionRule(existing);
+        boolean requestedEnabled = "on".equals(normalizeSwitch(config == null ? null : config.getExceptionEnabled()));
+        if (!requestedEnabled) {
+            return current != null;
+        }
+        if (current == null || !"on".equals(normalizeSwitch(current.getEnabled()))) {
+            return true;
+        }
+        List<String> currentModules = current.getWebSecurityModulesForException() == null
+                ? Collections.emptyList()
+                : Arrays.asList(current.getWebSecurityModulesForException());
+        return !normalize(current.getCondition()).equals(normalize(config.getExceptionCondition()))
+                || !"WebSecurityModules".equals(normalize(current.getSkipScope()))
+                || !sameRuleValues(currentModules, toEdgeOneExceptionModules(config.getExceptionModules()));
     }
 
     private ManagedRules buildManagedRules(ManagedRules existing, EdgeOneSecurityPolicyVo config) {
-        ManagedRules managedRules = existing == null ? new ManagedRules() : existing;
+        ManagedRules managedRules = new ManagedRules();
         managedRules.setEnabled(normalizeSwitch(config == null ? null : config.getManagedRulesEnabled()));
         managedRules.setDetectionOnly(normalizeSwitch(config == null ? null : config.getManagedRulesDetectionOnly()));
         managedRules.setSemanticAnalysis(normalizeSwitch(config == null ? null : config.getManagedRulesSemanticAnalysis()));
-        ManagedRuleAutoUpdate autoUpdate = managedRules.getAutoUpdate() == null ? new ManagedRuleAutoUpdate() : managedRules.getAutoUpdate();
+        ManagedRuleAutoUpdate autoUpdate = new ManagedRuleAutoUpdate();
         autoUpdate.setAutoUpdateToLatestVersion("off".equals(normalizeSwitch(config == null ? null : config.getManagedRulesAutoUpdate())) ? "off" : "on");
         managedRules.setAutoUpdate(autoUpdate);
+
+        if (existing != null && existing.getManagedRuleGroups() != null) {
+            List<ManagedRuleGroup> groups = new ArrayList<>();
+            for (ManagedRuleGroup source : existing.getManagedRuleGroups()) {
+                ManagedRuleGroup group = copyManagedRuleGroupForSubmit(source);
+                if (group != null) {
+                    groups.add(group);
+                }
+            }
+            managedRules.setManagedRuleGroups(groups.toArray(new ManagedRuleGroup[0]));
+        }
+        if (existing != null && existing.getFrequentScanningProtection() != null) {
+            managedRules.setFrequentScanningProtection(
+                    copyFrequentScanningProtectionForSubmit(existing.getFrequentScanningProtection()));
+        }
         return managedRules;
     }
 
-    private BotManagement buildBotManagement(BotManagement existing, EdgeOneSecurityPolicyVo config) {
-        BotManagement botManagement = existing == null ? new BotManagement() : existing;
+    private ManagedRuleGroup copyManagedRuleGroupForSubmit(ManagedRuleGroup source) {
+        if (source == null || Assert.isEmpty(source.getGroupId())) {
+            return null;
+        }
+        ManagedRuleGroup group = new ManagedRuleGroup();
+        group.setGroupId(source.getGroupId());
+        group.setSensitivityLevel(source.getSensitivityLevel());
+        group.setAction(copySecurityActionForSubmit(source.getAction()));
+        if (source.getRuleActions() != null) {
+            List<ManagedRuleAction> actions = new ArrayList<>();
+            for (ManagedRuleAction sourceAction : source.getRuleActions()) {
+                if (sourceAction == null || Assert.isEmpty(sourceAction.getRuleId())) {
+                    continue;
+                }
+                ManagedRuleAction action = new ManagedRuleAction();
+                action.setRuleId(sourceAction.getRuleId());
+                action.setAction(copySecurityActionForSubmit(sourceAction.getAction()));
+                actions.add(action);
+            }
+            group.setRuleActions(actions.toArray(new ManagedRuleAction[0]));
+        }
+        return group;
+    }
+
+    private FrequentScanningProtection copyFrequentScanningProtectionForSubmit(
+            FrequentScanningProtection source) {
+        FrequentScanningProtection protection = new FrequentScanningProtection();
+        protection.setEnabled(normalizeSwitch(source.getEnabled()));
+        protection.setAction(copySecurityActionForSubmit(source.getAction()));
+        protection.setCountBy(source.getCountBy());
+        protection.setBlockThreshold(source.getBlockThreshold());
+        protection.setCountingPeriod(source.getCountingPeriod());
+        protection.setActionDuration(source.getActionDuration());
+        return protection;
+    }
+
+    private BotManagement buildBotManagement(EdgeOneSecurityPolicyVo config) {
+        BotManagement botManagement = new BotManagement();
         botManagement.setEnabled(normalizeSwitch(config == null ? null : config.getBotManagementEnabled()));
         return botManagement;
     }
 
-    private BotManagementLite buildBotManagementLite(BotManagementLite existing, EdgeOneSecurityPolicyVo config) {
-        BotManagementLite botLite = existing == null ? new BotManagementLite() : existing;
-        CAPTCHAPageChallenge captcha = botLite.getCAPTCHAPageChallenge() == null ? new CAPTCHAPageChallenge() : botLite.getCAPTCHAPageChallenge();
+    private BotManagementLite buildBotManagementLite(EdgeOneSecurityPolicyVo config) {
+        BotManagementLite botLite = new BotManagementLite();
+        CAPTCHAPageChallenge captcha = new CAPTCHAPageChallenge();
         captcha.setEnabled(normalizeSwitch(config == null ? null : config.getCaptchaPageChallengeEnabled()));
         botLite.setCAPTCHAPageChallenge(captcha);
 
-        AICrawlerDetection aiCrawler = botLite.getAICrawlerDetection() == null ? new AICrawlerDetection() : botLite.getAICrawlerDetection();
+        AICrawlerDetection aiCrawler = new AICrawlerDetection();
         aiCrawler.setEnabled(normalizeSwitch(config == null ? null : config.getAiCrawlerDetectionEnabled()));
         aiCrawler.setAction(buildSecurityAction(config == null ? null : config.getAiCrawlerDetectionAction(), "ManagedChallenge"));
         botLite.setAICrawlerDetection(aiCrawler);
@@ -1339,28 +1487,62 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
     }
 
     private HttpDDoSProtection buildHttpDDoSProtection(HttpDDoSProtection existing, EdgeOneSecurityPolicyVo config) {
-        HttpDDoSProtection protection = existing == null ? new HttpDDoSProtection() : existing;
-        AdaptiveFrequencyControl adaptive = protection.getAdaptiveFrequencyControl() == null ? new AdaptiveFrequencyControl() : protection.getAdaptiveFrequencyControl();
+        HttpDDoSProtection protection = new HttpDDoSProtection();
+        AdaptiveFrequencyControl currentAdaptive = existing == null ? null : existing.getAdaptiveFrequencyControl();
+        AdaptiveFrequencyControl adaptive = new AdaptiveFrequencyControl();
         adaptive.setEnabled(normalizeSwitch(config == null ? null : config.getHttpDdosAdaptiveFrequencyControlEnabled()));
         adaptive.setSensitivity(normalizeDdosSensitivity(config == null ? null : config.getHttpDdosAdaptiveFrequencyControlSensitivity()));
-        adaptive.setAction(buildSecurityAction("Deny", null));
+        adaptive.setAction(copySecurityActionOrDefault(currentAdaptive == null ? null : currentAdaptive.getAction(), "Deny"));
         protection.setAdaptiveFrequencyControl(adaptive);
 
-        ClientFiltering clientFiltering = protection.getClientFiltering() == null ? new ClientFiltering() : protection.getClientFiltering();
+        ClientFiltering currentClientFiltering = existing == null ? null : existing.getClientFiltering();
+        ClientFiltering clientFiltering = new ClientFiltering();
         clientFiltering.setEnabled(normalizeSwitch(config == null ? null : config.getHttpDdosClientFilteringEnabled()));
-        clientFiltering.setAction(buildSecurityAction("Deny", null));
+        clientFiltering.setAction(copySecurityActionOrDefault(
+                currentClientFiltering == null ? null : currentClientFiltering.getAction(), "Deny"));
         protection.setClientFiltering(clientFiltering);
 
-        BandwidthAbuseDefense bandwidth = protection.getBandwidthAbuseDefense() == null ? new BandwidthAbuseDefense() : protection.getBandwidthAbuseDefense();
+        BandwidthAbuseDefense currentBandwidth = existing == null ? null : existing.getBandwidthAbuseDefense();
+        BandwidthAbuseDefense bandwidth = new BandwidthAbuseDefense();
         bandwidth.setEnabled(normalizeSwitch(config == null ? null : config.getHttpDdosBandwidthAbuseDefenseEnabled()));
-        bandwidth.setAction(buildSecurityAction("Deny", null));
+        bandwidth.setAction(copySecurityActionOrDefault(currentBandwidth == null ? null : currentBandwidth.getAction(), "Deny"));
         protection.setBandwidthAbuseDefense(bandwidth);
 
-        SlowAttackDefense slowAttack = protection.getSlowAttackDefense() == null ? new SlowAttackDefense() : protection.getSlowAttackDefense();
+        SlowAttackDefense currentSlowAttack = existing == null ? null : existing.getSlowAttackDefense();
+        SlowAttackDefense slowAttack = new SlowAttackDefense();
         slowAttack.setEnabled(normalizeSwitch(config == null ? null : config.getHttpDdosSlowAttackDefenseEnabled()));
-        slowAttack.setAction(buildSecurityAction("Deny", null));
+        slowAttack.setAction(copySecurityActionOrDefault(currentSlowAttack == null ? null : currentSlowAttack.getAction(), "Deny"));
+        if (currentSlowAttack != null && currentSlowAttack.getMinimalRequestBodyTransferRate() != null) {
+            slowAttack.setMinimalRequestBodyTransferRate(copyMinimalRequestBodyTransferRate(
+                    currentSlowAttack.getMinimalRequestBodyTransferRate()));
+        }
+        if (currentSlowAttack != null && currentSlowAttack.getRequestBodyTransferTimeout() != null) {
+            slowAttack.setRequestBodyTransferTimeout(copyRequestBodyTransferTimeout(
+                    currentSlowAttack.getRequestBodyTransferTimeout()));
+        }
         protection.setSlowAttackDefense(slowAttack);
         return protection;
+    }
+
+    private SecurityAction copySecurityActionOrDefault(SecurityAction source, String defaultAction) {
+        SecurityAction copied = copySecurityActionForSubmit(source);
+        return copied == null ? buildSecurityAction(defaultAction, null) : copied;
+    }
+
+    private MinimalRequestBodyTransferRate copyMinimalRequestBodyTransferRate(
+            MinimalRequestBodyTransferRate source) {
+        MinimalRequestBodyTransferRate result = new MinimalRequestBodyTransferRate();
+        result.setMinimalAvgTransferRateThreshold(source.getMinimalAvgTransferRateThreshold());
+        result.setCountingPeriod(source.getCountingPeriod());
+        result.setEnabled(normalizeSwitch(source.getEnabled()));
+        return result;
+    }
+
+    private RequestBodyTransferTimeout copyRequestBodyTransferTimeout(RequestBodyTransferTimeout source) {
+        RequestBodyTransferTimeout result = new RequestBodyTransferTimeout();
+        result.setIdleTimeout(source.getIdleTimeout());
+        result.setEnabled(normalizeSwitch(source.getEnabled()));
+        return result;
     }
 
     private RateLimitingRules buildRateLimitingRules(RateLimitingRules existing, EdgeOneSecurityPolicyVo config, String domainName) throws BusinessException {
@@ -1375,7 +1557,10 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
                     oldRule = rule;
                     continue;
                 }
-                rules.add(rule);
+                RateLimitingRule copiedRule = copyRateLimitingRuleForSubmit(rule);
+                if (copiedRule != null) {
+                    rules.add(copiedRule);
+                }
             }
         }
         if (config != null && "on".equals(normalizeSwitch(config.getRateLimitEnabled()))) {
@@ -1408,6 +1593,25 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         return result;
     }
 
+    private RateLimitingRule copyRateLimitingRuleForSubmit(RateLimitingRule source) {
+        if (source == null) {
+            return null;
+        }
+        RateLimitingRule rule = new RateLimitingRule();
+        rule.setId(source.getId());
+        rule.setName(source.getName());
+        rule.setCondition(source.getCondition());
+        rule.setMode(source.getMode());
+        rule.setCountBy(source.getCountBy() == null ? null : source.getCountBy().clone());
+        rule.setMaxRequestThreshold(source.getMaxRequestThreshold());
+        rule.setCountingPeriod(source.getCountingPeriod());
+        rule.setActionDuration(source.getActionDuration());
+        rule.setAction(copySecurityActionForSubmit(source.getAction()));
+        rule.setPriority(source.getPriority());
+        rule.setEnabled(normalizeSwitch(source.getEnabled()));
+        return rule;
+    }
+
     private ExceptionRules buildExceptionRules(ExceptionRules existing, EdgeOneSecurityPolicyVo config) throws BusinessException {
         List<ExceptionRule> rules = new ArrayList<>();
         ExceptionRule oldRule = null;
@@ -1420,7 +1624,10 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
                     oldRule = rule;
                     continue;
                 }
-                rules.add(rule);
+                ExceptionRule copiedRule = copyExceptionRuleForSubmit(rule);
+                if (copiedRule != null) {
+                    rules.add(copiedRule);
+                }
             }
         }
         if (config != null && "on".equals(normalizeSwitch(config.getExceptionEnabled()))) {
@@ -1446,6 +1653,36 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         ExceptionRules result = new ExceptionRules();
         result.setRules(rules.toArray(new ExceptionRule[0]));
         return result;
+    }
+
+    private ExceptionRule copyExceptionRuleForSubmit(ExceptionRule source) {
+        if (source == null) {
+            return null;
+        }
+        ExceptionRule rule = new ExceptionRule();
+        rule.setId(source.getId());
+        rule.setName(source.getName());
+        rule.setCondition(source.getCondition());
+        rule.setSkipScope(source.getSkipScope());
+        rule.setSkipOption(source.getSkipOption());
+        rule.setWebSecurityModulesForException(cloneArray(source.getWebSecurityModulesForException()));
+        rule.setManagedRulesForException(cloneArray(source.getManagedRulesForException()));
+        rule.setManagedRuleGroupsForException(cloneArray(source.getManagedRuleGroupsForException()));
+        if (source.getRequestFieldsForException() != null) {
+            RequestFieldsForException[] requestFields = new RequestFieldsForException[
+                    source.getRequestFieldsForException().length];
+            for (int i = 0; i < source.getRequestFieldsForException().length; i++) {
+                RequestFieldsForException field = source.getRequestFieldsForException()[i];
+                requestFields[i] = field == null ? null : new RequestFieldsForException(field);
+            }
+            rule.setRequestFieldsForException(requestFields);
+        }
+        rule.setEnabled(normalizeSwitch(source.getEnabled()));
+        return rule;
+    }
+
+    private String[] cloneArray(String[] values) {
+        return values == null ? null : values.clone();
     }
 
     private RateLimitingRule findKuocaiRateLimitingRule(RateLimitingRules rules) {
@@ -1542,6 +1779,24 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
             }
         }
         return result;
+    }
+
+    private boolean sameRuleValues(List<String> first, List<String> second) {
+        return normalizeRuleValues(first).equals(normalizeRuleValues(second));
+    }
+
+    private List<String> normalizeRuleValues(List<String> values) {
+        List<String> normalized = new ArrayList<>();
+        if (values != null) {
+            for (String value : values) {
+                String item = normalize(value);
+                if (!Assert.isEmpty(item) && !normalized.contains(item)) {
+                    normalized.add(item);
+                }
+            }
+        }
+        Collections.sort(normalized);
+        return normalized;
     }
 
     private List<String> toEdgeOneExceptionModules(String modules) {

@@ -4,30 +4,48 @@ import com.kuocai.cdn.api.huawei.cdn.dto.CacheRuleDTO;
 import com.kuocai.cdn.api.huawei.cdn.dto.UrlAuthDTO;
 import com.kuocai.cdn.api.tencent.edgeone.TencentEdgeOneClient;
 import com.kuocai.cdn.entity.CdnDomain;
+import com.kuocai.cdn.vo.EdgeOneSecurityPolicyVo;
 import com.tencentcloudapi.teo.v20220901.models.AccelerationDomain;
+import com.tencentcloudapi.teo.v20220901.models.AdaptiveFrequencyControl;
+import com.tencentcloudapi.teo.v20220901.models.AICrawlerDetection;
+import com.tencentcloudapi.teo.v20220901.models.BandwidthAbuseDefense;
+import com.tencentcloudapi.teo.v20220901.models.BotManagement;
+import com.tencentcloudapi.teo.v20220901.models.BotManagementLite;
 import com.tencentcloudapi.teo.v20220901.models.CacheConfigCustomTime;
 import com.tencentcloudapi.teo.v20220901.models.CacheConfigParameters;
+import com.tencentcloudapi.teo.v20220901.models.CAPTCHAPageChallenge;
+import com.tencentcloudapi.teo.v20220901.models.ClientFiltering;
 import com.tencentcloudapi.teo.v20220901.models.CustomRule;
 import com.tencentcloudapi.teo.v20220901.models.CustomRules;
 import com.tencentcloudapi.teo.v20220901.models.DenyActionParameters;
+import com.tencentcloudapi.teo.v20220901.models.HttpDDoSProtection;
 import com.tencentcloudapi.teo.v20220901.models.IPv6Parameters;
+import com.tencentcloudapi.teo.v20220901.models.ManagedRuleAutoUpdate;
+import com.tencentcloudapi.teo.v20220901.models.ManagedRuleGroup;
+import com.tencentcloudapi.teo.v20220901.models.ManagedRuleGroupMeta;
+import com.tencentcloudapi.teo.v20220901.models.ManagedRules;
+import com.tencentcloudapi.teo.v20220901.models.MinimalRequestBodyTransferRate;
 import com.tencentcloudapi.teo.v20220901.models.ModifyAccelerationDomainRequest;
 import com.tencentcloudapi.teo.v20220901.models.ModifySecurityPolicyRequest;
 import com.tencentcloudapi.teo.v20220901.models.NoCache;
 import com.tencentcloudapi.teo.v20220901.models.OriginDetail;
+import com.tencentcloudapi.teo.v20220901.models.RequestBodyTransferTimeout;
 import com.tencentcloudapi.teo.v20220901.models.RuleEngineItem;
 import com.tencentcloudapi.teo.v20220901.models.SecurityAction;
 import com.tencentcloudapi.teo.v20220901.models.SecurityPolicy;
+import com.tencentcloudapi.teo.v20220901.models.SlowAttackDefense;
 import com.tencentcloudapi.teo.v20220901.models.ZoneConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -56,6 +74,193 @@ class TencentEdgeOneDomainServiceImplTest {
         HashMap<String, String> parameters = new HashMap<>();
         request.toMap(parameters, "");
         assertEquals("off", parameters.get("SecurityConfig.AclConfig.Switch"));
+    }
+
+    @Test
+    void unchangedEdgeOneSecurityPolicyModulesAreSkipped() {
+        ManagedRuleAutoUpdate autoUpdate = new ManagedRuleAutoUpdate();
+        autoUpdate.setAutoUpdateToLatestVersion("off");
+        ManagedRules managedRules = new ManagedRules();
+        managedRules.setEnabled("on");
+        managedRules.setDetectionOnly("on");
+        managedRules.setSemanticAnalysis("off");
+        managedRules.setAutoUpdate(autoUpdate);
+
+        BotManagement botManagement = new BotManagement();
+        botManagement.setEnabled("off");
+        CAPTCHAPageChallenge captcha = new CAPTCHAPageChallenge();
+        captcha.setEnabled("off");
+        AICrawlerDetection aiCrawler = new AICrawlerDetection();
+        aiCrawler.setEnabled("off");
+        SecurityAction monitor = new SecurityAction();
+        monitor.setName("Monitor");
+        aiCrawler.setAction(monitor);
+        BotManagementLite botLite = new BotManagementLite();
+        botLite.setCAPTCHAPageChallenge(captcha);
+        botLite.setAICrawlerDetection(aiCrawler);
+
+        AdaptiveFrequencyControl adaptive = new AdaptiveFrequencyControl();
+        adaptive.setEnabled("on");
+        adaptive.setSensitivity("low");
+        ClientFiltering clientFiltering = new ClientFiltering();
+        clientFiltering.setEnabled("on");
+        BandwidthAbuseDefense bandwidth = new BandwidthAbuseDefense();
+        bandwidth.setEnabled("off");
+        SlowAttackDefense slowAttack = new SlowAttackDefense();
+        slowAttack.setEnabled("on");
+        HttpDDoSProtection httpDdos = new HttpDDoSProtection();
+        httpDdos.setAdaptiveFrequencyControl(adaptive);
+        httpDdos.setClientFiltering(clientFiltering);
+        httpDdos.setBandwidthAbuseDefense(bandwidth);
+        httpDdos.setSlowAttackDefense(slowAttack);
+
+        EdgeOneSecurityPolicyVo config = EdgeOneSecurityPolicyVo.builder()
+                .managedRulesEnabled("on")
+                .managedRulesDetectionOnly("on")
+                .managedRulesSemanticAnalysis("off")
+                .managedRulesAutoUpdate("off")
+                .botManagementEnabled("off")
+                .captchaPageChallengeEnabled("off")
+                .aiCrawlerDetectionEnabled("off")
+                .aiCrawlerDetectionAction("Monitor")
+                .httpDdosAdaptiveFrequencyControlEnabled("on")
+                .httpDdosAdaptiveFrequencyControlSensitivity("low")
+                .httpDdosClientFilteringEnabled("on")
+                .httpDdosBandwidthAbuseDefenseEnabled("off")
+                .httpDdosSlowAttackDefenseEnabled("on")
+                .rateLimitEnabled("off")
+                .exceptionEnabled("off")
+                .build();
+
+        assertFalse((Boolean) ReflectionTestUtils.invokeMethod(service,
+                "shouldSubmitManagedRules", managedRules, config));
+        assertFalse((Boolean) ReflectionTestUtils.invokeMethod(service,
+                "shouldSubmitBotManagement", botManagement, config));
+        assertFalse((Boolean) ReflectionTestUtils.invokeMethod(service,
+                "shouldSubmitBotManagementLite", botLite, config));
+        assertFalse((Boolean) ReflectionTestUtils.invokeMethod(service,
+                "shouldSubmitHttpDdosProtection", httpDdos, config));
+        assertFalse((Boolean) ReflectionTestUtils.invokeMethod(service,
+                "shouldSubmitRateLimitingRules", null, config, "static.example.com"));
+        assertFalse((Boolean) ReflectionTestUtils.invokeMethod(service,
+                "shouldSubmitExceptionRules", null, config));
+    }
+
+    @Test
+    void managedRulesSubmissionDropsOutputOnlyFields() {
+        ManagedRuleAutoUpdate currentAutoUpdate = new ManagedRuleAutoUpdate();
+        currentAutoUpdate.setAutoUpdateToLatestVersion("on");
+        currentAutoUpdate.setRulesetVersion("2026-07-14T00:00:00Z");
+        ManagedRuleGroup currentGroup = new ManagedRuleGroup();
+        currentGroup.setGroupId("group-test");
+        currentGroup.setSensitivityLevel("normal");
+        currentGroup.setMetaData(new ManagedRuleGroupMeta());
+        ManagedRules current = new ManagedRules();
+        current.setAutoUpdate(currentAutoUpdate);
+        current.setManagedRuleGroups(new ManagedRuleGroup[]{currentGroup});
+
+        ManagedRules submitted = ReflectionTestUtils.invokeMethod(
+                service,
+                "buildManagedRules",
+                current,
+                EdgeOneSecurityPolicyVo.builder()
+                        .managedRulesEnabled("on")
+                        .managedRulesDetectionOnly("on")
+                        .managedRulesSemanticAnalysis("off")
+                        .managedRulesAutoUpdate("on")
+                        .build()
+        );
+
+        assertNotNull(submitted);
+        assertNotSame(current, submitted);
+        assertNotNull(submitted.getAutoUpdate());
+        assertNull(submitted.getAutoUpdate().getRulesetVersion());
+        assertNotNull(submitted.getManagedRuleGroups());
+        assertEquals(1, submitted.getManagedRuleGroups().length);
+        assertNull(submitted.getManagedRuleGroups()[0].getMetaData());
+        assertNotNull(current.getManagedRuleGroups()[0].getMetaData());
+        String json = ManagedRules.toJsonString(submitted);
+        assertFalse(json.contains("RulesetVersion"));
+        assertFalse(json.contains("MetaData"));
+    }
+
+    @Test
+    void httpDdosSubmissionDropsOutputOnlyRuleIds() {
+        AdaptiveFrequencyControl adaptive = new AdaptiveFrequencyControl();
+        adaptive.setId("adaptive-output-id");
+        adaptive.setEnabled("on");
+        adaptive.setSensitivity("low");
+        ClientFiltering clientFiltering = new ClientFiltering();
+        clientFiltering.setId("client-output-id");
+        clientFiltering.setEnabled("on");
+        BandwidthAbuseDefense bandwidth = new BandwidthAbuseDefense();
+        bandwidth.setId("bandwidth-output-id");
+        bandwidth.setEnabled("off");
+        SlowAttackDefense slowAttack = new SlowAttackDefense();
+        slowAttack.setId("slow-output-id");
+        slowAttack.setEnabled("on");
+        MinimalRequestBodyTransferRate transferRate = new MinimalRequestBodyTransferRate();
+        transferRate.setEnabled("on");
+        transferRate.setMinimalAvgTransferRateThreshold("10");
+        transferRate.setCountingPeriod("30s");
+        slowAttack.setMinimalRequestBodyTransferRate(transferRate);
+        RequestBodyTransferTimeout timeout = new RequestBodyTransferTimeout();
+        timeout.setEnabled("on");
+        timeout.setIdleTimeout("30s");
+        slowAttack.setRequestBodyTransferTimeout(timeout);
+        HttpDDoSProtection current = new HttpDDoSProtection();
+        current.setAdaptiveFrequencyControl(adaptive);
+        current.setClientFiltering(clientFiltering);
+        current.setBandwidthAbuseDefense(bandwidth);
+        current.setSlowAttackDefense(slowAttack);
+
+        HttpDDoSProtection submitted = ReflectionTestUtils.invokeMethod(
+                service,
+                "buildHttpDDoSProtection",
+                current,
+                EdgeOneSecurityPolicyVo.builder()
+                        .httpDdosAdaptiveFrequencyControlEnabled("on")
+                        .httpDdosAdaptiveFrequencyControlSensitivity("low")
+                        .httpDdosClientFilteringEnabled("on")
+                        .httpDdosBandwidthAbuseDefenseEnabled("off")
+                        .httpDdosSlowAttackDefenseEnabled("on")
+                        .build()
+        );
+
+        assertNotNull(submitted);
+        assertNotSame(current, submitted);
+        assertNull(submitted.getAdaptiveFrequencyControl().getId());
+        assertNull(submitted.getClientFiltering().getId());
+        assertNull(submitted.getBandwidthAbuseDefense().getId());
+        assertNull(submitted.getSlowAttackDefense().getId());
+        assertEquals("adaptive-output-id", current.getAdaptiveFrequencyControl().getId());
+        String json = HttpDDoSProtection.toJsonString(submitted);
+        assertFalse(json.contains("output-id"));
+    }
+
+    @Test
+    void singleModuleSecurityPolicyRequestStaysSmallAndIsolated() {
+        ManagedRules managedRules = new ManagedRules();
+        managedRules.setEnabled("on");
+        SecurityPolicy policy = new SecurityPolicy();
+        policy.setManagedRules(managedRules);
+
+        ModifySecurityPolicyRequest request = ReflectionTestUtils.invokeMethod(
+                service,
+                "buildModifySecurityPolicyRequest",
+                "zone-test",
+                "static.example.com",
+                policy
+        );
+
+        assertNotNull(request);
+        String json = ModifySecurityPolicyRequest.toJsonString(request);
+        assertTrue(json.contains("ManagedRules"));
+        assertFalse(json.contains("BotManagement"));
+        assertFalse(json.contains("HttpDDoSProtection"));
+        assertFalse(json.contains("RateLimitingRules"));
+        assertFalse(json.contains("ExceptionRules"));
+        assertTrue(json.getBytes(StandardCharsets.UTF_8).length < 4096);
     }
 
     @Test
