@@ -180,6 +180,9 @@ public class CdnDomainAccessController extends BaseController {
         if (accessResult != null) {
             return accessResult;
         }
+        if (config.getChangedModules() != null && config.getChangedModules().isEmpty()) {
+            return RespResult.success("未检测到安全防护策略变更，无需重复保存。");
+        }
         try {
             ICdnPlatformService iCdnPlatformService = CdnPlatformFactory.getCdnPlatform(cdnDomain.getRoute());
             iCdnPlatformService.saveEdgeOneSecurityPolicy(cdnDomain, config);

@@ -164,6 +164,12 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
     private static final String EO_ACTION_MODIFY_RESPONSE_HEADER = "ModifyResponseHeader";
     private static final String EO_ACTION_UPSTREAM_FOLLOW_REDIRECT = "UpstreamFollowRedirect";
     private static final String EO_ACTION_AUTHENTICATION = "Authentication";
+    private static final String EO_SECURITY_MODULE_MANAGED_RULES = "managed-rules";
+    private static final String EO_SECURITY_MODULE_BOT_MANAGEMENT = "bot-management";
+    private static final String EO_SECURITY_MODULE_BOT_MANAGEMENT_LITE = "bot-management-lite";
+    private static final String EO_SECURITY_MODULE_HTTP_DDOS = "http-ddos-protection";
+    private static final String EO_SECURITY_MODULE_RATE_LIMITING = "rate-limiting-rules";
+    private static final String EO_SECURITY_MODULE_EXCEPTION_RULES = "exception-rules";
     private static final String EO_URL_AUTH_PARAM = "sign";
     private static final Pattern CONDITION_VALUE_PATTERN = Pattern.compile("'((?:\\\\'|[^'])*)'");
     private final Map<String, Object> domainCreateLocks = new ConcurrentHashMap<>();
@@ -877,46 +883,60 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         }
 
         int submittedModules = 0;
-        if (shouldSubmitManagedRules(currentPolicy.getManagedRules(), config)) {
+        if (shouldSubmitSecurityModule(config, EO_SECURITY_MODULE_MANAGED_RULES,
+                shouldSubmitManagedRules(currentPolicy.getManagedRules(), config))) {
             SecurityPolicy update = new SecurityPolicy();
             update.setManagedRules(buildManagedRules(currentPolicy.getManagedRules(), config));
-            submitSecurityPolicyModule(zoneId, domainName, "managed-rules", update);
+            submitSecurityPolicyModule(zoneId, domainName, EO_SECURITY_MODULE_MANAGED_RULES, update);
             submittedModules++;
         }
-        if (shouldSubmitBotManagement(currentPolicy.getBotManagement(), config)) {
+        if (shouldSubmitSecurityModule(config, EO_SECURITY_MODULE_BOT_MANAGEMENT,
+                shouldSubmitBotManagement(currentPolicy.getBotManagement(), config))) {
             SecurityPolicy update = new SecurityPolicy();
             update.setBotManagement(buildBotManagement(config));
-            submitSecurityPolicyModule(zoneId, domainName, "bot-management", update);
+            submitSecurityPolicyModule(zoneId, domainName, EO_SECURITY_MODULE_BOT_MANAGEMENT, update);
             submittedModules++;
         }
-        if (shouldSubmitBotManagementLite(currentPolicy.getBotManagementLite(), config)) {
+        if (shouldSubmitSecurityModule(config, EO_SECURITY_MODULE_BOT_MANAGEMENT_LITE,
+                shouldSubmitBotManagementLite(currentPolicy.getBotManagementLite(), config))) {
             SecurityPolicy update = new SecurityPolicy();
             update.setBotManagementLite(buildBotManagementLite(config));
-            submitSecurityPolicyModule(zoneId, domainName, "bot-management-lite", update);
+            submitSecurityPolicyModule(zoneId, domainName, EO_SECURITY_MODULE_BOT_MANAGEMENT_LITE, update);
             submittedModules++;
         }
-        if (shouldSubmitHttpDdosProtection(currentPolicy.getHttpDDoSProtection(), config)) {
+        if (shouldSubmitSecurityModule(config, EO_SECURITY_MODULE_HTTP_DDOS,
+                shouldSubmitHttpDdosProtection(currentPolicy.getHttpDDoSProtection(), config))) {
             SecurityPolicy update = new SecurityPolicy();
             update.setHttpDDoSProtection(buildHttpDDoSProtection(currentPolicy.getHttpDDoSProtection(), config));
-            submitSecurityPolicyModule(zoneId, domainName, "http-ddos-protection", update);
+            submitSecurityPolicyModule(zoneId, domainName, EO_SECURITY_MODULE_HTTP_DDOS, update);
             submittedModules++;
         }
-        if (shouldSubmitRateLimitingRules(currentPolicy.getRateLimitingRules(), config, domainName)) {
+        if (shouldSubmitSecurityModule(config, EO_SECURITY_MODULE_RATE_LIMITING,
+                shouldSubmitRateLimitingRules(currentPolicy.getRateLimitingRules(), config, domainName))) {
             SecurityPolicy update = new SecurityPolicy();
             update.setRateLimitingRules(buildRateLimitingRules(currentPolicy.getRateLimitingRules(), config, domainName));
-            submitSecurityPolicyModule(zoneId, domainName, "rate-limiting-rules", update);
+            submitSecurityPolicyModule(zoneId, domainName, EO_SECURITY_MODULE_RATE_LIMITING, update);
             submittedModules++;
         }
-        if (shouldSubmitExceptionRules(currentPolicy.getExceptionRules(), config)) {
+        if (shouldSubmitSecurityModule(config, EO_SECURITY_MODULE_EXCEPTION_RULES,
+                shouldSubmitExceptionRules(currentPolicy.getExceptionRules(), config))) {
             SecurityPolicy update = new SecurityPolicy();
             update.setExceptionRules(buildExceptionRules(currentPolicy.getExceptionRules(), config));
-            submitSecurityPolicyModule(zoneId, domainName, "exception-rules", update);
+            submitSecurityPolicyModule(zoneId, domainName, EO_SECURITY_MODULE_EXCEPTION_RULES, update);
             submittedModules++;
         }
 
         if (submittedModules == 0) {
             log.info("Skip EdgeOne security policy update because no policy field changed, domain={}", domainName);
         }
+    }
+
+    private boolean shouldSubmitSecurityModule(EdgeOneSecurityPolicyVo config, String moduleName,
+                                               boolean serverDetectedChange) {
+        if (config == null || config.getChangedModules() == null) {
+            return serverDetectedChange;
+        }
+        return config.getChangedModules().contains(moduleName);
     }
 
     @Override

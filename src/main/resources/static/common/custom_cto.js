@@ -1444,8 +1444,54 @@ async function saveUserAgentFilter(id) {
 }
 
 /**
- * 新增流量包
+ * 腾讯云 EdgeOne 安全防护策略
  */
+function readEdgeOneSecurityPolicyState() {
+    return {
+        managedRulesEnabled: $("#eoManagedRulesEnabled").is(":checked") ? "on" : "off",
+        managedRulesDetectionOnly: $("#eoManagedRulesDetectionOnly").is(":checked") ? "on" : "off",
+        managedRulesSemanticAnalysis: $("#eoManagedRulesSemanticAnalysis").is(":checked") ? "on" : "off",
+        managedRulesAutoUpdate: $("#eoManagedRulesAutoUpdate").is(":checked") ? "on" : "off",
+        botManagementEnabled: $("#eoBotManagementEnabled").is(":checked") ? "on" : "off",
+        captchaPageChallengeEnabled: $("#eoCaptchaPageChallengeEnabled").is(":checked") ? "on" : "off",
+        aiCrawlerDetectionEnabled: $("#eoAiCrawlerDetectionEnabled").is(":checked") ? "on" : "off",
+        aiCrawlerDetectionAction: $("#eoAiCrawlerDetectionAction").val(),
+        httpDdosAdaptiveFrequencyControlEnabled: $("#eoHttpDdosAdaptiveFrequencyControlEnabled").is(":checked") ? "on" : "off",
+        httpDdosAdaptiveFrequencyControlSensitivity: $("#eoHttpDdosAdaptiveFrequencyControlSensitivity").val(),
+        httpDdosClientFilteringEnabled: $("#eoHttpDdosClientFilteringEnabled").is(":checked") ? "on" : "off",
+        httpDdosBandwidthAbuseDefenseEnabled: $("#eoHttpDdosBandwidthAbuseDefenseEnabled").is(":checked") ? "on" : "off",
+        httpDdosSlowAttackDefenseEnabled: $("#eoHttpDdosSlowAttackDefenseEnabled").is(":checked") ? "on" : "off",
+        rateLimitEnabled: $("#eoRateLimitEnabled").is(":checked") ? "on" : "off",
+        rateLimitThreshold: Number($("#eoRateLimitThreshold").val() || 0) || 1000,
+        rateLimitPeriod: $("#eoRateLimitPeriod").val(),
+        rateLimitMode: $("#eoRateLimitMode").val(),
+        rateLimitAction: $("#eoRateLimitAction").val(),
+        rateLimitChallengeOption: $("#eoRateLimitChallengeOption").val(),
+        rateLimitActionDuration: $("#eoRateLimitActionDuration").val(),
+        rateLimitCountBy: $("#eoRateLimitCountBy").val(),
+        rateLimitCondition: $("#eoRateLimitCondition").val(),
+        exceptionEnabled: $("#eoExceptionEnabled").is(":checked") ? "on" : "off",
+        exceptionModules: $("#eoExceptionModules").val(),
+        exceptionCondition: $("#eoExceptionCondition").val()
+    };
+}
+
+function detectChangedEdgeOneSecurityModules(initialState, currentState) {
+    const moduleFields = {
+        "managed-rules": ["managedRulesEnabled", "managedRulesDetectionOnly", "managedRulesSemanticAnalysis", "managedRulesAutoUpdate"],
+        "bot-management": ["botManagementEnabled"],
+        "bot-management-lite": ["captchaPageChallengeEnabled", "aiCrawlerDetectionEnabled", "aiCrawlerDetectionAction"],
+        "http-ddos-protection": ["httpDdosAdaptiveFrequencyControlEnabled", "httpDdosAdaptiveFrequencyControlSensitivity", "httpDdosClientFilteringEnabled", "httpDdosBandwidthAbuseDefenseEnabled", "httpDdosSlowAttackDefenseEnabled"],
+        "rate-limiting-rules": ["rateLimitEnabled", "rateLimitThreshold", "rateLimitPeriod", "rateLimitMode", "rateLimitAction", "rateLimitChallengeOption", "rateLimitActionDuration", "rateLimitCountBy", "rateLimitCondition"],
+        "exception-rules": ["exceptionEnabled", "exceptionModules", "exceptionCondition"]
+    };
+    return Object.keys(moduleFields).filter(function(moduleName) {
+        return moduleFields[moduleName].some(function(fieldName) {
+            return JSON.stringify(initialState[fieldName]) !== JSON.stringify(currentState[fieldName]);
+        });
+    });
+}
+
 async function saveEdgeOneSecurityPolicy(id) {
     const rateLimitEnabled = $("#eoRateLimitEnabled").is(":checked") ? "on" : "off";
     const exceptionEnabled = $("#eoExceptionEnabled").is(":checked") ? "on" : "off";
@@ -1460,34 +1506,11 @@ async function saveEdgeOneSecurityPolicy(id) {
         errorShake("eoExceptionCondition");
         return;
     }
-    const param = {
-        doMainId: id,
-        managedRulesEnabled: $("#eoManagedRulesEnabled").is(":checked") ? "on" : "off",
-        managedRulesDetectionOnly: $("#eoManagedRulesDetectionOnly").is(":checked") ? "on" : "off",
-        managedRulesSemanticAnalysis: $("#eoManagedRulesSemanticAnalysis").is(":checked") ? "on" : "off",
-        managedRulesAutoUpdate: $("#eoManagedRulesAutoUpdate").is(":checked") ? "on" : "off",
-        botManagementEnabled: $("#eoBotManagementEnabled").is(":checked") ? "on" : "off",
-        captchaPageChallengeEnabled: $("#eoCaptchaPageChallengeEnabled").is(":checked") ? "on" : "off",
-        aiCrawlerDetectionEnabled: $("#eoAiCrawlerDetectionEnabled").is(":checked") ? "on" : "off",
-        aiCrawlerDetectionAction: $("#eoAiCrawlerDetectionAction").val(),
-        httpDdosAdaptiveFrequencyControlEnabled: $("#eoHttpDdosAdaptiveFrequencyControlEnabled").is(":checked") ? "on" : "off",
-        httpDdosAdaptiveFrequencyControlSensitivity: $("#eoHttpDdosAdaptiveFrequencyControlSensitivity").val(),
-        httpDdosClientFilteringEnabled: $("#eoHttpDdosClientFilteringEnabled").is(":checked") ? "on" : "off",
-        httpDdosBandwidthAbuseDefenseEnabled: $("#eoHttpDdosBandwidthAbuseDefenseEnabled").is(":checked") ? "on" : "off",
-        httpDdosSlowAttackDefenseEnabled: $("#eoHttpDdosSlowAttackDefenseEnabled").is(":checked") ? "on" : "off",
-        rateLimitEnabled: rateLimitEnabled,
-        rateLimitThreshold: threshold || 1000,
-        rateLimitPeriod: $("#eoRateLimitPeriod").val(),
-        rateLimitMode: $("#eoRateLimitMode").val(),
-        rateLimitAction: $("#eoRateLimitAction").val(),
-        rateLimitChallengeOption: $("#eoRateLimitChallengeOption").val(),
-        rateLimitActionDuration: $("#eoRateLimitActionDuration").val(),
-        rateLimitCountBy: $("#eoRateLimitCountBy").val(),
-        rateLimitCondition: $("#eoRateLimitCondition").val(),
-        exceptionEnabled: exceptionEnabled,
-        exceptionModules: $("#eoExceptionModules").val(),
-        exceptionCondition: $("#eoExceptionCondition").val()
-    };
+    const currentState = readEdgeOneSecurityPolicyState();
+    const param = Object.assign({doMainId: id}, currentState);
+    if (window.edgeOneSecurityInitialState) {
+        param.changedModules = detectChangedEdgeOneSecurityModules(window.edgeOneSecurityInitialState, currentState);
+    }
     let data = await sendRequest("POST", "CdnDomainAccess/saveEdgeOneSecurityPolicy", JSON.stringify(param), "application/json");
     autoLayer(data);
     if (data['code'] === 'SUCCESS') {
@@ -1495,6 +1518,10 @@ async function saveEdgeOneSecurityPolicy(id) {
             reload();
         }, 1000);
     }
+}
+
+if (typeof window !== "undefined" && document.getElementById("edgeOneSecurityPolicyButton")) {
+    window.edgeOneSecurityInitialState = readEdgeOneSecurityPolicyState();
 }
 
 async function addFlowPackage() {

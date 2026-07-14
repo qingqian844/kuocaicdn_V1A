@@ -40,6 +40,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -144,6 +145,46 @@ class TencentEdgeOneDomainServiceImplTest {
                 "shouldSubmitRateLimitingRules", null, config, "static.example.com"));
         assertFalse((Boolean) ReflectionTestUtils.invokeMethod(service,
                 "shouldSubmitExceptionRules", null, config));
+    }
+
+    @Test
+    void explicitChangedModulesPreventUnchangedUnsupportedModuleSubmission() {
+        EdgeOneSecurityPolicyVo unchanged = EdgeOneSecurityPolicyVo.builder()
+                .changedModules(Collections.emptyList())
+                .build();
+        EdgeOneSecurityPolicyVo managedRulesOnly = EdgeOneSecurityPolicyVo.builder()
+                .changedModules(Collections.singletonList("managed-rules"))
+                .build();
+        EdgeOneSecurityPolicyVo legacyClient = EdgeOneSecurityPolicyVo.builder().build();
+
+        assertFalse((Boolean) ReflectionTestUtils.invokeMethod(
+                service,
+                "shouldSubmitSecurityModule",
+                unchanged,
+                "http-ddos-protection",
+                true
+        ));
+        assertFalse((Boolean) ReflectionTestUtils.invokeMethod(
+                service,
+                "shouldSubmitSecurityModule",
+                managedRulesOnly,
+                "http-ddos-protection",
+                true
+        ));
+        assertTrue((Boolean) ReflectionTestUtils.invokeMethod(
+                service,
+                "shouldSubmitSecurityModule",
+                managedRulesOnly,
+                "managed-rules",
+                false
+        ));
+        assertTrue((Boolean) ReflectionTestUtils.invokeMethod(
+                service,
+                "shouldSubmitSecurityModule",
+                legacyClient,
+                "http-ddos-protection",
+                true
+        ));
     }
 
     @Test
