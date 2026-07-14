@@ -399,7 +399,6 @@ public class CdnDomainController extends BaseController {
             ICdnPlatformService iCdnPlatformService = CdnPlatformFactory.getCdnPlatform(cdnDomain.getRoute());
             iCdnPlatformService.ipv6(cdnDomain, status);
         } catch (Exception e) {
-            service.updateConfiguring(id);
             return RespResult.fail(e.getMessage());
         }
         // 修改本地加速域名状态为配置中

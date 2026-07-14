@@ -65,6 +65,7 @@ import com.tencentcloudapi.teo.v20220901.models.Filter;
 import com.tencentcloudapi.teo.v20220901.models.Identification;
 import com.tencentcloudapi.teo.v20220901.models.IdentifyZoneRequest;
 import com.tencentcloudapi.teo.v20220901.models.IdentifyZoneResponse;
+import com.tencentcloudapi.teo.v20220901.models.IPv6Parameters;
 import com.tencentcloudapi.teo.v20220901.models.ModifyAccelerationDomainRequest;
 import com.tencentcloudapi.teo.v20220901.models.ModifyAccelerationDomainResponse;
 import com.tencentcloudapi.teo.v20220901.models.ModifyAccelerationDomainStatusesRequest;
@@ -650,6 +651,38 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
     }
 
     @Override
+    public void ipv6(CdnDomain cdnDomain, Integer status) throws BusinessException {
+        ensureDomainReady(cdnDomain);
+        try {
+            ModifyAccelerationDomainRequest request = buildModifyIpv6Request(
+                    getZoneId(cdnDomain), cdnDomain.getDomainName(), status);
+            ModifyAccelerationDomainResponse response = TencentEdgeOneClient.getClient().ModifyAccelerationDomain(request);
+            log.info("Modify EdgeOne domain {} IPv6 status to {} success: {}",
+                    cdnDomain.getDomainName(), request.getIPv6Status(),
+                    ModifyAccelerationDomainResponse.toJsonString(response));
+        } catch (BusinessException e) {
+            throw e;
+        } catch (TencentCloudSDKException e) {
+            String error = TencentEdgeOneClient.formatTencentError(e);
+            log.error("Modify EdgeOne domain {} IPv6 status failed: {}", cdnDomain.getDomainName(), error, e);
+            throw new BusinessException("修改腾讯云 EdgeOne IPv6 配置失败：" + error);
+        }
+    }
+
+    private ModifyAccelerationDomainRequest buildModifyIpv6Request(String zoneId, String domainName, Integer status)
+            throws BusinessException {
+        if (status == null || (status != 0 && status != 1)) {
+            throw new BusinessException("IPv6 状态参数错误，只能为开启或关闭");
+        }
+        ModifyAccelerationDomainRequest request = new ModifyAccelerationDomainRequest();
+        request.setZoneId(zoneId);
+        request.setDomainName(domainName);
+        request.setIPv6Status(status == 1 ? "on" : "off");
+        return request;
+    }
+
+
+    @Override
     public void saveIpBlackWhiteList(CdnDomain cdnDomain, SettingAccessVo config) throws BusinessException {
         ensureDomainReady(cdnDomain);
         int type = config.getType() == null ? 0 : config.getType();
@@ -777,6 +810,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         if (domain == null) {
             throw new BusinessException("获取腾讯云 EdgeOne 域名信息失败，域名不存在");
         }
+        ZoneConfig edgeOneConfig = getL7AccSettingOrEmpty(domainName);
         OriginDetail origin = domain.getOriginDetail();
         String originAddress = origin == null ? "" : origin.getOrigin();
         String backupOriginAddress = origin == null ? "" : origin.getBackupOrigin();
@@ -803,7 +837,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
                 .cname(domain.getCname())
                 .businessType(getStoredBusinessType(domainName))
                 .serviceArea(getStoredServiceArea(domainName))
-                .isIpv6("0")
+                .isIpv6(resolveSystemIpv6Status(domain.getIPv6Status(), edgeOneConfig))
                 .sourceStationPrimaryInfo(primaryInfo)
                 .sourceStationStandbyInfo(standbyInfo)
                 .build();
@@ -817,7 +851,6 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
                 .flexible_origin(new ArrayList<>())
                 .origin_request_header(new ArrayList<>())
                 .build();
-        ZoneConfig edgeOneConfig = getL7AccSettingOrEmpty(domainName);
         DomainHttpsInfo domainHttpsInfo = buildHttpsInfo(edgeOneConfig, domain);
         DomainCacheInfo domainCacheInfo = buildCacheInfo(edgeOneConfig);
         DomainVisitInfo domainVisitInfo = buildVisitInfo(domainName);
@@ -830,6 +863,18 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
                 .domainVisitInfo(domainVisitInfo)
                 .domainAdvancedInfo(domainAdvancedInfo)
                 .build();
+    }
+
+    private String resolveSystemIpv6Status(String domainIpv6Status, ZoneConfig edgeOneConfig) {
+        String normalizedStatus = normalize(domainIpv6Status).toLowerCase();
+        if ("on".equals(normalizedStatus)) {
+            return "1";
+        }
+        if ("off".equals(normalizedStatus)) {
+            return "0";
+        }
+        IPv6Parameters siteIpv6 = edgeOneConfig == null ? null : edgeOneConfig.getIPv6();
+        return siteIpv6 != null && "on".equals(normalizeSwitch(siteIpv6.getSwitch())) ? "1" : "0";
     }
 
     private void changeStatus(CdnDomain cdnDomain, String status) throws BusinessException {

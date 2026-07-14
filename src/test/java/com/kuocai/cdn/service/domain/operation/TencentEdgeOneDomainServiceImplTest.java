@@ -8,11 +8,14 @@ import com.tencentcloudapi.teo.v20220901.models.CacheConfigParameters;
 import com.tencentcloudapi.teo.v20220901.models.CustomRule;
 import com.tencentcloudapi.teo.v20220901.models.CustomRules;
 import com.tencentcloudapi.teo.v20220901.models.DenyActionParameters;
+import com.tencentcloudapi.teo.v20220901.models.IPv6Parameters;
+import com.tencentcloudapi.teo.v20220901.models.ModifyAccelerationDomainRequest;
 import com.tencentcloudapi.teo.v20220901.models.ModifySecurityPolicyRequest;
 import com.tencentcloudapi.teo.v20220901.models.NoCache;
 import com.tencentcloudapi.teo.v20220901.models.RuleEngineItem;
 import com.tencentcloudapi.teo.v20220901.models.SecurityAction;
 import com.tencentcloudapi.teo.v20220901.models.SecurityPolicy;
+import com.tencentcloudapi.teo.v20220901.models.ZoneConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -164,6 +167,55 @@ class TencentEdgeOneDomainServiceImplTest {
         assertTrue(concurrentCommit);
         assertNotNull(unrelatedError);
         assertFalse(unrelatedError);
+    }
+
+    @Test
+    void edgeOneIpv6CanBeEnabledAndDisabledPerDomain() {
+        ModifyAccelerationDomainRequest enableRequest = ReflectionTestUtils.invokeMethod(
+                service,
+                "buildModifyIpv6Request",
+                "zone-test",
+                "static.example.com",
+                1
+        );
+        ModifyAccelerationDomainRequest disableRequest = ReflectionTestUtils.invokeMethod(
+                service,
+                "buildModifyIpv6Request",
+                "zone-test",
+                "static.example.com",
+                0
+        );
+
+        assertNotNull(enableRequest);
+        assertEquals("on", enableRequest.getIPv6Status());
+        assertEquals("zone-test", enableRequest.getZoneId());
+        assertEquals("static.example.com", enableRequest.getDomainName());
+        assertNotNull(disableRequest);
+        assertEquals("off", disableRequest.getIPv6Status());
+    }
+
+    @Test
+    void edgeOneIpv6FollowStatusUsesSiteConfigurationForDisplay() {
+        ZoneConfig enabledSiteConfig = new ZoneConfig();
+        IPv6Parameters ipv6 = new IPv6Parameters();
+        ipv6.setSwitch("on");
+        enabledSiteConfig.setIPv6(ipv6);
+
+        String enabled = ReflectionTestUtils.invokeMethod(
+                service,
+                "resolveSystemIpv6Status",
+                "follow",
+                enabledSiteConfig
+        );
+        String explicitlyDisabled = ReflectionTestUtils.invokeMethod(
+                service,
+                "resolveSystemIpv6Status",
+                "off",
+                enabledSiteConfig
+        );
+
+        assertEquals("1", enabled);
+        assertEquals("0", explicitlyDisabled);
     }
 
     @Test
