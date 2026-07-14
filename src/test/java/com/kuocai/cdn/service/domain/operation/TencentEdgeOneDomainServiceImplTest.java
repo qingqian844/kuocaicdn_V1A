@@ -2,6 +2,7 @@ package com.kuocai.cdn.service.domain.operation;
 
 import com.kuocai.cdn.api.huawei.cdn.dto.CacheRuleDTO;
 import com.kuocai.cdn.api.huawei.cdn.dto.UrlAuthDTO;
+import com.kuocai.cdn.api.tencent.edgeone.TencentEdgeOneClient;
 import com.tencentcloudapi.teo.v20220901.models.CacheConfigCustomTime;
 import com.tencentcloudapi.teo.v20220901.models.CacheConfigParameters;
 import com.tencentcloudapi.teo.v20220901.models.CustomRule;
@@ -144,6 +145,25 @@ class TencentEdgeOneDomainServiceImplTest {
         assertNotNull(copied.getAction());
         assertEquals("Deny", copied.getAction().getName());
         assertNull(copied.getAction().getDenyActionParameters());
+    }
+
+    @Test
+    void edgeOneResourceTagConcurrentCommitCanBeRetriedWithoutBlockingConfiguration() {
+        Boolean concurrentCommit = ReflectionTestUtils.invokeMethod(
+                TencentEdgeOneClient.class,
+                "isResourceTagConcurrentCommit",
+                "repeat commit: lock:resourceTag:qcs::teo::uin/100000000000:zone/zone-test"
+        );
+        Boolean unrelatedError = ReflectionTestUtils.invokeMethod(
+                TencentEdgeOneClient.class,
+                "isResourceTagConcurrentCommit",
+                "InvalidParameter: tag value is invalid"
+        );
+
+        assertNotNull(concurrentCommit);
+        assertTrue(concurrentCommit);
+        assertNotNull(unrelatedError);
+        assertFalse(unrelatedError);
     }
 
     @Test

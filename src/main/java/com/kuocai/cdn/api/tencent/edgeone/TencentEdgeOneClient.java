@@ -29,10 +29,12 @@ import com.tencentcloudapi.teo.v20220901.models.Identification;
 import com.tencentcloudapi.teo.v20220901.models.Resource;
 import com.tencentcloudapi.teo.v20220901.models.Tag;
 import com.tencentcloudapi.teo.v20220901.models.Zone;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 public class TencentEdgeOneClient {
 
     private static final String ENDPOINT = "teo.tencentcloudapi.com";
@@ -43,6 +45,9 @@ public class TencentEdgeOneClient {
     private static final String CNAME_ACCESS_TYPE = "partial";
     private static final String DEFAULT_PROJECT_TAG_VALUE = "ljfcdn";
     private static final String ZONE_ID_CACHE_PREFIX = "TencentEdgeOne:ZoneId:";
+    private static final String ZONE_PROJECT_TAG_CACHE_PREFIX = "TencentEdgeOne:ZoneProjectTag:";
+    private static final int ZONE_PROJECT_TAG_CACHE_SECONDS = 300;
+    private static final int ZONE_PROJECT_TAG_MAX_RETRIES = 3;
     private static volatile String cachedAccountSecretId;
     private static volatile String cachedAccountId;
 
@@ -449,14 +454,58 @@ public class TencentEdgeOneClient {
         if (Assert.isEmpty(zoneId) || tag == null) {
             return;
         }
-        try {
-            TagResourcesRequest request = new TagResourcesRequest();
-            request.setResourceList(new String[]{buildZoneResourceName(zoneId)});
-            request.setTags(new com.tencentcloudapi.tag.v20180813.models.Tag[]{tag});
-            getTagClient().TagResources(request);
-        } catch (TencentCloudSDKException e) {
-            throw new BusinessException("腾讯云 EdgeOne 根站点打标签失败：" + formatTencentError(e));
+        String cacheKey = buildZoneProjectTagCacheKey(zoneId, tag.getTagValue());
+        if (JedisUtil.exists(cacheKey)) {
+            return;
         }
+        for (int attempt = 1; attempt <= ZONE_PROJECT_TAG_MAX_RETRIES; attempt++) {
+            try {
+                TagResourcesRequest request = new TagResourcesRequest();
+                request.setResourceList(new String[]{buildZoneResourceName(zoneId)});
+                request.setTags(new com.tencentcloudapi.tag.v20180813.models.Tag[]{tag});
+                getTagClient().TagResources(request);
+                JedisUtil.setStr(cacheKey, "1", ZONE_PROJECT_TAG_CACHE_SECONDS);
+                return;
+            } catch (TencentCloudSDKException e) {
+                if (!isResourceTagConcurrentCommit(e)) {
+                    throw new BusinessException("腾讯云 EdgeOne 根站点打标签失败：" + formatTencentError(e));
+                }
+                if (attempt >= ZONE_PROJECT_TAG_MAX_RETRIES) {
+                    log.warn("Skip duplicated EdgeOne zone tag commit after retries, zoneId={}, error={}",
+                            zoneId, formatTencentError(e));
+                    return;
+                }
+                try {
+                    Thread.sleep(250L * attempt);
+                } catch (InterruptedException interruptedException) {
+                    Thread.currentThread().interrupt();
+                    log.warn("EdgeOne zone tag retry interrupted, continue domain operation, zoneId={}", zoneId);
+                    return;
+                }
+            }
+        }
+    }
+
+    private static String buildZoneProjectTagCacheKey(String zoneId, String tagValue) throws BusinessException {
+        TencentEdgeOneApiConfigVo config = getConfig();
+        return ZONE_PROJECT_TAG_CACHE_PREFIX
+                + config.getSecretId().trim() + ":"
+                + zoneId + ":"
+                + Integer.toHexString((tagValue == null ? "" : tagValue).hashCode());
+    }
+
+    private static boolean isResourceTagConcurrentCommit(TencentCloudSDKException e) {
+        return e != null && (isResourceTagConcurrentCommit(e.getMessage())
+                || isResourceTagConcurrentCommit(e.getErrorCode()));
+    }
+
+    private static boolean isResourceTagConcurrentCommit(String value) {
+        if (Assert.isEmpty(value)) {
+            return false;
+        }
+        String normalized = value.toLowerCase();
+        return normalized.contains("repeat commit")
+                && (normalized.contains("resourcetag") || normalized.contains("resource tag"));
     }
 
     private static String buildZoneResourceName(String zoneId) throws BusinessException {
