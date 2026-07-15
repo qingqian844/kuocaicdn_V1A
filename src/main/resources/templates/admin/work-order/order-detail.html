@@ -52,6 +52,46 @@
             cursor: pointer;
         }
 
+        .work-order-image {
+            display: block;
+            max-width: 320px;
+            max-height: 320px;
+            object-fit: contain;
+        }
+
+        .work-order-file {
+            display: flex;
+            width: min(320px, 72vw);
+            min-height: 64px;
+            align-items: center;
+            gap: 12px;
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .work-order-file-icon {
+            display: grid;
+            width: 42px;
+            height: 42px;
+            flex: 0 0 42px;
+            place-items: center;
+            border-radius: 6px;
+            background: rgba(55, 125, 255, .1);
+            color: #377dff;
+            font-size: 1.25rem;
+        }
+
+        .work-order-file-name {
+            overflow-wrap: anywhere;
+            font-weight: 600;
+        }
+
+        .work-order-file-download {
+            margin-left: auto;
+            color: #677788;
+            font-size: 1.1rem;
+        }
+
     </style>
 
     <script>
@@ -500,11 +540,10 @@
                                                     </div>
                                                 </div>
                                                 <div class="toast-body">
-                                                    <a th:href="${msg.msg}" data-fancybox='gallery' class="lightbox">
-                                                        <img class="card-img"
-                                                             width="100%"
-                                                             th:src="${msg.msg}"
-                                                             alt="Image description">
+                                                    <a th:href="${msg.attachmentUrl}" data-fancybox='gallery' class="lightbox">
+                                                        <img class="card-img work-order-image"
+                                                             th:src="${msg.attachmentUrl}"
+                                                             th:alt="${msg.fileName}">
                                                     </a>
                                                 </div>
                                             </div>
@@ -532,17 +571,51 @@
                                                 </div>
                                             </div>
                                             <div class="toast-body">
-                                                <a th:href="${msg.msg}" data-fancybox='gallery' class="lightbox">
-                                                <img class="card-img"
-                                                     width="100%"
-                                                     th:src="${msg.msg}"
-                                                     alt="Image description">
+                                                <a th:href="${msg.attachmentUrl}" data-fancybox='gallery' class="lightbox">
+                                                <img class="card-img work-order-image"
+                                                     th:src="${msg.attachmentUrl}"
+                                                     th:alt="${msg.fileName}">
                                                 </a>
                                             </div>
                                         </div>
                                         <!-- End Toast -->
                                     </li>
                                 </th:block>
+                            </th:block>
+                            <th:block th:if="${msg.type} == 'file'">
+                                <li class="list-comment-item">
+                                    <div th:style="${loginUserRoleCode == msg.from ? 'display:flex;justify-content:flex-end' : ''}">
+                                        <div class="toast toast-show fade show" role="alert" aria-live="assertive"
+                                             aria-atomic="true">
+                                            <div class="toast-header">
+                                                <div class="d-flex align-items-center flex-grow-1"
+                                                     th:style="${loginUserRoleCode == msg.from ? 'display:flex;justify-content:flex-end' : ''}">
+                                                    <div th:if="${loginUserRoleCode != msg.from}" class="flex-shrink-0">
+                                                        <img class="avatar avatar-xs avatar-circle"
+                                                             th:src="${acceptUserImg}" alt="avatar">
+                                                    </div>
+                                                    <div th:class="${loginUserRoleCode == msg.from ? '' : 'flex-grow-1 ms-3'}">
+                                                        <small class="ms-auto">[[${msg.time}]]</small>
+                                                    </div>
+                                                    <div th:if="${loginUserRoleCode == msg.from}" class="ms-3">
+                                                        <img class="avatar avatar-xs avatar-circle"
+                                                             th:src="${sendUserImg}" alt="avatar">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="toast-body">
+                                                <a class="work-order-file" th:href="${msg.downloadUrl}">
+                                                    <span class="work-order-file-icon"><i class="bi bi-file-earmark"></i></span>
+                                                    <span class="flex-grow-1">
+                                                        <span class="work-order-file-name d-block">[[${msg.fileName}]]</span>
+                                                        <small class="text-muted" th:if="${msg.fileSizeText != null and !#strings.isEmpty(msg.fileSizeText)}">[[${msg.fileSizeText}]]</small>
+                                                    </span>
+                                                    <i class="bi bi-download work-order-file-download" title="下载文件"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
                             </th:block>
                         </ul>
                     </div>
@@ -558,12 +631,19 @@
                         </div>
 
                         <div class="d-flex justify-content-end">
-                            <button type="button" class="btn btn-white btn-icon m-1"
-                                    th:onchange="sendWorkOrderMsg('[[${workOrder.id}]]', '[(${loginUserRoleCode})]', 'img')">
-                                <i class=" form-attachment-btn bi bi-image">
-                                    <input type="file" class="form-attachment-btn-label" id="pop_file" style="cursor: pointer;" accept="image/*">
-                                </i>
-                            </button>
+                            <label class="btn btn-white btn-icon m-1" for="pop_file" title="上传图片">
+                                <i class="bi bi-image"></i>
+                                <input type="file" class="d-none" id="pop_file"
+                                       accept=".jpg,.jpeg,.png,.gif,.webp,.bmp"
+                                       th:onchange="sendWorkOrderMsg('[[${workOrder.id}]]', '[(${loginUserRoleCode})]', 'img')">
+                            </label>
+
+                            <label class="btn btn-white btn-icon m-1" for="pop_attachment" title="上传文件">
+                                <i class="bi bi-paperclip"></i>
+                                <input type="file" class="d-none" id="pop_attachment"
+                                       accept=".pdf,.txt,.csv,.log,.md,.json,.xml,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z,.gz,.tar"
+                                       th:onchange="sendWorkOrderMsg('[[${workOrder.id}]]', '[(${loginUserRoleCode})]', 'file')">
+                            </label>
 
                             <button th:onclick="sendWorkOrderMsg('[[${workOrder.id}]]', '[(${loginUserRoleCode})]', 'text')"
                                     type="button" class="btn btn-white m-1" title="Ctrl + Enter">
@@ -664,7 +744,7 @@
 <script th:src="@{common/custom.js}"></script>
 <script th:src="@{common/custom_ceo.js}"></script>
 <script th:src="@{common/custom_cmo.js}"></script>
-<script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
+<script th:src="@{common/custom_cto.js(v='20260715-work-order-attachments')}"></script>
 
 <!-- JS Plugins Init. -->
 <script>
@@ -751,7 +831,7 @@
     function dropFilesEvent(e) {
         e.preventDefault();
         e.stopPropagation();
-        sendWorkOrderImg('[[${workOrder.id}]]', '[(${loginUserRoleCode})]', e.dataTransfer.files);
+        sendWorkOrderAttachment('[[${workOrder.id}]]', '[(${loginUserRoleCode})]', e.dataTransfer.files);
     }
 
     function dragleaveCopyEvent(e) {
@@ -771,7 +851,7 @@
                     files.push(item.getAsFile());
                 }
             }
-            sendWorkOrderImg('[[${workOrder.id}]]', '[(${loginUserRoleCode})]', files);
+            sendWorkOrderAttachment('[[${workOrder.id}]]', '[(${loginUserRoleCode})]', files, 'img');
         }
         $textarea.addEventListener('paste', pasteFilesEvent, false);
     });

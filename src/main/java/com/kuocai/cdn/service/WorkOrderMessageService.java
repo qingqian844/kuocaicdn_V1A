@@ -19,7 +19,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 
 /**
@@ -34,6 +37,9 @@ public class WorkOrderMessageService extends BaseService<WorkOrderMessage> {
     @Autowired
     protected WorkOrderMessageDao dao;
 
+    @Autowired
+    private WorkOrderAttachmentService attachmentService;
+
     /**
      * 查询工单对应的聊天信息，如果工单不是未处理就从数据库查询，否则就查询Redis
      *
@@ -41,6 +47,14 @@ public class WorkOrderMessageService extends BaseService<WorkOrderMessage> {
      * @return
      */
     public List<WorkOrderMessageDTO> getWorkOrderMessageInfos(Long workOrderId, WorkOrder workOrder) {
+        List<WorkOrderMessageDTO> messages = getRawWorkOrderMessageInfos(workOrderId, workOrder);
+        for (WorkOrderMessageDTO message : messages) {
+            enrichAttachment(workOrderId, message);
+        }
+        return messages;
+    }
+
+    private List<WorkOrderMessageDTO> getRawWorkOrderMessageInfos(Long workOrderId, WorkOrder workOrder) {
         // 判断是否结单
         if (ObjectUtil.equal(workOrder.getStatus(), WorkOrderStatus.CLOSE.getCode())) {
             WorkOrderMessage orderMessage = queryByOrderId(workOrderId);
@@ -48,12 +62,13 @@ public class WorkOrderMessageService extends BaseService<WorkOrderMessage> {
                 //将消息题转换成消息格式
                 return JSONArray.parseArray(orderMessage.getContext(), WorkOrderMessageDTO.class);
             } else {
-                return new ArrayList<>();
+                return Collections.emptyList();
             }
         } else {
             // 查询redis
             String key = KuoCaiConstants.WORK_ORDER_MESSAGE + ":" + workOrderId;
-            return JedisUtil.getJsonArray(key, WorkOrderMessageDTO.class);
+            List<WorkOrderMessageDTO> messages = JedisUtil.getJsonArray(key, WorkOrderMessageDTO.class);
+            return Assert.isEmpty(messages) ? Collections.emptyList() : messages;
         }
     }
 
@@ -69,8 +84,12 @@ public class WorkOrderMessageService extends BaseService<WorkOrderMessage> {
         WorkOrderMessageDTO msgInfo = new WorkOrderMessageDTO();
         msgInfo.setMsg(msg);
         msgInfo.setFrom(from);
-        msgInfo.setTime(DateUtil.formatDateTime(new DateTime()));
         msgInfo.setType(type);
+        sendRedisMsg(workOrderId, msgInfo);
+    }
+
+    public void sendRedisMsg(Long workOrderId, WorkOrderMessageDTO msgInfo) {
+        msgInfo.setTime(DateUtil.formatDateTime(new DateTime()));
         String key = KuoCaiConstants.WORK_ORDER_MESSAGE + ":" + workOrderId;
         List<WorkOrderMessageDTO> msgInfos = JedisUtil.getJsonArray(key, WorkOrderMessageDTO.class);
         if (Assert.isEmpty(msgInfos)) {
@@ -81,7 +100,7 @@ public class WorkOrderMessageService extends BaseService<WorkOrderMessage> {
             msgInfos.add(msgInfo);
             JedisUtil.setJsonArray(key, msgInfos);
         }
-        if ("user".equals(from)) {
+        if ("user".equals(msgInfo.getFrom())) {
             List<String> newMessageIds = JedisUtil.getListString("admin_work_order_new_message");
             if (Assert.isEmpty(newMessageIds)) {
                 newMessageIds = new ArrayList<>();
@@ -91,6 +110,46 @@ public class WorkOrderMessageService extends BaseService<WorkOrderMessage> {
                 newMessageIds.add(thisId);
                 JedisUtil.setList("admin_work_order_new_message", newMessageIds);
             }
+        }
+    }
+
+    public WorkOrderMessageDTO findAttachment(Long workOrderId, WorkOrder workOrder, String requestedObjectName) {
+        if (Assert.isEmpty(requestedObjectName)) {
+            return null;
+        }
+        for (WorkOrderMessageDTO message : getRawWorkOrderMessageInfos(workOrderId, workOrder)) {
+            if (!attachmentService.isAllowedAttachment(message)) {
+                continue;
+            }
+            String objectName = attachmentService.extractObjectName(message);
+            if (requestedObjectName.equals(objectName)) {
+                return message;
+            }
+        }
+        return null;
+    }
+
+    private void enrichAttachment(Long workOrderId, WorkOrderMessageDTO message) {
+        if (!attachmentService.isAllowedAttachment(message)) {
+            return;
+        }
+        String objectName = attachmentService.extractObjectName(message);
+        String encodedObjectName = encode(objectName);
+        String baseUrl = "/WorkOrderMessage/attachment?workOrderId=" + workOrderId
+                + "&objectKey=" + encodedObjectName;
+        message.setStorageKey(objectName);
+        message.setFileName(attachmentService.displayFileName(message));
+        message.setContentType(attachmentService.contentType(message));
+        message.setFileSizeText(attachmentService.formatSize(message.getFileSize()));
+        message.setAttachmentUrl(baseUrl);
+        message.setDownloadUrl(baseUrl + "&download=true");
+    }
+
+    private String encode(String value) {
+        try {
+            return URLEncoder.encode(value, StandardCharsets.UTF_8.name());
+        } catch (Exception ignored) {
+            return value;
         }
     }
 

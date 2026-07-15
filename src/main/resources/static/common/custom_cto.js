@@ -180,34 +180,46 @@ async function sendWorkOrderMsg(id, from, type) {
         let data = await sendFileUploadRequest("WorkOrderMessage/sendMsg", params, false);
         autoLayer(data);
         if (data['code'] === 'SUCCESS') {
-            $('#textareaId').value = '';
+            $('#textareaId').val('');
             reload();
         }
+        return;
     }
-    if (type === 'img') {
-        const fileObj = $('#pop_file')[0].files[0];
-        let params = new FormData()
-        params.append("fileObj", fileObj)
-        params.append("workOrderId", id)
-        params.append("from", from)
-        params.append("type", type)
 
-        let data = await sendFileUploadRequest("WorkOrderMessage/sendMsg", params, false);
-        autoLayer(data);
-        if (data['code'] === 'SUCCESS') {
-            $('#textareaId').value = '';
-            reload();
+    if (type === 'img' || type === 'file') {
+        const input = document.getElementById(type === 'img' ? 'pop_file' : 'pop_attachment');
+        if (!input || !input.files || input.files.length === 0) {
+            return;
         }
+        await sendWorkOrderAttachment(id, from, input.files, type);
+        input.value = '';
     }
 }
 
-async function sendWorkOrderImg(id, from, files) {
+const workOrderImageExtensions = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
+const workOrderFileExtensions = new Set([
+    'pdf', 'txt', 'csv', 'log', 'md', 'json', 'xml',
+    'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+    'zip', 'rar', '7z', 'gz', 'tar'
+]);
+
+async function sendWorkOrderAttachment(id, from, files, preferredType) {
     if (!files || files.length === 0) {
         return;
     }
     const file = files[0];
-    if (!verifySuffix(file.name)) {
-        layerWarn("请选择图片文件哦！");
+    const extension = file.name.includes('.') ? file.name.split('.').pop().toLowerCase() : '';
+    const isImage = workOrderImageExtensions.has(extension);
+    if (preferredType === 'img' && !isImage) {
+        layerWarn("请选择 JPG、PNG、GIF、WebP 或 BMP 图片");
+        return;
+    }
+    if (!isImage && !workOrderFileExtensions.has(extension)) {
+        layerWarn("不支持该文件格式");
+        return;
+    }
+    if (file.size <= 0 || file.size > 10 * 1024 * 1024) {
+        layerWarn("附件不能超过 10 MB");
         return;
     }
     layerInfo("正在处理中，请稍后...");
@@ -215,13 +227,17 @@ async function sendWorkOrderImg(id, from, files) {
     params.append("fileObj", file)
     params.append("workOrderId", id)
     params.append("from", from)
-    params.append("type", 'img')
+    params.append("type", isImage ? 'img' : 'file')
 
     const data = await sendFileUploadRequest("WorkOrderMessage/sendMsg", params, false);
     autoLayer(data);
     if (data['code'] === 'SUCCESS') {
         reload();
     }
+}
+
+async function sendWorkOrderImg(id, from, files) {
+    return sendWorkOrderAttachment(id, from, files, 'img');
 }
 
 function enterEvent(id, from, type) {

@@ -8,6 +8,7 @@ import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.util.KuocaiBaseUtil;
 import io.minio.*;
+import io.minio.errors.ErrorResponseException;
 import io.minio.messages.Item;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +18,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLDecoder;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -69,7 +72,7 @@ public class OssClient {
         String fileMd5 = getFileMd5(file);
         String type = filename.substring(filename.lastIndexOf("."));
         String fileName = fileMd5 + type;
-        if (getFilesName().contains(fileName)) {
+        if (objectExists(fileName)) {
             return buildPublicUrl(fileName);
         }
         try (InputStream inputStream = file.getInputStream()) {
@@ -118,6 +121,80 @@ public class OssClient {
                 .bucket(bucketName)
                 .object(filename)
                 .build());
+    }
+
+    /**
+     * 读取 MinIO 对象，由调用方负责关闭返回的流。
+     */
+    public GetObjectResponse getObject(String objectName) throws Exception {
+        return minioClient.getObject(GetObjectArgs.builder()
+                .bucket(bucketName)
+                .object(objectName)
+                .build());
+    }
+
+    private boolean objectExists(String objectName) throws Exception {
+        try {
+            getStatObject(objectName);
+            return true;
+        } catch (ErrorResponseException e) {
+            String code = e.errorResponse() == null ? null : e.errorResponse().code();
+            if ("NoSuchKey".equals(code) || "NoSuchObject".equals(code) || "NotFound".equals(code)) {
+                return false;
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * 从历史完整 URL、同源路径或对象名中提取 MinIO 对象名。
+     */
+    public String extractObjectName(String urlOrPath) {
+        if (Assert.isEmpty(urlOrPath)) {
+            return null;
+        }
+        String value = urlOrPath.trim().replace("\\", "/");
+        int queryIndex = value.indexOf('?');
+        if (queryIndex >= 0) {
+            value = value.substring(0, queryIndex);
+        }
+        int fragmentIndex = value.indexOf('#');
+        if (fragmentIndex >= 0) {
+            value = value.substring(0, fragmentIndex);
+        }
+        try {
+            value = URLDecoder.decode(value, StandardCharsets.UTF_8.name());
+        } catch (Exception ignored) {
+            // 历史地址可能包含不完整的转义，保留原值继续解析。
+        }
+        if (value.contains("../") || value.contains("/..") || value.startsWith("..")) {
+            return null;
+        }
+
+        String marker = "/" + bucketName + "/";
+        int markerIndex = value.lastIndexOf(marker);
+        if (markerIndex >= 0) {
+            value = value.substring(markerIndex + marker.length());
+        } else if (value.startsWith(bucketName + "/")) {
+            value = value.substring(bucketName.length() + 1);
+        } else {
+            int slashIndex = value.lastIndexOf('/');
+            if (slashIndex >= 0) {
+                value = value.substring(slashIndex + 1);
+            }
+        }
+
+        if (!isSafeObjectName(value)) {
+            return null;
+        }
+        return value;
+    }
+
+    private boolean isSafeObjectName(String objectName) {
+        return Assert.notEmpty(objectName)
+                && objectName.length() <= 255
+                && !objectName.contains("..")
+                && objectName.matches("[A-Za-z0-9][A-Za-z0-9._-]*");
     }
 
     /**
