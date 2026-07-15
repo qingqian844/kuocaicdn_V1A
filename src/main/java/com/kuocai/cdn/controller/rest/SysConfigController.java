@@ -10,6 +10,7 @@ import com.kuocai.cdn.constant.ConfigBizTypeConstants;
 import com.kuocai.cdn.controller.base.BaseController;
 import com.kuocai.cdn.dto.resp.RespResult;
 import com.kuocai.cdn.api.volcengine.cdn.properties.VolcengineCdn;
+import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.service.SysConfigService;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.vo.*;
@@ -21,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -82,7 +84,7 @@ public class SysConfigController extends BaseController {
                     .defaultFlowPrice(BigDecimal.valueOf(defaultFlowPrice)).icpNumber(icpNumber)
                     // 判断文件是否已经存在且没被修改，是直接保存路径，否则进行转换
                     .websiteIconImg("false".equals(websiteIconImgUrl) ? (Assert.isEmpty(websiteIconImg) ? "" : ossClient.upload(websiteIconImg)) : ossClient.normalizePublicUrl(websiteIconImgUrl))
-                    .websiteLogoImg("false".equals(websiteLogoImgUrl) ? (Assert.isEmpty(websiteLogoImg) ? "" : ossClient.upload(websiteLogoImg)) : ossClient.normalizePublicUrl(websiteLogoImgUrl))
+                    .websiteLogoImg(resolveWebsiteLogo(websiteLogoImgUrl, websiteLogoImg))
                     .wechatQrCodeImg("false".equals(wechatQrCodeImgUrl) ? (Assert.isEmpty(wechatQrCodeImg) ? "" : ossClient.upload(wechatQrCodeImg)) : ossClient.normalizePublicUrl(wechatQrCodeImgUrl))
                     .qqGroupQrCodeImg("false".equals(qqGroupQrCodeImgUrl) ? (Assert.isEmpty(qqGroupQrCodeImg) ? "" : ossClient.upload(qqGroupQrCodeImg)) : ossClient.normalizePublicUrl(qqGroupQrCodeImgUrl))
                     .expireTime(expireTime).updateTime(DateUtil.now()).build();
@@ -92,6 +94,43 @@ public class SysConfigController extends BaseController {
         service.saveConfig(websiteBaseConfigVo, ConfigBizTypeConstants.WEBSITE_BASE_CONFIG, loginUserId);
         preloadComponent.loadWebsiteBaseConfig();
         return RespResult.success("更新成功");
+    }
+
+    private String resolveWebsiteLogo(String logoUrl, MultipartFile logoFile) throws Exception {
+        if (!Assert.isEmpty(logoFile)) {
+            return ossClient.upload(logoFile);
+        }
+        if ("false".equals(logoUrl) || Assert.isEmpty(logoUrl)) {
+            return "";
+        }
+        return validateWebsiteLogoUrl(logoUrl);
+    }
+
+    static String validateWebsiteLogoUrl(String logoUrl) throws BusinessException {
+        String value = logoUrl == null ? "" : logoUrl.trim();
+        if (Assert.isEmpty(value)) {
+            return "";
+        }
+        if (value.matches(".*[\\s<>\"'].*")) {
+            throw new BusinessException("Logo 链接格式不正确");
+        }
+        if (value.startsWith("/") && !value.startsWith("//")) {
+            if (value.contains("..") || value.contains("\\")) {
+                throw new BusinessException("Logo 站内路径格式不正确");
+            }
+            return value;
+        }
+        try {
+            URL url = new URL(value);
+            String protocol = url.getProtocol();
+            if (("http".equalsIgnoreCase(protocol) || "https".equalsIgnoreCase(protocol))
+                    && Assert.notEmpty(url.getHost())) {
+                return value;
+            }
+        } catch (Exception ignored) {
+            // 统一返回业务提示。
+        }
+        throw new BusinessException("Logo 链接必须使用 http、https 或站内绝对路径");
     }
 
     /**

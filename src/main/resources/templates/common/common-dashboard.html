@@ -13,8 +13,8 @@
 
         <!-- Logo -->
         <a class="navbar-brand" href="/dashboard" aria-label="Front">
-            <img class="navbar-brand-logo" th:src="${dashboardLogo != null and !#strings.isEmpty(dashboardLogo)} ? ${dashboardLogo} : @{/image/f96b75d4a78a3eea3837c7150316fe25.png}" alt="Logo" data-hs-theme-appearance="default">
-            <img class="navbar-brand-logo" th:src="${dashboardLogo != null and !#strings.isEmpty(dashboardLogo)} ? ${dashboardLogo} : @{/image/f96b75d4a78a3eea3837c7150316fe25.png}" alt="Logo" data-hs-theme-appearance="dark">
+            <img class="navbar-brand-logo" th:src="${dashboardLogo != null and !#strings.isEmpty(dashboardLogo)} ? ${dashboardLogo} : (${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : '/image/f96b75d4a78a3eea3837c7150316fe25.png')" alt="Logo" data-hs-theme-appearance="default">
+            <img class="navbar-brand-logo" th:src="${dashboardLogo != null and !#strings.isEmpty(dashboardLogo)} ? ${dashboardLogo} : (${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : '/image/f96b75d4a78a3eea3837c7150316fe25.png')" alt="Logo" data-hs-theme-appearance="dark">
             <img class="navbar-brand-logo-mini" th:src="${dashboardIcon != null and !#strings.isEmpty(dashboardIcon)} ? ${dashboardIcon} : @{/image/4b05f2ef00458ac8323812f98a073a72.png}" alt="Logo" data-hs-theme-appearance="default">
             <img class="navbar-brand-logo-mini" th:src="${dashboardIcon != null and !#strings.isEmpty(dashboardIcon)} ? ${dashboardIcon} : @{/image/4b05f2ef00458ac8323812f98a073a72.png}" alt="Logo" data-hs-theme-appearance="dark">
         </a>
@@ -512,10 +512,10 @@
 
             <a class="navbar-brand" href="/dashboard" aria-label="Front">
                 <img class="navbar-brand-logo"
-                     th:src="${dashboardLogo != null and !#strings.isEmpty(dashboardLogo)} ? ${dashboardLogo} : @{/image/f96b75d4a78a3eea3837c7150316fe25.png}"
+                     th:src="${dashboardLogo != null and !#strings.isEmpty(dashboardLogo)} ? ${dashboardLogo} : (${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : '/image/f96b75d4a78a3eea3837c7150316fe25.png')"
                      alt="Logo" data-hs-theme-appearance="default">
                 <img class="navbar-brand-logo"
-                     th:src="${dashboardLogo != null and !#strings.isEmpty(dashboardLogo)} ? ${dashboardLogo} : @{/image/f96b75d4a78a3eea3837c7150316fe25.png}"
+                     th:src="${dashboardLogo != null and !#strings.isEmpty(dashboardLogo)} ? ${dashboardLogo} : (${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.websiteLogoImg)} ? ${websiteBaseConfig.websiteLogoImg} : '/image/f96b75d4a78a3eea3837c7150316fe25.png')"
                      alt="Logo" data-hs-theme-appearance="dark">
                 <img class="navbar-brand-logo-mini"
                      th:src="${dashboardIcon != null and !#strings.isEmpty(dashboardIcon)} ? ${dashboardIcon} : @{/image/4b05f2ef00458ac8323812f98a073a72.png}"

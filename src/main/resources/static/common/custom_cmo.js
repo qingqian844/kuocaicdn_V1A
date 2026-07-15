@@ -354,7 +354,9 @@ async function saveWithdrawConfig() {
 async function saveWebsiteBaseConfig() {
     let formdata = new FormData();
     appendWebsiteImageFormData(formdata, "websiteIconImgUrl", "websiteIconImg", "#websiteIconImg", "#updateWebsiteIconFile");
-    appendWebsiteImageFormData(formdata, "websiteLogoImgUrl", "websiteLogoImg", "#websiteLogoImg", "#updateWebsiteLogoFile");
+    if (!appendWebsiteLogoFormData(formdata)) {
+        return;
+    }
     appendWebsiteImageFormData(formdata, "wechatQrCodeImgUrl", "wechatQrCodeImg", "#wechatQrCodeImg", "#updateWechatQrCodeFile");
     appendWebsiteImageFormData(formdata, "qqGroupQrCodeImgUrl", "qqGroupQrCodeImg", "#qqGroupQrCodeImg", "#updateQqGroupQrCodeFile");
     formdata.append("websiteName", $('#websiteName').val())
@@ -379,6 +381,83 @@ async function saveWebsiteBaseConfig() {
     let data = await sendFileUploadRequest("SysConfig/saveWebsiteBaseConfig", formdata);
     autoLayer(data);
     setTimeout(reload, 1000);
+}
+
+function appendWebsiteLogoFormData(formdata) {
+    const fileInput = document.getElementById("updateWebsiteLogoFile");
+    const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+    if (file) {
+        formdata.append("websiteLogoImgUrl", "false");
+        formdata.append("websiteLogoImg", file);
+        return true;
+    }
+
+    const logoUrl = ($('#websiteLogoUrl').val() || '').trim();
+    if (logoUrl && !isValidWebsiteLogoUrl(logoUrl)) {
+        layerWarn("Logo 链接必须使用 http、https 或站内绝对路径");
+        return false;
+    }
+    formdata.append("websiteLogoImgUrl", logoUrl || "false");
+    return true;
+}
+
+function isValidWebsiteLogoUrl(value) {
+    if (!value || /[\s<>"']/.test(value)) {
+        return false;
+    }
+    if (value.startsWith('/') && !value.startsWith('//')) {
+        return !value.includes('..') && !value.includes('\\');
+    }
+    try {
+        const parsed = new URL(value);
+        return (parsed.protocol === 'http:' || parsed.protocol === 'https:') && !!parsed.hostname;
+    } catch (e) {
+        return false;
+    }
+}
+
+function handleWebsiteLogoFileChange() {
+    const input = document.getElementById('updateWebsiteLogoFile');
+    if (input && input.files && input.files.length > 0) {
+        $('#websiteLogoUrl').val('');
+    }
+}
+
+function handleWebsiteLogoUrlInput() {
+    const logoUrl = ($('#websiteLogoUrl').val() || '').trim();
+    const fileInput = document.getElementById('updateWebsiteLogoFile');
+    if (logoUrl && fileInput) {
+        fileInput.value = '';
+    }
+}
+
+function previewWebsiteLogoUrl() {
+    const logoUrl = ($('#websiteLogoUrl').val() || '').trim();
+    if (!isValidWebsiteLogoUrl(logoUrl)) {
+        layerWarn("请输入正确的 Logo 图片链接");
+        return;
+    }
+    const preview = new Image();
+    preview.onload = function () {
+        $('#websiteLogoImg').attr('src', logoUrl);
+        const fileInput = document.getElementById('updateWebsiteLogoFile');
+        if (fileInput) {
+            fileInput.value = '';
+        }
+    };
+    preview.onerror = function () {
+        layerWarn("Logo 图片链接无法加载");
+    };
+    preview.src = logoUrl;
+}
+
+function clearWebsiteLogo() {
+    $('#websiteLogoUrl').val('');
+    $('#websiteLogoImg').attr('src', '/front/assets/svg/logos/logo-white.svg');
+    const fileInput = document.getElementById('updateWebsiteLogoFile');
+    if (fileInput) {
+        fileInput.value = '';
+    }
 }
 
 function appendWebsiteImageFormData(formdata, urlField, fileField, imageSelector, fileSelector) {
