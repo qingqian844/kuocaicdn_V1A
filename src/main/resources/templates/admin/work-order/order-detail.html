@@ -452,6 +452,7 @@
                                     <span class="avatar avatar-circle">
                                     <img class="avatar-img"
                                          th:src="${acceptUserImg}"
+                                         onerror="this.onerror=null;this.src='/common/default-avatar.png';"
                                          alt="avatar">
                                     </span>
                             </div>
@@ -484,6 +485,7 @@
                                                         <div class="ms-3">
                                                             <img class="avatar avatar-xs avatar-circle"
                                                                  th:src="${sendUserImg}"
+                                                                 onerror="this.onerror=null;this.src='/common/default-avatar.png';"
                                                                  alt="Image description">
                                                         </div>
                                                     </div>
@@ -505,6 +507,7 @@
                                                     <div class="flex-shrink-0">
                                                         <img class="avatar avatar-xs avatar-circle"
                                                              th:src="${acceptUserImg}"
+                                                             onerror="this.onerror=null;this.src='/common/default-avatar.png';"
                                                              alt="Image description">
                                                     </div>
                                                     <div class="flex-grow-1 ms-3">
@@ -534,6 +537,7 @@
                                                         <div class="ms-3">
                                                             <img class="avatar avatar-xs avatar-circle"
                                                                  th:src="${sendUserImg}"
+                                                                 onerror="this.onerror=null;this.src='/common/default-avatar.png';"
                                                                  alt="Image description">
 
                                                         </div>
@@ -562,6 +566,7 @@
                                                     <div class="flex-shrink-0">
                                                         <img class="avatar avatar-xs avatar-circle"
                                                              th:src="${acceptUserImg}"
+                                                             onerror="this.onerror=null;this.src='/common/default-avatar.png';"
                                                              alt="Image description">
 
                                                     </div>
@@ -592,14 +597,16 @@
                                                      th:style="${loginUserRoleCode == msg.from ? 'display:flex;justify-content:flex-end' : ''}">
                                                     <div th:if="${loginUserRoleCode != msg.from}" class="flex-shrink-0">
                                                         <img class="avatar avatar-xs avatar-circle"
-                                                             th:src="${acceptUserImg}" alt="avatar">
+                                                             th:src="${acceptUserImg}"
+                                                             onerror="this.onerror=null;this.src='/common/default-avatar.png';" alt="avatar">
                                                     </div>
                                                     <div th:class="${loginUserRoleCode == msg.from ? '' : 'flex-grow-1 ms-3'}">
                                                         <small class="ms-auto">[[${msg.time}]]</small>
                                                     </div>
                                                     <div th:if="${loginUserRoleCode == msg.from}" class="ms-3">
                                                         <img class="avatar avatar-xs avatar-circle"
-                                                             th:src="${sendUserImg}" alt="avatar">
+                                                             th:src="${sendUserImg}"
+                                                             onerror="this.onerror=null;this.src='/common/default-avatar.png';" alt="avatar">
                                                     </div>
                                                 </div>
                                             </div>

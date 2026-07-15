@@ -59,6 +59,9 @@ public class OrderManagePageController extends BaseController {
     @GetMapping("/order-detail")
     public String orderInfo(Long workOrderId, Map<String, Object> map) {
         WorkOrder workOrder = workOrderService.queryById(workOrderId);
+        if (Assert.isEmpty(workOrder) || !canAccessWorkOrder(workOrder)) {
+            return "redirect:/order-list";
+        }
         WorkOrderType orderType = workOrderTypeService.queryById(workOrder.getTypeId());
         SysUser orderUser = sysUserService.queryById(workOrder.getUserId());
         List<WorkOrderMessageDTO> workOrderMessageInfos = workOrderMessageService.getWorkOrderMessageInfos(workOrderId, workOrder);
