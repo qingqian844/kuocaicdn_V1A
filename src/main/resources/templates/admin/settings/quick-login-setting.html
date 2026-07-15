@@ -15,10 +15,14 @@
         body { opacity: 0; }
     </style>
     <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+    <script>
+        window.hs_config = window.hs_config || {};
+        window.hs_config.themeAppearance = window.hs_config.themeAppearance || {layoutSkin: 'default'};
+    </script>
 </head>
 
 <body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl footer-offset">
-<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js(v='20260716-white-screen-fix')}"></script>
 <script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
 
 <div th:replace="common/common-dashboard::header(curPage='quick-login-setting', dashboardLogo=${websiteBaseConfig.websiteLogoImg}, dashboardIcon=${websiteBaseConfig.websiteIconImg})"></div>

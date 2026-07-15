@@ -3,20 +3,29 @@ const HSThemeAppearance = {
   visablilityAttributeName: 'data-hs-theme-appearance',
 
   init() {
-    const defaultTheme = window.hs_config.themeAppearance.layoutSkin
+    const themeAppearance = window.hs_config && window.hs_config.themeAppearance
+    const defaultTheme = themeAppearance && themeAppearance.layoutSkin ? themeAppearance.layoutSkin : 'default'
     let theme = localStorage.getItem('hs_theme') || defaultTheme
 
     if (theme === 'auto') {
       theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default'
     }
 
-    const $appearances = document.querySelectorAll(`[data-hs-appearance="${theme}"]`)
+    let $appearances = document.querySelectorAll(`[data-hs-appearance="${theme}"]`)
+
+    if (!$appearances.length && theme !== defaultTheme) {
+      theme = defaultTheme
+      $appearances = document.querySelectorAll(`[data-hs-appearance="${theme}"]`)
+    }
+
+    if (!$appearances.length) {
+      this._finishInitialLoad(theme)
+      return
+    }
 
     this._linkElementsAction(theme, $appearances, () => {
-      document.querySelector('[data-hs-appearance-onload-styles]').remove()
+      this._finishInitialLoad(theme)
     })
-
-    this._setVisablilityStyles(theme)
   },
 
   setAppearance(theme, saveInStore = true) {
@@ -55,6 +64,17 @@ const HSThemeAppearance = {
     return $resetStyles
   },
 
+  _finishInitialLoad(theme) {
+    const $onloadStyles = document.querySelector('[data-hs-appearance-onload-styles]')
+    if ($onloadStyles) {
+      $onloadStyles.remove()
+    }
+    if (document.body) {
+      document.body.style.opacity = '1'
+    }
+    this._setVisablilityStyles(theme)
+  },
+
   _setVisablilityStyles(theme) {
     const attrubuteName = 'data-hs-appearance-visability-styles'
     let $style = document.querySelector(`[${attrubuteName}]`)
@@ -81,17 +101,33 @@ const HSThemeAppearance = {
       linkElements.push($link)
     })
 
-    if (callback) {
-      let loaded = 0
+    if (callback && linkElements.length) {
+      let settled = 0
+      let finished = false
+      const finish = () => {
+        if (finished) return
+        finished = true
+        callback()
+      }
+      const settle = () => {
+        settled++
+        if (settled === linkElements.length) finish()
+      }
 
       linkElements.forEach($styleNode => {
-        $styleNode.addEventListener('load', function () {
-          loaded++
-          if (loaded === linkElements.length) {
-            return callback()
-          }
-        })
+        let styleSettled = false
+        const settleOnce = () => {
+          if (styleSettled) return
+          styleSettled = true
+          settle()
+        }
+        $styleNode.addEventListener('load', settleOnce, {once: true})
+        $styleNode.addEventListener('error', settleOnce, {once: true})
       })
+
+      window.setTimeout(finish, 3000)
+    } else if (callback) {
+      callback()
     }
   },
 
@@ -120,7 +156,8 @@ const HSThemeAppearance = {
   },
 
   getOriginalAppearance() {
-    const defaultTheme = window.hs_config.themeAppearance.layoutSkin
+    const themeAppearance = window.hs_config && window.hs_config.themeAppearance
+    const defaultTheme = themeAppearance && themeAppearance.layoutSkin ? themeAppearance.layoutSkin : 'default'
     return localStorage.getItem('hs_theme') || defaultTheme
   }
 }
