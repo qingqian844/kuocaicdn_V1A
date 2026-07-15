@@ -31,7 +31,8 @@ public enum CdnStatisticsRoute {
     CDNETWORKS(CdnRoute.CDNETWORKS.getCode(), "cdnetworks", () -> SpringUtil.getBean(CdnetworksDomainStatisticsServiceImpl.class)),
     ALIYUN(CdnRoute.ALIYUN.getCode(), "阿里云", () -> SpringUtil.getBean(AliyunDomainStatisticsServiceImpl.class)),
     BAIDU(CdnRoute.BAIDU.getCode(), "百度云", () -> SpringUtil.getBean(BaiduDomainStatisticsServiceImpl.class)),
-    KINGSOFT(CdnRoute.KINGSOFT.getCode(), "金山云", () -> SpringUtil.getBean(KingsoftDomainStatisticsServiceImpl.class));
+    KINGSOFT(CdnRoute.KINGSOFT.getCode(), "金山云", () -> SpringUtil.getBean(KingsoftDomainStatisticsServiceImpl.class)),
+    SELF_HOSTED(CdnRoute.SELF_HOSTED.getCode(), "自建 CDN", () -> SpringUtil.getBean(SelfHostedDomainStatisticsServiceImpl.class));
 
     private final String route;
 

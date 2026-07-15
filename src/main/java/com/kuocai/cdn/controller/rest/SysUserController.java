@@ -233,7 +233,9 @@ public class SysUserController extends BaseController {
         if (Assert.isEmpty(sysUser)) {
             return RespResult.fail("修改失败");
         }
-        userService.rmCacheUser(getLoginUserId());
+        // The route belongs to the edited user. Clear that user's cache so the
+        // next newly-created domain immediately uses the newly selected route.
+        userService.rmCacheUser(userId);
         return RespResult.success("修改成功");
     }
 

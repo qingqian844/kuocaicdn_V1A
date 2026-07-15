@@ -34,7 +34,8 @@ public enum CdnRoute {
     // 网宿路线
     WANGSU("wangsu"),
     // 金山云路线
-    KINGSOFT("kingsoft");
+    KINGSOFT("kingsoft"),
+    SELF_HOSTED("self_hosted");
 
     private final String code;
 

@@ -232,6 +232,7 @@ public class CdnDomainCacheController extends BaseController {
         List<String> aliyunUrlList = new ArrayList<>();
         List<String> baiduUrlList = new ArrayList<>();
         List<String> kingsoftUrlList = new ArrayList<>();
+        List<String> selfHostedUrlList = new ArrayList<>();
 
         String key = String.format("%s:%s:%s:%s", CacheTaskType.PREHEATING, loginUserRoleCode, loginUserId, loginUserId);
         JedisUtil.delKey(key);
@@ -274,6 +275,7 @@ public class CdnDomainCacheController extends BaseController {
                     baiduUrlList.add(url);
                 }
                 if (ObjectUtil.equal(route, CdnRoute.KINGSOFT.getCode())) kingsoftUrlList.add(url);
+                if (ObjectUtil.equal(route, CdnRoute.SELF_HOSTED.getCode())) selfHostedUrlList.add(url);
             } catch (URISyntaxException e) {
                 return RespResult.fail("URL格式错误：" + url);
             }
@@ -311,6 +313,7 @@ public class CdnDomainCacheController extends BaseController {
                 result += cdnDomainCacheService.purchaseTicket(CACHE_PREHEATING_KEY, baiduUrlList, "preheating", null, loginUserId, CdnRoute.BAIDU.getCode());
             }
             if (Assert.notEmpty(kingsoftUrlList)) result += cdnDomainCacheService.purchaseTicket(CACHE_PREHEATING_KEY, kingsoftUrlList, "preheating", null, loginUserId, CdnRoute.KINGSOFT.getCode());
+            if (Assert.notEmpty(selfHostedUrlList)) result += cdnDomainCacheService.purchaseTicket(CACHE_PREHEATING_KEY, selfHostedUrlList, "preheating", null, loginUserId, CdnRoute.SELF_HOSTED.getCode());
             if (Assert.isEmpty(result)) {
                 return RespResult.success("添加成功");
             } else {
@@ -371,6 +374,7 @@ public class CdnDomainCacheController extends BaseController {
         List<String> aliyunUrlList = new ArrayList<>();
         List<String> baiduUrlList = new ArrayList<>();
         List<String> kingsoftUrlList = new ArrayList<>();
+        List<String> selfHostedUrlList = new ArrayList<>();
 
         String key = String.format("%s:%s:%s:%s", CacheTaskType.REFRESH, loginUserRoleCode, loginUserId, loginUserId);
         JedisUtil.delKey(key);
@@ -413,6 +417,7 @@ public class CdnDomainCacheController extends BaseController {
                     baiduUrlList.add(url);
                 }
                 if (ObjectUtil.equal(route, CdnRoute.KINGSOFT.getCode())) kingsoftUrlList.add(url);
+                if (ObjectUtil.equal(route, CdnRoute.SELF_HOSTED.getCode())) selfHostedUrlList.add(url);
             } catch (URISyntaxException e) {
                 return RespResult.fail("URL格式错误：" + url);
             }
@@ -451,6 +456,7 @@ public class CdnDomainCacheController extends BaseController {
                 result += cdnDomainCacheService.purchaseTicket(fileType, baiduUrlList, "refresh", type, loginUserId, CdnRoute.BAIDU.getCode());
             }
             if (Assert.notEmpty(kingsoftUrlList)) result += cdnDomainCacheService.purchaseTicket(fileType, kingsoftUrlList, "refresh", type, loginUserId, CdnRoute.KINGSOFT.getCode());
+            if (Assert.notEmpty(selfHostedUrlList)) result += cdnDomainCacheService.purchaseTicket(fileType, selfHostedUrlList, "refresh", type, loginUserId, CdnRoute.SELF_HOSTED.getCode());
             if (Assert.isEmpty(result)) {
                 return RespResult.success("添加成功");
             } else {

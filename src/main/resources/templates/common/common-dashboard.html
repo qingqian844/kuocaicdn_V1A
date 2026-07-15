@@ -729,7 +729,7 @@
 
                     <!-- 折叠 -->
                     <div class="nav-item">
-                        <a th:class="${curPage == 'website-setting' or curPage == 'pay-setting' or curPage == 'real-name-setting' or curPage == 'email-setting'or curPage == 'sms-setting' or curPage == 'quick-login-setting' or curPage == 'api-setting' or curPage == 'wechat-code-config' or curPage == 'api-config' or curPage == 'menu'? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
+                        <a th:class="${curPage == 'website-setting' or curPage == 'pay-setting' or curPage == 'real-name-setting' or curPage == 'email-setting'or curPage == 'sms-setting' or curPage == 'quick-login-setting' or curPage == 'api-setting' or curPage == 'self-hosted-node' or curPage == 'wechat-code-config' or curPage == 'api-config' or curPage == 'menu'? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
                            href="#navbarVerticalMenuPagesSystem"
                            role="button" data-bs-toggle="collapse"
                            data-bs-target="#navbarVerticalMenuPagesSystem" aria-expanded="false"
@@ -739,7 +739,7 @@
                         </a>
 
                         <div id="navbarVerticalMenuPagesSystem"
-                             th:class="${curPage == 'website-setting' or curPage == 'pay-setting' or curPage == 'real-name-setting' or curPage == 'email-setting'or curPage == 'sms-setting' or curPage == 'quick-login-setting' or curPage == 'api-setting' or curPage == 'wechat-code-config' or curPage == 'api-config' or curPage == 'menu'? 'nav-collapse collapse show':'nav-collapse collapse'}"
+                             th:class="${curPage == 'website-setting' or curPage == 'pay-setting' or curPage == 'real-name-setting' or curPage == 'email-setting'or curPage == 'sms-setting' or curPage == 'quick-login-setting' or curPage == 'api-setting' or curPage == 'self-hosted-node' or curPage == 'wechat-code-config' or curPage == 'api-config' or curPage == 'menu'? 'nav-collapse collapse show':'nav-collapse collapse'}"
                              data-bs-parent="#navbarVerticalMenuPagesMenu">
                             <a th:class="${curPage == 'website-setting' ? 'nav-link active':'nav-link'} "
                                href="website-setting">网站配置</a>
@@ -755,6 +755,8 @@
                                href="quick-login-setting">快捷登录</a>
                             <a th:class="${curPage == 'api-setting' ? 'nav-link active':'nav-link'} "
                                href="api-setting">API 配置</a>
+                            <a th:class="${curPage == 'self-hosted-node' ? 'nav-link active':'nav-link'} "
+                               href="self-hosted-node">自建 CDN</a>
                             <a th:class="${curPage == 'menu' ? 'nav-link active':'nav-link'} "
                                href="menu">菜单配置</a>
                             <!--                            <a th:class="${curPage == 'wechat-code-config' ? 'nav-link active':'nav-link'} "-->

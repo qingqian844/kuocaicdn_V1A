@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>[[${websiteBaseConfig.websiteName}]] 自建 CDN</title>
+    <link rel="shortcut icon" th:href="${websiteBaseConfig.websiteIconImg}">
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+    <script th:src="@{dashboard/assets/js/index.var.js}"></script>
+    <script>window.hs_config = window.hs_config || {}; window.hs_config.themeAppearance = {layoutSkin: 'default'};</script>
+    <style data-hs-appearance-onload-styles>body { opacity: 0; }</style>
+    <style>
+        .edge-table td { vertical-align: middle; }
+        .edge-endpoint { min-width: 175px; }
+        .edge-actions { white-space: nowrap; }
+        .edge-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+        .edge-loading { min-height: 160px; display: flex; align-items: center; justify-content: center; }
+        .edge-metric { min-width: 70px; }
+        @media (max-width: 767px) {
+            .edge-field-grid { grid-template-columns: 1fr; }
+            .edge-toolbar { align-items: stretch !important; }
+        }
+    </style>
+</head>
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl footer-offset">
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js(v='20260716-white-screen-fix')}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+<div th:replace="common/common-dashboard::header(curPage='self-hosted-node', dashboardLogo=${dashboardLogo}, dashboardIcon=${dashboardIcon})"></div>
+<div th:replace="common/common-dashboard::aside(curPage='self-hosted-node', dashboardLogo=${dashboardLogo}, dashboardIcon=${dashboardIcon})"></div>
+
+<main id="content" role="main" class="main">
+    <div class="content container-fluid">
+        <div class="page-header pb-3 mb-3">
+            <div class="d-flex flex-column flex-md-row justify-content-between gap-3 edge-toolbar">
+                <div>
+                    <h1 class="page-header-title">自建 CDN</h1>
+                    <p class="page-header-text mb-0">统一管理边缘节点、节点组和配置下发。</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-white" type="button" onclick="openGroupModal()"><i class="bi-collection me-1"></i>新增节点组</button>
+                    <button class="btn btn-primary" type="button" onclick="openNodeModal()"><i class="bi-plus-lg me-1"></i>新增节点</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-soft-info d-flex align-items-start">
+            <i class="bi-info-circle me-2 mt-1"></i>
+            <div>节点首次安装会显示 SSH 主机指纹，核对后再次确认才会安装 Agent。安装成功后 SSH 密码会从控制端清除，后续配置通过 Agent 安全下发。请确保节点公网 80/443 端口已在安全组和防火墙中放行。</div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-sm-6 col-lg-3 mb-3 mb-lg-0"><div class="card h-100"><div class="card-body"><span class="d-block text-muted mb-1">节点总数</span><span class="display-5" id="summaryTotal">-</span></div></div></div>
+            <div class="col-sm-6 col-lg-3 mb-3 mb-lg-0"><div class="card h-100"><div class="card-body"><span class="d-block text-muted mb-1">在线节点</span><span class="display-5 text-success" id="summaryOnline">-</span></div></div></div>
+            <div class="col-sm-6 col-lg-3 mb-3 mb-sm-0"><div class="card h-100"><div class="card-body"><span class="d-block text-muted mb-1">异常节点</span><span class="display-5 text-warning" id="summaryAbnormal">-</span></div></div></div>
+            <div class="col-sm-6 col-lg-3"><div class="card h-100"><div class="card-body"><span class="d-block text-muted mb-1">节点组</span><span class="display-5" id="summaryGroups">-</span></div></div></div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2 class="card-header-title">边缘节点</h2>
+                <button class="btn btn-ghost-secondary btn-sm" type="button" onclick="loadData()"><i class="bi-arrow-clockwise me-1"></i>刷新</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-thead-bordered table-nowrap table-align-middle edge-table mb-0">
+                    <thead class="thead-light"><tr><th>节点</th><th>节点组 / 区域</th><th>状态</th><th>资源</th><th>流量 / 缓存</th><th>配置版本</th><th>最后心跳</th><th class="text-end">操作</th></tr></thead>
+                    <tbody id="nodeRows"><tr><td colspan="8"><div class="edge-loading"><div class="spinner-border text-primary"></div></div></td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h2 class="card-header-title">节点组</h2></div>
+            <div class="table-responsive">
+                <table class="table table-thead-bordered table-nowrap table-align-middle mb-0">
+                    <thead class="thead-light"><tr><th>名称</th><th>调度域名</th><th>状态</th><th>用途</th><th class="text-end">操作</th></tr></thead>
+                    <tbody id="groupRows"><tr><td colspan="5"><div class="edge-loading"><div class="spinner-border text-primary"></div></div></td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div th:replace="common/common-dashboard::#footer(curPage='self-hosted-node')"></div>
+</main>
+
+<div class="modal fade" id="nodeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+        <div class="modal-header"><h3 class="modal-title" id="nodeModalTitle">新增节点</h3><button class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button></div>
+        <div class="modal-body">
+            <input type="hidden" id="nodeId">
+            <div class="edge-field-grid">
+                <div><label class="form-label" for="nodeName">节点名称</label><input class="form-control" id="nodeName" maxlength="128" placeholder="例如：香港边缘节点 01"></div>
+                <div><label class="form-label" for="nodeGroup">节点组</label><select class="form-select" id="nodeGroup"></select></div>
+                <div><label class="form-label" for="nodeHost">服务器 IP / 主机名</label><input class="form-control" id="nodeHost" maxlength="255" placeholder="203.0.113.10"></div>
+                <div><label class="form-label" for="sshPort">SSH 端口</label><input class="form-control" id="sshPort" type="number" min="1" max="65535" value="22"></div>
+                <div><label class="form-label" for="sshUsername">SSH 用户名</label><input class="form-control" id="sshUsername" value="root" maxlength="64"></div>
+                <div><label class="form-label" for="sshPassword">SSH 密码</label><input class="form-control" id="sshPassword" type="password" autocomplete="new-password" placeholder="编辑留空则保持原密码"></div>
+                <div><label class="form-label" for="nodeRegion">区域</label><input class="form-control" id="nodeRegion" maxlength="64" placeholder="例如：香港"></div>
+                <div><label class="form-label" for="nodeWeight">权重</label><input class="form-control" id="nodeWeight" type="number" min="1" max="1000" value="100"></div>
+            </div>
+            <div class="mt-4"><label class="form-label" for="nodeRemark">备注</label><textarea class="form-control" id="nodeRemark" rows="2" maxlength="512"></textarea></div>
+            <div class="form-check form-switch mt-4"><input class="form-check-input" type="checkbox" id="nodeEnabled" checked><label class="form-check-label" for="nodeEnabled">启用节点</label></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-white" data-bs-dismiss="modal">取消</button><button class="btn btn-primary" id="saveNodeButton" onclick="saveNode()"><i class="bi-check-lg me-1"></i>保存</button></div>
+    </div></div>
+</div>
+
+<div class="modal fade" id="groupModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><h3 class="modal-title" id="groupModalTitle">新增节点组</h3><button class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button></div>
+        <div class="modal-body">
+            <input type="hidden" id="groupId">
+            <div class="mb-3"><label class="form-label" for="groupName">节点组名称</label><input class="form-control" id="groupName" maxlength="128" placeholder="例如：默认节点组"></div>
+            <div class="mb-3"><label class="form-label" for="cnameLabel">调度标签</label><div class="input-group"><input class="form-control" id="cnameLabel" maxlength="63" placeholder="edge"><span class="input-group-text" th:text="'.' + ${selfHostedDnsDomain}">.kuocaidns.com</span></div><div class="form-text">修改已使用标签前，请先规划 DNS 迁移。</div></div>
+            <div class="mb-3"><label class="form-label" for="groupRemark">备注</label><textarea class="form-control" id="groupRemark" rows="2" maxlength="512"></textarea></div>
+            <div class="d-flex gap-4"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="groupEnabled" checked><label class="form-check-label" for="groupEnabled">启用</label></div><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="groupDefault"><label class="form-check-label" for="groupDefault">设为默认组</label></div></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-white" data-bs-dismiss="modal">取消</button><button class="btn btn-primary" id="saveGroupButton" onclick="saveGroup()"><i class="bi-check-lg me-1"></i>保存</button></div>
+    </div></div>
+</div>
+
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:inline="javascript">
+    const selfHostedDnsDomain = /*[[${selfHostedDnsDomain}]]*/ 'kuocaidns.com';
+    let nodes = [], groups = [], nodeModal, groupModal;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        nodeModal = new bootstrap.Modal(document.getElementById('nodeModal'));
+        groupModal = new bootstrap.Modal(document.getElementById('groupModal'));
+        if (window.HSSideNav) new HSSideNav('.js-navbar-vertical-aside').init();
+        loadData();
+    });
+
+    async function request(url, options) {
+        const response = await fetch(url, options || {});
+        const result = await response.json();
+        if (result.code !== 'SUCCESS') throw new Error(result.message || '操作失败');
+        return result;
+    }
+
+    async function loadData() {
+        try {
+            const result = await Promise.all([request('SelfHostedNode/list'), request('SelfHostedNode/groups')]);
+            nodes = result[0].data || []; groups = result[1].data || [];
+            renderSummary(); renderNodes(); renderGroups(); renderGroupOptions();
+        } catch (error) { layer.msg(error.message, {icon: 2}); }
+    }
+
+    function renderSummary() {
+        document.getElementById('summaryTotal').textContent = nodes.length;
+        document.getElementById('summaryOnline').textContent = nodes.filter(n => n.status === 'online').length;
+        document.getElementById('summaryAbnormal').textContent = nodes.filter(n => ['offline','degraded','install_failed'].includes(n.status)).length;
+        document.getElementById('summaryGroups').textContent = groups.length;
+    }
+
+    function renderNodes() {
+        const body = document.getElementById('nodeRows');
+        if (!nodes.length) { body.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-5">暂无节点，请先新增一台边缘服务器</td></tr>'; return; }
+        body.innerHTML = nodes.map(node => {
+            const enabled = node.enabled === 1;
+            return '<tr><td class="edge-endpoint"><span class="d-block fw-semibold">' + esc(node.nodeName) + '</span><span class="d-block text-muted">' + esc(node.host) + ':' + node.sshPort + '</span></td>' +
+                '<td><span class="d-block">' + esc(node.groupName || '未分组') + '</span><span class="text-muted">' + esc(node.region || '-') + '</span></td>' +
+                '<td>' + statusBadge(node.status) + (enabled ? '' : '<span class="badge bg-soft-secondary text-secondary ms-1">已停用</span>') + '</td>' +
+                '<td><span class="edge-metric d-inline-block">CPU ' + metric(node.cpuUsage) + '</span><span class="edge-metric d-inline-block">内存 ' + metric(node.memoryUsage) + '</span><span class="edge-metric d-inline-block">磁盘 ' + metric(node.diskUsage) + '</span></td>' +
+                '<td><span class="d-block">↑ ' + bytes(node.txBytes) + '　↓ ' + bytes(node.rxBytes) + '</span><span class="text-muted">缓存 ' + bytes(node.cacheBytes) + '</span></td>' +
+                '<td><span class="d-block">期望 ' + (node.desiredConfigVersion || 0) + '</span><span class="text-muted">已应用 ' + (node.appliedConfigVersion || 0) + '</span></td>' +
+                '<td>' + dateText(node.lastHeartbeat) + (node.lastError ? '<span class="d-block text-danger text-wrap" style="max-width:200px">' + esc(node.lastError) + '</span>' : '') + '</td>' +
+                '<td class="text-end edge-actions"><button class="btn btn-white btn-icon btn-sm" title="测试 SSH" onclick="testNode(\'' + node.id + '\')"><i class="bi-plug"></i></button> ' +
+                '<button class="btn btn-white btn-icon btn-sm" title="安装 Agent" onclick="installNode(\'' + node.id + '\', false)"><i class="bi-cloud-download"></i></button> ' +
+                '<button class="btn btn-white btn-icon btn-sm" title="编辑" onclick="editNode(\'' + node.id + '\')"><i class="bi-pencil"></i></button> ' +
+                '<div class="btn-group"><button class="btn btn-white btn-icon btn-sm dropdown-toggle dropdown-toggle-empty" data-bs-toggle="dropdown"></button><div class="dropdown-menu dropdown-menu-end">' +
+                '<button class="dropdown-item" onclick="setNodeStatus(\'' + node.id + '\',' + (!enabled) + ')"><i class="bi-power dropdown-item-icon"></i>' + (enabled ? '停用' : '启用') + '</button>' +
+                '<button class="dropdown-item text-danger" onclick="deleteNode(\'' + node.id + '\')"><i class="bi-trash dropdown-item-icon"></i>删除</button></div></div></td></tr>';
+        }).join('');
+    }
+
+    function renderGroups() {
+        const body = document.getElementById('groupRows');
+        if (!groups.length) { body.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-5">暂无节点组</td></tr>'; return; }
+        body.innerHTML = groups.map(group => '<tr><td><span class="fw-semibold">' + esc(group.groupName) + '</span>' + (group.isDefault === 1 ? '<span class="badge bg-soft-primary text-primary ms-2">默认</span>' : '') + '</td>' +
+            '<td><code>' + esc(group.cnameLabel) + '.' + esc(selfHostedDnsDomain) + '</code></td><td>' + (group.status === 'enabled' ? '<span class="badge bg-soft-success text-success">启用</span>' : '<span class="badge bg-soft-secondary text-secondary">停用</span>') + '</td>' +
+            '<td class="text-wrap">' + esc(group.remark || '-') + '</td><td class="text-end"><button class="btn btn-white btn-sm" onclick="syncDns(\'' + group.id + '\')"><i class="bi-arrow-repeat me-1"></i>同步 DNS</button> <button class="btn btn-white btn-icon btn-sm" onclick="editGroup(\'' + group.id + '\')"><i class="bi-pencil"></i></button></td></tr>').join('');
+    }
+
+    function renderGroupOptions() {
+        document.getElementById('nodeGroup').innerHTML = groups.filter(g => g.status === 'enabled').map(g => '<option value="' + g.id + '">' + esc(g.groupName) + (g.isDefault === 1 ? '（默认）' : '') + '</option>').join('');
+    }
+
+    function openNodeModal() {
+        document.getElementById('nodeModalTitle').textContent = '新增节点';
+        ['nodeId','nodeName','nodeHost','sshPassword','nodeRegion','nodeRemark'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('sshPassword').placeholder = '请输入 SSH 密码';
+        document.getElementById('sshPort').value = 22; document.getElementById('sshUsername').value = 'root'; document.getElementById('nodeWeight').value = 100; document.getElementById('nodeEnabled').checked = true;
+        const defaultGroup = groups.find(g => g.isDefault === 1); if (defaultGroup) document.getElementById('nodeGroup').value = defaultGroup.id;
+        nodeModal.show();
+    }
+
+    function editNode(id) {
+        const node = nodes.find(item => String(item.id) === String(id)); if (!node) return;
+        document.getElementById('nodeModalTitle').textContent = '编辑节点'; document.getElementById('nodeId').value = node.id;
+        document.getElementById('nodeName').value = node.nodeName || ''; document.getElementById('nodeHost').value = node.host || '';
+        document.getElementById('sshPort').value = node.sshPort || 22; document.getElementById('sshUsername').value = node.sshUsername || 'root';
+        document.getElementById('sshPassword').value = ''; document.getElementById('sshPassword').placeholder = node.passwordConfigured ? '留空则保持原密码' : '如需重装 Agent，请重新输入 SSH 密码'; document.getElementById('nodeRegion').value = node.region || ''; document.getElementById('nodeWeight').value = node.weight || 100;
+        document.getElementById('nodeRemark').value = node.remark || ''; document.getElementById('nodeEnabled').checked = node.enabled === 1; document.getElementById('nodeGroup').value = node.groupId || '';
+        nodeModal.show();
+    }
+
+    async function saveNode() {
+        const button = document.getElementById('saveNodeButton'); button.disabled = true;
+        const payload = {id: value('nodeId') || null, nodeName: value('nodeName'), host: value('nodeHost'), sshPort: numberValue('sshPort'), sshUsername: value('sshUsername'), sshPassword: document.getElementById('sshPassword').value, region: value('nodeRegion'), weight: numberValue('nodeWeight'), enabled: document.getElementById('nodeEnabled').checked ? 1 : 0, groupId: value('nodeGroup') || null, remark: value('nodeRemark')};
+        try { const result = await request('SelfHostedNode/save', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); layer.msg(result.message,{icon:1}); nodeModal.hide(); await loadData(); }
+        catch (error) { layer.msg(error.message,{icon:2}); } finally { button.disabled = false; }
+    }
+
+    function openGroupModal() {
+        document.getElementById('groupModalTitle').textContent = '新增节点组'; ['groupId','groupName','cnameLabel','groupRemark'].forEach(id => document.getElementById(id).value = ''); document.getElementById('groupEnabled').checked = true; document.getElementById('groupDefault').checked = !groups.length; groupModal.show();
+    }
+
+    function editGroup(id) {
+        const group = groups.find(item => String(item.id) === String(id)); if (!group) return;
+        document.getElementById('groupModalTitle').textContent = '编辑节点组'; document.getElementById('groupId').value = group.id; document.getElementById('groupName').value = group.groupName || ''; document.getElementById('cnameLabel').value = group.cnameLabel || ''; document.getElementById('groupRemark').value = group.remark || ''; document.getElementById('groupEnabled').checked = group.status === 'enabled'; document.getElementById('groupDefault').checked = group.isDefault === 1; groupModal.show();
+    }
+
+    async function saveGroup() {
+        const button = document.getElementById('saveGroupButton'); button.disabled = true;
+        const payload = {id:value('groupId') || null,groupName:value('groupName'),cnameLabel:value('cnameLabel'),isDefault:document.getElementById('groupDefault').checked?1:0,status:document.getElementById('groupEnabled').checked?'enabled':'disabled',remark:value('groupRemark')};
+        try { const result = await request('SelfHostedNode/saveGroup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); layer.msg(result.message,{icon:1}); groupModal.hide(); await loadData(); }
+        catch(error){layer.msg(error.message,{icon:2});} finally {button.disabled=false;}
+    }
+
+    async function post(url, values) { return request(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(values)}); }
+    async function testNode(id) { const loading=layer.load(2); try{const r=await post('SelfHostedNode/test',{id});layer.msg(r.message,{icon:1,time:6000});}catch(e){layer.msg(e.message,{icon:2,time:6000});}finally{layer.close(loading);} }
+
+    async function installNode(id, confirmed) {
+        const loading=layer.load(2); try {
+            const response=await fetch('SelfHostedNode/install',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({id})}); const result=await response.json();
+            layer.close(loading);
+            if(result.code==='SUCCESS'){layer.msg(result.message,{icon:1,time:5000});await loadData();return;}
+            if(!confirmed && String(result.message||'').startsWith('首次连接已记录')){layer.confirm(esc(result.message)+'<br><br>指纹核对无误后继续安装。',{title:'确认 SSH 主机指纹',area:'520px'},function(index){layer.close(index);installNode(id,true);});return;}
+            layer.msg(result.message||'安装失败',{icon:2,time:7000}); await loadData();
+        } catch(error){layer.close(loading);layer.msg(error.message,{icon:2,time:7000});}
+    }
+
+    async function setNodeStatus(id, enabled){try{const r=await post('SelfHostedNode/status',{id,enabled});layer.msg(r.message,{icon:1});await loadData();}catch(e){layer.msg(e.message,{icon:2});}}
+    function deleteNode(id){layer.confirm('删除后该节点将不再接收配置，确定继续吗？',{title:'删除节点'},async function(index){layer.close(index);try{const r=await post('SelfHostedNode/delete',{id});layer.msg(r.message,{icon:1});await loadData();}catch(e){layer.msg(e.message,{icon:2});}});}
+    async function syncDns(groupId){const loading=layer.load(2);try{const r=await post('SelfHostedNode/syncDns',{groupId});layer.msg(r.message,{icon:1});await loadData();}catch(e){layer.msg(e.message,{icon:2,time:6000});}finally{layer.close(loading);}}
+
+    function statusBadge(status){const map={online:['success','在线'],pending:['warning','等待上线'],installing:['primary','安装中'],offline:['secondary','离线'],degraded:['warning','异常'],install_failed:['danger','安装失败'],disabled:['secondary','停用']};const item=map[status]||['secondary',status||'未知'];return '<span class="badge bg-soft-'+item[0]+' text-'+item[0]+'">'+esc(item[1])+'</span>';}
+    function metric(value){return value==null?'-':Number(value).toFixed(1)+'%';}
+    function bytes(value){let n=Number(value||0),units=['B','KB','MB','GB','TB'],i=0;while(n>=1024&&i<units.length-1){n/=1024;i++;}return n.toFixed(i?1:0)+' '+units[i];}
+    function dateText(value){if(!value)return '-';const d=new Date(value);return Number.isNaN(d.getTime())?'-':d.toLocaleString('zh-CN',{hour12:false});}
+    function value(id){return document.getElementById(id).value.trim();} function numberValue(id){const n=Number(document.getElementById(id).value);return Number.isFinite(n)?n:null;}
+    function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+</script>
+</body>
+</html>

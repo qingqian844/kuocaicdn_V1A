@@ -4,6 +4,7 @@ import com.kuocai.cdn.annotation.AuthorLimiter;
 import com.kuocai.cdn.constant.ConfigBizTypeConstants;
 import com.kuocai.cdn.controller.base.BaseController;
 import com.kuocai.cdn.util.RuntimeConfigUtils;
+import com.kuocai.cdn.api.tencent.dns.properties.TencentDns;
 import com.kuocai.cdn.util.WebsiteFooterCodeDefaults;
 import com.kuocai.cdn.util.WebsiteHomeCodeDefaults;
 import com.kuocai.cdn.vo.*;
@@ -151,6 +152,13 @@ public class SystemSettingsPageController extends BaseController {
         map.put("kingsoftCdnConfig", kingsoftCdnConfigVo);
         map.put("dnsConfig", dnsConfigVo);
         return "admin/settings/api-setting";
+    }
+
+    @AuthorLimiter
+    @GetMapping("self-hosted-node")
+    public String selfHostedNode(Map<String, Object> map) {
+        map.put("selfHostedDnsDomain", TencentDns.LOCAL_DOMAIN_NAME);
+        return "admin/settings/self-hosted-node";
     }
 
 }
