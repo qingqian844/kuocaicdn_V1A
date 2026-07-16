@@ -217,18 +217,24 @@ public class CdnDomainController extends BaseController {
         }
         boolean edgeOneRoute = isTencentEdgeOneRoute();
         boolean edgeOneResume = false;
+        boolean selfHostedRoute = CdnOperationRoute.SELF_HOSTED.getRoute().equals(route);
+        boolean selfHostedResume = false;
         CdnDomain existingDomain = cdnDomainService.queryByDomainName(domainName);
         if (Assert.notEmpty(existingDomain)) {
             boolean ownedEdgeOneDomain = edgeOneRoute
                     && "tencent_edgeone".equals(existingDomain.getRoute())
                     && ObjectUtil.equal(loginUserId, existingDomain.getUserId());
-            if (!ownedEdgeOneDomain) {
+            boolean ownedSelfHostedDomain = selfHostedRoute
+                    && CdnOperationRoute.SELF_HOSTED.getRoute().equals(existingDomain.getRoute())
+                    && ObjectUtil.equal(loginUserId, existingDomain.getUserId());
+            if (!ownedEdgeOneDomain && !ownedSelfHostedDomain) {
                 return RespResult.fail("加速域名已创建，不可重复添加");
             }
             if (!"configure_failed".equals(existingDomain.getDomainStatus())) {
                 return RespResult.success("该域名已进入创建流程，请在域名列表查看状态", existingDomain);
             }
-            edgeOneResume = true;
+            edgeOneResume = ownedEdgeOneDomain;
+            selfHostedResume = ownedSelfHostedDomain;
         }
         if (edgeOneRoute) {
             SysUser sysUser = sysUserService.queryById(loginUserId);
@@ -239,7 +245,7 @@ public class CdnDomainController extends BaseController {
                 return RespResult.fail("当前账号未开启EdgeOne全球加速区，请联系管理员开启");
             }
         }
-        if ("user".equals(loginUserRoleCode) && !edgeOneRoute) {
+        if ("user".equals(loginUserRoleCode) && !edgeOneRoute && !selfHostedResume) {
             // 数量检查
             int userDomainCount = service.queryUserDomainCount(loginUserId);
             SysUser sysUser = sysUserService.queryById(loginUserId);
@@ -365,6 +371,36 @@ public class CdnDomainController extends BaseController {
             }
         }
         return false;
+    }
+
+    @RateLimiter
+    @PostMapping("retrySelfHostedConfig")
+    @SysLog(module = "站点管理", describe = "重试自建 CDN 域名配置")
+    public RespResult retrySelfHostedConfig(@RequestParam("id") Long id) {
+        if (Assert.isEmpty(id)) {
+            return RespResult.paramEmpty("domainId");
+        }
+        CdnDomain cdnDomain = service.queryById(id);
+        if (Assert.isEmpty(cdnDomain)) {
+            return RespResult.notFound("domainId");
+        }
+        RespResult accessResult = checkDomainAccess(cdnDomain);
+        if (accessResult != null) {
+            return accessResult;
+        }
+        if (!CdnOperationRoute.SELF_HOSTED.getRoute().equals(cdnDomain.getRoute())) {
+            return RespResult.fail("仅自建 CDN 域名支持此重试操作");
+        }
+        if (!"configure_failed".equals(cdnDomain.getDomainStatus())) {
+            return RespResult.fail("当前域名状态无需重试配置");
+        }
+        try {
+            CdnDomain updated = CdnPlatformFactory.getCdnPlatform(cdnDomain.getRoute()).configDNS(cdnDomain);
+            return RespResult.success("自建 CDN 域名配置成功", updated);
+        } catch (Exception e) {
+            log.error("重试自建 CDN 域名[{}]配置失败：{}", cdnDomain.getDomainName(), e.getMessage(), e);
+            return RespResult.fail("自建 CDN 域名配置失败：" + e.getMessage());
+        }
     }
 
     private boolean isDomainVerifyRequired(String message) {

@@ -1023,6 +1023,31 @@ async function openDomainSettingWhenReady(id, button) {
     }
 }
 
+async function retrySelfHostedDomain(id, button) {
+    if (!id) {
+        layerWarn("加速域名ID不能为空");
+        return;
+    }
+    const $button = button ? $(button) : null;
+    const oldHtml = $button && $button.length ? $button.html() : '';
+    if ($button && $button.length) {
+        $button.prop('disabled', true).html('<i class="bi-arrow-repeat"></i> 重试中');
+    }
+    try {
+        const data = await sendRequest("POST", "CdnDomain/retrySelfHostedConfig", {id: id});
+        autoLayer(data);
+        if (data['code'] === 'SUCCESS') {
+            setTimeout(function() {
+                reload();
+            }, 800);
+        }
+    } finally {
+        if ($button && $button.length) {
+            $button.prop('disabled', false).html(oldHtml);
+        }
+    }
+}
+
 async function enableDomain(id) {
     if (!id) {
         layerWarn("加速域名ID不能为空");

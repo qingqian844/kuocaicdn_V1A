@@ -53,6 +53,8 @@ import java.util.regex.Pattern;
 @Slf4j
 @Service
 public class SelfHostedCdnService {
+    public static final long DNS_RECORD_TTL_SECONDS = 600L;
+
     private static final Pattern HOST_PATTERN = Pattern.compile("^[a-zA-Z0-9._:-]{1,255}$");
     private static final Pattern USER_PATTERN = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_-]{0,63}$");
     private static final Pattern LABEL_PATTERN = Pattern.compile("^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$");
@@ -427,9 +429,7 @@ public class SelfHostedCdnService {
                                                       String originProtocol, Integer httpPort, Integer httpsPort,
                                                       String originHost) throws BusinessException {
         SelfHostedNodeGroup group = defaultGroup();
-        if (activeNodeCount(group.getId()) == 0) {
-            throw new BusinessException("默认自建 CDN 节点组中没有在线节点");
-        }
+        requireActiveNode(group.getId());
         Date now = new Date();
         SelfHostedDomainConfig config = SelfHostedDomainConfig.builder()
                 .cdnDomainId(domain.getId()).nodeGroupId(group.getId()).originType(originType)
@@ -541,7 +541,8 @@ public class SelfHostedCdnService {
                 }
                 CreateRecordDTO dto = new CreateRecordDTO();
                 dto.setDomain(TencentDns.LOCAL_DOMAIN_NAME).setSubDomain(group.getCnameLabel())
-                        .setRecordType("A").setRecordLine("默认").setValue(ip).setTTL(600L);
+                        .setRecordType("A").setRecordLine("默认").setValue(ip)
+                        .setTTL(DNS_RECORD_TTL_SECONDS);
                 CreateRecordResponse response = TencentApi.createRecord(dto);
                 if (response == null || response.getRecordId() == null) {
                     throw new BusinessException("DNS 服务未返回节点记录 ID");
@@ -609,6 +610,12 @@ public class SelfHostedCdnService {
             }
         }
         return result;
+    }
+
+    public void requireActiveNode(Long groupId) throws BusinessException {
+        if (activeNodeCount(groupId) == 0) {
+            throw new BusinessException("自建 CDN 节点组中没有在线节点，请先安装节点并等待节点上线");
+        }
     }
 
     public void reconcileGroupDns() {

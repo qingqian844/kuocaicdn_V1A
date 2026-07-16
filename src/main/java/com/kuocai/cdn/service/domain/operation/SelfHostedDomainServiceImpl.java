@@ -47,6 +47,26 @@ public class SelfHostedDomainServiceImpl extends BaseService<CdnDomain> implemen
         if (Assert.isEmpty(ipOrDomain)) {
             throw new BusinessException("源站地址不能为空");
         }
+        CdnDomain failedDomain = queryByObj(CdnDomain.builder()
+                .domainName(domainName).route(CdnRoute.SELF_HOSTED.getCode()).build()).stream()
+                .filter(item -> userId.equals(item.getUserId()) && "configure_failed".equals(item.getDomainStatus()))
+                .findFirst().orElse(null);
+        if (failedDomain != null) {
+            SelfHostedDomainConfig config = selfHostedCdnService.getDomainConfig(failedDomain.getId());
+            config.setOriginType(originType);
+            config.setOriginAddress(ipOrDomain);
+            config.setOriginProtocol(normalizeOriginProtocol(originProtocol));
+            config.setHttpPort(httpPort == null ? 80 : httpPort);
+            config.setHttpsPort(httpsPort == null ? 443 : httpsPort);
+            config.setOriginHost(Assert.isEmpty(originHost) ? domainName : originHost.trim());
+            config.setStatus("enabled");
+            selfHostedCdnService.updateDomainConfig(config);
+            failedDomain.setBusinessType(businessType);
+            failedDomain.setServiceArea(serviceArea);
+            failedDomain.setDomainStatus("configuring");
+            failedDomain.setUpdateTime(new Date());
+            return save(failedDomain);
+        }
         CdnDomain domain = CdnDomain.builder()
                 .userId(userId).domainId("self-" + System.currentTimeMillis()).domainName(domainName)
                 .businessType(businessType).serviceArea(serviceArea).domainStatus("configuring")
@@ -76,12 +96,10 @@ public class SelfHostedDomainServiceImpl extends BaseService<CdnDomain> implemen
             if (group == null) {
                 throw new BusinessException("自建 CDN 节点组不存在");
             }
+            selfHostedCdnService.requireActiveNode(group.getId());
             selfHostedCdnService.syncGroupDns(group.getId());
-            CreateRecordDTO dto = new CreateRecordDTO();
-            dto.setDomain(TencentDns.LOCAL_DOMAIN_NAME)
-                    .setSubDomain(DomainUtil.convertSubDomain(cdnDomain.getDomainName()))
-                    .setRecordType("CNAME").setRecordLine("默认")
-                    .setValue(selfHostedCdnService.groupCname(group)).setTTL(60L);
+            CreateRecordDTO dto = buildCustomerCnameRecord(cdnDomain.getDomainName(),
+                    TencentDns.LOCAL_DOMAIN_NAME, selfHostedCdnService.groupCname(group));
             CreateRecordResponse response = TencentApi.createRecord(dto);
             if (response == null || response.getRecordId() == null) {
                 throw new BusinessException("自建 CDN CNAME 创建失败");
@@ -259,6 +277,21 @@ public class SelfHostedDomainServiceImpl extends BaseService<CdnDomain> implemen
 
     private void unsupported(String feature) throws BusinessException {
         throw new BusinessException("自建 CDN 首版暂不支持" + feature);
+    }
+
+    static CreateRecordDTO buildCustomerCnameRecord(String domainName, String localDomainName,
+                                                      String groupCname) {
+        return new CreateRecordDTO().setDomain(localDomainName)
+                .setSubDomain(DomainUtil.convertSubDomain(domainName))
+                .setRecordType("CNAME").setRecordLine("默认").setValue(groupCname)
+                .setTTL(SelfHostedCdnService.DNS_RECORD_TTL_SECONDS);
+    }
+
+    private String normalizeOriginProtocol(String protocol) {
+        if ("https".equalsIgnoreCase(protocol) || "follow".equalsIgnoreCase(protocol)) {
+            return protocol.toLowerCase();
+        }
+        return "http";
     }
 
     private void markConfigureFailed(CdnDomain domain) {
