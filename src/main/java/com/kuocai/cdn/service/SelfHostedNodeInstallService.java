@@ -177,15 +177,56 @@ public class SelfHostedNodeInstallService {
         return unit.getBytes(StandardCharsets.UTF_8);
     }
 
-    private String installCommand() {
+    static String installCommand() {
         return "set -eu\n" +
                 "export DEBIAN_FRONTEND=noninteractive\n" +
+                "install_yum_packages() {\n" +
+                "  if [ -r /etc/os-release ]; then . /etc/os-release; fi\n" +
+                "  if [ \"${ID:-}\" = \"centos\" ] && [ \"${VERSION_ID%%.*}\" = \"7\" ]; then\n" +
+                "    cat > /etc/yum.repos.d/kuocai-centos7-vault.repo <<'KUOCAI_REPO'\n" +
+                "[kuocai-centos7-base]\n" +
+                "name=Kuocai CentOS 7 Base Vault\n" +
+                "baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009/os/$basearch/\n" +
+                "enabled=1\n" +
+                "gpgcheck=1\n" +
+                "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7\n" +
+                "\n" +
+                "[kuocai-centos7-updates]\n" +
+                "name=Kuocai CentOS 7 Updates Vault\n" +
+                "baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009/updates/$basearch/\n" +
+                "enabled=1\n" +
+                "gpgcheck=1\n" +
+                "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7\n" +
+                "\n" +
+                "[kuocai-centos7-extras]\n" +
+                "name=Kuocai CentOS 7 Extras Vault\n" +
+                "baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009/extras/$basearch/\n" +
+                "enabled=1\n" +
+                "gpgcheck=1\n" +
+                "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7\n" +
+                "\n" +
+                "[kuocai-centos7-epel]\n" +
+                "name=Kuocai EPEL 7 Archive\n" +
+                "baseurl=https://mirrors.aliyun.com/epel-archive/7/$basearch/\n" +
+                "enabled=1\n" +
+                "gpgcheck=1\n" +
+                "gpgkey=https://mirrors.aliyun.com/epel/RPM-GPG-KEY-EPEL-7\n" +
+                "KUOCAI_REPO\n" +
+                "    yum clean metadata >/dev/null 2>&1 || true\n" +
+                "    yum -y --disablerepo='*' --enablerepo='kuocai-centos7-*' makecache fast\n" +
+                "    yum -y --disablerepo='*' --enablerepo='kuocai-centos7-*' install python3 nginx ca-certificates curl\n" +
+                "  else\n" +
+                "    yum install -y python3 nginx ca-certificates curl\n" +
+                "  fi\n" +
+                "}\n" +
                 "if command -v apt-get >/dev/null 2>&1; then apt-get update -y && apt-get install -y python3 nginx ca-certificates curl; " +
                 "elif command -v dnf >/dev/null 2>&1; then dnf install -y python3 nginx ca-certificates curl; " +
-                "elif command -v yum >/dev/null 2>&1; then yum install -y python3 nginx ca-certificates curl; " +
+                "elif command -v yum >/dev/null 2>&1; then install_yum_packages; " +
                 "else echo 'unsupported package manager' >&2; exit 12; fi\n" +
+                "command -v python3 >/dev/null 2>&1 || { echo 'python3 installation failed' >&2; exit 13; }\n" +
+                "command -v nginx >/dev/null 2>&1 || { echo 'nginx installation failed' >&2; exit 14; }\n" +
                 "install -d -m 700 /etc/kuocai-edge /etc/kuocai-edge/releases /opt/kuocai-edge\n" +
-                "install -d -m 755 /var/cache/kuocai-cdn /var/log/nginx\n" +
+                "install -d -m 755 /etc/nginx /etc/nginx/conf.d /var/cache/kuocai-cdn /var/log/nginx\n" +
                 "if id www-data >/dev/null 2>&1; then chown -R www-data:www-data /var/cache/kuocai-cdn; elif id nginx >/dev/null 2>&1; then chown -R nginx:nginx /var/cache/kuocai-cdn; fi\n" +
                 "if command -v setsebool >/dev/null 2>&1; then setsebool -P httpd_can_network_connect 1 || true; fi\n" +
                 "install -m 700 /tmp/kuocai-edge-agent.py /opt/kuocai-edge/agent.py\n" +
