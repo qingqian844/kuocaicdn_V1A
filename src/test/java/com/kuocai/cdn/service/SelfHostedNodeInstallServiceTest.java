@@ -15,6 +15,10 @@ class SelfHostedNodeInstallServiceTest {
         assertTrue(command.contains("mirrors.aliyun.com/centos-vault/7.9.2009"));
         assertTrue(command.contains("mirrors.aliyun.com/epel-archive/7/$basearch"));
         assertTrue(command.contains("--disablerepo='*' --enablerepo='kuocai-centos7-*'"));
+        assertTrue(command.contains("/var/run/kuocai-edge-install.lock"));
+        assertTrue(command.contains("another Agent installation is already running"));
+        assertTrue(command.contains("rpm -q ca-certificates"));
+        assertTrue(command.contains("--setopt=timeout=30"));
     }
 
     @Test

@@ -290,11 +290,16 @@ public class SelfHostedCdnService {
         byte[] bytes = new byte[36];
         secureRandom.nextBytes(bytes);
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-        node.setAgentTokenHash(sha256(token));
-        node.setStatus("installing");
-        node.setLastError(null);
-        node.setUpdateTime(new Date());
-        nodeDao.updateById(node);
+        int updated = nodeDao.update(null, new UpdateWrapper<SelfHostedNode>()
+                .eq("id", nodeId)
+                .ne("status", "installing")
+                .set("agent_token_hash", sha256(token))
+                .set("status", "installing")
+                .set("last_error", null)
+                .set("update_time", new Date()));
+        if (updated != 1) {
+            throw new BusinessException("该节点正在安装中，请等待当前安装任务完成");
+        }
         return token;
     }
 

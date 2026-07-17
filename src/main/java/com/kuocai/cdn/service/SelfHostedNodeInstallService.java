@@ -21,7 +21,7 @@ import java.util.Properties;
 @Service
 public class SelfHostedNodeInstallService {
     private static final int CONNECT_TIMEOUT_MS = 15_000;
-    private static final int COMMAND_TIMEOUT_MS = 300_000;
+    private static final int COMMAND_TIMEOUT_MS = 900_000;
 
     private final SelfHostedCdnService selfHostedCdnService;
 
@@ -36,6 +36,7 @@ public class SelfHostedNodeInstallService {
         }
         String password = selfHostedCdnService.decryptSshPassword(node);
         Session session = null;
+        boolean installationStarted = false;
         try {
             JSch jsch = new JSch();
             session = jsch.getSession(node.getSshUsername(), node.getHost(), node.getSshPort());
@@ -57,6 +58,7 @@ public class SelfHostedNodeInstallService {
             }
 
             String token = selfHostedCdnService.issueAgentToken(nodeId);
+            installationStarted = true;
             upload(session, "/tmp/kuocai-edge-agent.py", readResource("self-hosted/kuocai-edge-agent.py"));
             upload(session, "/tmp/kuocai-edge-agent.json", agentConfig(nodeId, token, controlPlaneUrl));
             upload(session, "/tmp/kuocai-edge-agent.service", systemdUnit());
@@ -66,7 +68,7 @@ public class SelfHostedNodeInstallService {
         } catch (HostKeyConfirmationRequired e) {
             throw new BusinessException(e.getMessage());
         } catch (BusinessException e) {
-            if (!(e instanceof HostKeyConfirmationRequired)) {
+            if (installationStarted && !(e instanceof HostKeyConfirmationRequired)) {
                 selfHostedCdnService.markInstallFailed(node, e.getMessage());
             }
             throw e;
@@ -180,7 +182,23 @@ public class SelfHostedNodeInstallService {
     static String installCommand() {
         return "set -eu\n" +
                 "export DEBIAN_FRONTEND=noninteractive\n" +
+                "INSTALL_LOCK=/var/run/kuocai-edge-install.lock\n" +
+                "if ! mkdir \"$INSTALL_LOCK\" 2>/dev/null; then\n" +
+                "  LOCK_PID=$(cat \"$INSTALL_LOCK/pid\" 2>/dev/null || true)\n" +
+                "  if [ -n \"$LOCK_PID\" ] && kill -0 \"$LOCK_PID\" 2>/dev/null; then\n" +
+                "    echo 'another Agent installation is already running' >&2\n" +
+                "    exit 23\n" +
+                "  fi\n" +
+                "  rm -f \"$INSTALL_LOCK/pid\"\n" +
+                "  rmdir \"$INSTALL_LOCK\" 2>/dev/null || { echo 'another Agent installation is already running' >&2; exit 23; }\n" +
+                "  mkdir \"$INSTALL_LOCK\"\n" +
+                "fi\n" +
+                "echo $$ > \"$INSTALL_LOCK/pid\"\n" +
+                "trap 'rm -f \"$INSTALL_LOCK/pid\"; rmdir \"$INSTALL_LOCK\" 2>/dev/null || true' EXIT\n" +
                 "install_yum_packages() {\n" +
+                "  if command -v python3 >/dev/null 2>&1 && command -v nginx >/dev/null 2>&1 && command -v curl >/dev/null 2>&1 && rpm -q ca-certificates >/dev/null 2>&1; then\n" +
+                "    return 0\n" +
+                "  fi\n" +
                 "  if [ -r /etc/os-release ]; then . /etc/os-release; fi\n" +
                 "  if [ \"${ID:-}\" = \"centos\" ] && [ \"${VERSION_ID%%.*}\" = \"7\" ]; then\n" +
                 "    cat > /etc/yum.repos.d/kuocai-centos7-vault.repo <<'KUOCAI_REPO'\n" +
@@ -213,10 +231,9 @@ public class SelfHostedNodeInstallService {
                 "gpgkey=https://mirrors.aliyun.com/epel/RPM-GPG-KEY-EPEL-7\n" +
                 "KUOCAI_REPO\n" +
                 "    yum clean metadata >/dev/null 2>&1 || true\n" +
-                "    yum -y --disablerepo='*' --enablerepo='kuocai-centos7-*' makecache fast\n" +
-                "    yum -y --disablerepo='*' --enablerepo='kuocai-centos7-*' install python3 nginx ca-certificates curl\n" +
+                "    yum -y --setopt=timeout=30 --setopt=retries=2 --setopt=skip_if_unavailable=True --disablerepo='*' --enablerepo='kuocai-centos7-*' install python3 nginx ca-certificates curl\n" +
                 "  else\n" +
-                "    yum install -y python3 nginx ca-certificates curl\n" +
+                "    yum -y --setopt=timeout=30 --setopt=retries=2 --setopt=skip_if_unavailable=True install python3 nginx ca-certificates curl\n" +
                 "  fi\n" +
                 "}\n" +
                 "if command -v apt-get >/dev/null 2>&1; then apt-get update -y && apt-get install -y python3 nginx ca-certificates curl; " +
