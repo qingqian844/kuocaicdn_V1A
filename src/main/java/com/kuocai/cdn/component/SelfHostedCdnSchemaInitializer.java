@@ -50,7 +50,9 @@ public class SelfHostedCdnSchemaInitializer {
                 "id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,cdn_domain_id BIGINT NOT NULL,node_group_id BIGINT NOT NULL," +
                 "origin_type VARCHAR(32) NOT NULL,origin_address VARCHAR(2000) NOT NULL,origin_protocol VARCHAR(16) NOT NULL DEFAULT 'http'," +
                 "http_port INT NOT NULL DEFAULT 80,https_port INT NOT NULL DEFAULT 443,origin_host VARCHAR(255) NULL," +
-                "cache_config_json LONGTEXT NULL,https_enabled TINYINT NOT NULL DEFAULT 0,certificate_cipher LONGTEXT NULL," +
+                "origin_config_json LONGTEXT NULL,cache_config_json LONGTEXT NULL,access_config_cipher LONGTEXT NULL," +
+                "advanced_config_json LONGTEXT NULL,https_config_json LONGTEXT NULL,ipv6_enabled TINYINT NOT NULL DEFAULT 0," +
+                "https_enabled TINYINT NOT NULL DEFAULT 0,certificate_cipher LONGTEXT NULL," +
                 "private_key_cipher LONGTEXT NULL,force_redirect VARCHAR(16) NOT NULL DEFAULT 'off'," +
                 "desired_config_version BIGINT NOT NULL DEFAULT 1,status VARCHAR(32) NOT NULL DEFAULT 'enabled',last_error VARCHAR(1000) NULL," +
                 "create_time DATETIME DEFAULT CURRENT_TIMESTAMP,update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
@@ -78,6 +80,16 @@ public class SelfHostedCdnSchemaInitializer {
                 "ALTER TABLE self_hosted_node_group ADD INDEX idx_self_hosted_group_coverage (coverage,status,is_default)");
         addColumnIfAbsent("self_hosted_cache_job_node", "targets_json",
                 "ALTER TABLE self_hosted_cache_job_node ADD COLUMN targets_json LONGTEXT NULL AFTER node_id");
+        addColumnIfAbsent("self_hosted_domain_config", "origin_config_json",
+                "ALTER TABLE self_hosted_domain_config ADD COLUMN origin_config_json LONGTEXT NULL AFTER origin_host");
+        addColumnIfAbsent("self_hosted_domain_config", "access_config_cipher",
+                "ALTER TABLE self_hosted_domain_config ADD COLUMN access_config_cipher LONGTEXT NULL AFTER cache_config_json");
+        addColumnIfAbsent("self_hosted_domain_config", "advanced_config_json",
+                "ALTER TABLE self_hosted_domain_config ADD COLUMN advanced_config_json LONGTEXT NULL AFTER access_config_cipher");
+        addColumnIfAbsent("self_hosted_domain_config", "https_config_json",
+                "ALTER TABLE self_hosted_domain_config ADD COLUMN https_config_json LONGTEXT NULL AFTER advanced_config_json");
+        addColumnIfAbsent("self_hosted_domain_config", "ipv6_enabled",
+                "ALTER TABLE self_hosted_domain_config ADD COLUMN ipv6_enabled TINYINT NOT NULL DEFAULT 0 AFTER https_config_json");
         execute("INSERT INTO self_hosted_node_group (group_name,cname_label,coverage,is_default,status) " +
                 "SELECT '默认节点组','edge','legacy',1,'enabled' WHERE NOT EXISTS (SELECT 1 FROM self_hosted_node_group WHERE is_default=1)");
     }

@@ -122,7 +122,8 @@ class SelfHostedCdnRouteTest {
         when(domainConfigDao.selectList(any())).thenReturn(Collections.singletonList(
                 SelfHostedDomainConfig.builder().id(3L).cdnDomainId(4L).nodeGroupId(2L)
                         .certificateCipher("certificate-ciphertext")
-                        .privateKeyCipher("private-key-ciphertext").status("enabled").build()));
+                        .privateKeyCipher("private-key-ciphertext")
+                        .accessConfigCipher("access-config-ciphertext").status("enabled").build()));
         when(domainDao.selectById(4L)).thenReturn(CdnDomain.builder().id(4L).domainName("cdn.example.com")
                 .route(CdnRoute.SELF_HOSTED_OVERSEAS.getCode()).domainStatus("online").build());
         SelfHostedCdnService service = new SelfHostedCdnService(mock(SelfHostedNodeDao.class),
@@ -134,6 +135,9 @@ class SelfHostedCdnRouteTest {
         assertFalse(json.contains("private-key-ciphertext"));
         assertFalse(json.contains("certificateCipher"));
         assertFalse(json.contains("privateKeyCipher"));
+        assertFalse(json.contains("access-config-ciphertext"));
+        assertFalse(json.contains("accessConfigCipher"));
+        assertTrue(json.contains("accessConfigJson"));
     }
 
     @Test
@@ -230,7 +234,24 @@ class SelfHostedCdnRouteTest {
 
         assertTrue(source.indexOf("applied = apply_config(config, desired)")
                 < source.indexOf("process_cache_jobs(config, response.get(\"cacheJobs\"))"));
-        assertTrue(source.contains("\"agentVersion\": \"1.0.1\""));
+        assertTrue(source.contains("\"agentVersion\": \"1.1.0\""));
+    }
+
+    @Test
+    void agentGeneratesAllSelfHostedDomainConfigurationFamilies() throws Exception {
+        String source = new String(Files.readAllBytes(Paths.get(
+                "src/main/resources/self-hosted/kuocai-edge-agent.py")), StandardCharsets.UTF_8);
+
+        assertTrue(source.contains("proxy_force_ranges on"));
+        assertTrue(source.contains("proxy_cache_revalidate on"));
+        assertTrue(source.contains("valid_referers"));
+        assertTrue(source.contains("secure_link_md5"));
+        assertTrue(source.contains("proxy_set_header %s %s"));
+        assertTrue(source.contains("add_header %s %s always"));
+        assertTrue(source.contains("gzip on"));
+        assertTrue(source.contains("listen [::]:80"));
+        assertTrue(source.contains("backup;"));
+        assertTrue(source.contains("followRedirectStatus"));
     }
 
     private void assertSelfHostedProductRoute(String route, String coverage,

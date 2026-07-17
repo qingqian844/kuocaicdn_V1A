@@ -35,7 +35,13 @@ public class SelfHostedDomainConfig implements Serializable {
     private Integer httpPort;
     private Integer httpsPort;
     private String originHost;
+    private String originConfigJson;
     private String cacheConfigJson;
+    @JsonIgnore
+    private String accessConfigCipher;
+    private String advancedConfigJson;
+    private String httpsConfigJson;
+    private Integer ipv6Enabled;
     private Integer httpsEnabled;
     @JsonIgnore
     private String certificateCipher;

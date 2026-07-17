@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import hashlib
+import ipaddress
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -51,15 +53,86 @@ def nginx_quote(value):
     return value
 
 
-def origin_url(domain):
+def nginx_string(value):
+    value = str(value or "")
+    if any(ch in value for ch in "\r\n{}\x00"):
+        raise ValueError("unsafe nginx string")
+    return '"%s"' % value.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def json_config(value):
+    if isinstance(value, dict):
+        return value
+    if not value:
+        return {}
+    try:
+        parsed = json.loads(value)
+        return parsed if isinstance(parsed, dict) else {}
+    except Exception:
+        return {}
+
+
+def safe_header_name(value):
+    value = str(value or "").strip()
+    if not re.match(r"^[A-Za-z][A-Za-z0-9-]{0,99}$", value):
+        raise ValueError("invalid HTTP header name")
+    return value
+
+
+def safe_url(value):
+    value = str(value or "").strip()
+    parsed = urllib.parse.urlsplit(value)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        raise ValueError("invalid HTTP URL")
+    return nginx_quote(value)
+
+
+def normalize_switch(value, default="off"):
+    return "on" if str(value or default).lower() == "on" else "off"
+
+
+def origin_protocol(domain, incoming_protocol=None):
     protocol = domain.get("originProtocol", "http")
     if protocol == "follow":
-        protocol = "http"
-    port = domain.get("httpsPort", 443) if protocol == "https" else domain.get("httpPort", 80)
-    address = str(domain.get("originAddress", "")).split(";")[0].strip()
+        protocol = incoming_protocol or "http"
+    return "https" if protocol == "https" else "http"
+
+
+def origin_endpoint(address, port):
+    address = str(address or "").strip()
+    if not address or any(ch in address for ch in "\r\n{};$`\\/\""):
+        raise ValueError("invalid origin address")
     if ":" in address and not address.startswith("["):
         address = "[" + address + "]"
-    return "%s://%s:%d" % (nginx_quote(protocol), nginx_quote(address), int(port))
+    return "%s:%d" % (address, int(port))
+
+
+def origin_url(domain):
+    protocol = origin_protocol(domain)
+    port = domain.get("httpsPort", 443) if protocol == "https" else domain.get("httpPort", 80)
+    address = str(domain.get("originAddress", "")).split(";")[0].strip()
+    return "%s://%s" % (protocol, origin_endpoint(address, port))
+
+
+def origin_upstream(domain, name, origin_config, protocol_override=None):
+    protocol = origin_protocol(domain, protocol_override)
+    port = int(domain.get("httpsPort", 443) if protocol == "https" else domain.get("httpPort", 80))
+    addresses = [item.strip() for item in str(domain.get("originAddress") or "").replace(",", ";").split(";") if item.strip()]
+    if not addresses:
+        raise ValueError("origin address is empty")
+    upstream_name = "kuocai_origin_" + name
+    lines = ["upstream %s {" % upstream_name]
+    for address in addresses:
+        lines.append("    server %s;" % origin_endpoint(address, port))
+    standby = origin_config.get("standby") or {}
+    standby_address = standby.get("ipOrDomain") or standby.get("ip_or_domain")
+    if standby_address:
+        standby_port = standby.get("httpsPort", 443) if protocol == "https" else standby.get("httpPort", 80)
+        for address in str(standby_address).replace(",", ";").split(";"):
+            if address.strip():
+                lines.append("    server %s backup;" % origin_endpoint(address.strip(), standby_port))
+    lines.extend(["    keepalive 32;", "}"])
+    return lines, "%s://%s" % (protocol, upstream_name)
 
 
 def ttl_seconds(rule):
@@ -75,14 +148,143 @@ def safe_path(value):
     return value
 
 
-def proxy_location(selector, ttl, origin, origin_host, error_rules):
+def cache_key_line(config):
+    config = config or {}
+    if config.get("_querySuffixVariable"):
+        return "        proxy_cache_key $scheme$proxy_host$uri%s;" % config.get("_querySuffixVariable")
+    mode = str(config.get("url_parameter_type") or config.get("urlParameterType") or "")
+    values = str(config.get("url_parameter_value") or config.get("urlParameterValue") or "")
+    if not mode:
+        ignore = config.get("ignoreQueryString") or {}
+        if normalize_switch(ignore.get("enable")) == "on":
+            mode = "reserve_params" if ignore.get("type") == "allow" else "del_params"
+            values = str(ignore.get("hashKeyArgs") or "")
+    if mode == "ignore_url_params":
+        return "        proxy_cache_key $scheme$proxy_host$uri;"
+    if mode == "reserve_params":
+        parameters = []
+        for value in re.split(r"[,;，；]", values):
+            value = value.strip()
+            if value and re.match(r"^[A-Za-z0-9_-]{1,64}$", value):
+                parameters.append("%s=$arg_%s" % (value, value))
+        suffix = "&".join(parameters)
+        return "        proxy_cache_key %s;" % nginx_string("$scheme$proxy_host$uri?" + suffix)
+    # Nginx cannot safely remove arbitrary unknown parameters without Lua/njs.
+    # Keep the full query string for del_params so different resources never share a cache entry.
+    return "        proxy_cache_key $scheme$proxy_host$uri$is_args$args;"
+
+
+def query_filter_maps(cache, name):
+    maps = []
+    candidates = [("global", cache)]
+    for index, rule in enumerate(cache.get("cacheRules") or cache.get("cache_rules") or []):
+        candidates.append(("r%d" % index, rule))
+    for label, config in candidates:
+        mode = str(config.get("url_parameter_type") or config.get("urlParameterType") or "")
+        values = str(config.get("url_parameter_value") or config.get("urlParameterValue") or "")
+        if label == "global" and not mode:
+            ignore = config.get("ignoreQueryString") or {}
+            if normalize_switch(ignore.get("enable")) == "on" and ignore.get("type") == "block":
+                mode = "del_params"
+                values = str(ignore.get("hashKeyArgs") or "")
+        parameters = [value for value in split_values(values)
+                      if re.match(r"^[A-Za-z0-9_-]{1,64}$", value)]
+        if mode != "del_params" or not parameters:
+            continue
+        source = "$args"
+        prefix = "kuocai_q_%s_%s" % (name[:10], label)
+        for index, parameter in enumerate(parameters):
+            target = "$%s_%d" % (prefix, index)
+            capture = "q%s%s%d" % (name[:6], label.replace("_", ""), index)
+            escaped = re.escape(parameter)
+            maps.extend([
+                "map %s %s {" % (source, target),
+                "    default %s;" % source,
+                "    ~^%s=[^&]*&?(?<%sa>.*)$ $%sa;" % (escaped, capture, capture),
+                "    ~^(?<%sb>.+)&%s=[^&]*$ $%sb;" % (capture, escaped, capture),
+                "    ~^(?<%sb>.+)&%s=[^&]*&(?<%sa>.*)$ $%sb&$%sa;" %
+                (capture, escaped, capture, capture, capture),
+                "}",
+            ])
+            source = target
+        suffix = "$%s_suffix" % prefix
+        maps.extend(["map %s %s {" % (source, suffix), "    default ?%s;" % source,
+                     '    "" "";', "}"])
+        config["_querySuffixVariable"] = suffix
+    return maps
+
+
+def rewrite_lines(origin_config):
+    result = []
+    rules = origin_config.get("originRequestUrlRewrite") or []
+    for rule in sorted(rules, key=lambda item: int(item.get("priority") or 0), reverse=True):
+        match_type = str(rule.get("match_type") or rule.get("matchType") or "")
+        source = str(rule.get("source_url") or rule.get("sourceUrl") or "")
+        target = str(rule.get("target_url") or rule.get("targetUrl") or "")
+        if not target.startswith("/") or not re.match(r"^/[A-Za-z0-9._~/%$-]*$", target):
+            raise ValueError("invalid origin rewrite target")
+        if match_type == "all":
+            pattern = "^/.*$"
+        elif match_type == "wildcard" and source.startswith("/"):
+            chunks = source.split("*")
+            pattern = "^" + "(.*)".join(re.escape(chunk) for chunk in chunks) + "$"
+        elif source.startswith("/") and re.match(r"^/[A-Za-z0-9._~/%-]*$", source):
+            pattern = "^" + re.escape(source) + ("$" if match_type == "full_path" else "")
+        else:
+            raise ValueError("invalid origin rewrite source")
+        result.append("        rewrite %s %s break;" % (pattern, target))
+    return result
+
+
+def origin_header_lines(origin_config):
+    result = []
+    for item in origin_config.get("originRequestHeader") or []:
+        name = safe_header_name(item.get("name"))
+        action = str(item.get("action") or "set").lower()
+        value = "" if action == "delete" else item.get("value")
+        result.append("        proxy_set_header %s %s;" % (name, nginx_string(value)))
+    return result
+
+
+def response_header_lines(advanced):
+    result = []
+    for item in advanced.get("httpResponseHeaders") or []:
+        name = safe_header_name(item.get("name"))
+        if str(item.get("action") or "set").lower() == "delete":
+            result.append("        proxy_hide_header %s;" % name)
+        else:
+            result.append("        add_header %s %s always;" % (name, nginx_string(item.get("value"))))
+    return result
+
+
+def proxy_location(selector, ttl, origin, origin_host, error_rules, options, cache_rule=None):
+    origin_config = options.get("origin") or {}
+    timeout = max(1, min(int(origin_config.get("originReceiveTimeout") or 30), 300))
+    cache_settings = dict(options.get("cache") or {})
+    if cache_rule:
+        cache_settings.update(cache_rule)
     lines = ["    location %s {" % selector,
              "        proxy_set_header Host %s;" % origin_host,
              "        proxy_set_header X-Real-IP $remote_addr;",
              "        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;",
              "        proxy_set_header X-Forwarded-Proto $scheme;",
              "        proxy_http_version 1.1;",
-             "        proxy_cache kuocai_edge_cache;"]
+             "        proxy_connect_timeout %ds;" % timeout,
+             "        proxy_read_timeout %ds;" % timeout,
+             "        proxy_send_timeout %ds;" % timeout,
+             "        proxy_cache kuocai_edge_cache;",
+             cache_key_line(cache_settings)]
+    lines.extend(origin_header_lines(origin_config))
+    lines.extend(rewrite_lines(origin_config))
+    if normalize_switch(origin_config.get("rangeStatus"), "on") == "on":
+        lines.append("        proxy_force_ranges on;")
+    if normalize_switch(origin_config.get("etagStatus")) == "on":
+        lines.append("        proxy_cache_revalidate on;")
+    if origin.startswith("https://"):
+        lines.extend(["        proxy_ssl_server_name on;", "        proxy_ssl_name %s;" % origin_host])
+    if normalize_switch(origin_config.get("followRedirectStatus")) == "on":
+        lines.extend(["        proxy_intercept_errors on;",
+                      "        error_page 301 302 307 308 = @kuocai_follow_redirect_1;"])
     if ttl <= 0:
         lines.extend(["        proxy_cache_bypass 1;", "        proxy_no_cache 1;"])
     else:
@@ -92,13 +294,14 @@ def proxy_location(selector, ttl, origin, origin_host, error_rules):
         error_ttl = max(0, min(int(rule.get("ttl") or 0), 31536000))
         if code in (400, 403, 404, 405, 414, 500, 501, 502, 503, 504):
             lines.append("        proxy_cache_valid %d %ds;" % (code, error_ttl))
+    lines.extend(response_header_lines(options.get("advanced") or {}))
     lines.extend(["        add_header X-Kuocai-Cache $upstream_cache_status always;",
                   "        proxy_pass %s;" % origin,
                   "    }"])
     return lines
 
 
-def cache_locations(cache, origin, origin_host):
+def cache_locations(cache, origin, origin_host, options):
     rules = cache.get("cacheRules") or cache.get("cache_rules") or []
     error_rules = cache.get("errorCodeCache") or cache.get("error_code_cache") or []
     default_ttl = max(0, min(int(cache.get("defaultTtl", 3600)), 31536000))
@@ -112,36 +315,238 @@ def cache_locations(cache, origin, origin_host):
         elif match_type == "file_extension":
             extensions = [value.strip().lstrip(".") for value in values if value.strip().lstrip(".").isalnum()]
             if extensions:
-                locations.extend(proxy_location("~* \\.(%s)$" % "|".join(extensions), ttl, origin, origin_host, error_rules))
+                locations.extend(proxy_location("~* \\.(%s)$" % "|".join(extensions), ttl, origin, origin_host, error_rules, options, rule))
         elif match_type == "catalog":
             for value in values:
                 if value.strip():
-                    locations.extend(proxy_location("^~ " + safe_path(value), ttl, origin, origin_host, error_rules))
+                    locations.extend(proxy_location("^~ " + safe_path(value), ttl, origin, origin_host, error_rules, options, rule))
         elif match_type in ("full_path", "home_page"):
             paths = ["/"] if match_type == "home_page" else values
             for value in paths:
                 if value.strip() and "*" not in value:
-                    locations.extend(proxy_location("= " + safe_path(value), ttl, origin, origin_host, error_rules))
-    locations.extend(proxy_location("/", default_ttl, origin, origin_host, error_rules))
+                    locations.extend(proxy_location("= " + safe_path(value), ttl, origin, origin_host, error_rules, options, rule))
+    locations.extend(proxy_location("/", default_ttl, origin, origin_host, error_rules, options))
     return locations
+
+
+def split_values(value):
+    if isinstance(value, list):
+        values = value
+    else:
+        values = re.split(r"[,;\r\n，；]", str(value or ""))
+    return [str(item).strip() for item in values if str(item).strip()]
+
+
+def wildcard_regex(values):
+    patterns = []
+    for value in values:
+        if len(value) > 200:
+            raise ValueError("access rule is too long")
+        patterns.append(re.escape(value).replace(r"\*", ".*"))
+    return "(?:%s)" % "|".join(patterns)
+
+
+def access_server_lines(access):
+    lines = []
+    referer = access.get("referer") or {}
+    referer_type = int(referer.get("referer_type") or referer.get("refererType") or 0)
+    referers = split_values(referer.get("referers") or referer.get("referer_list"))
+    include_empty = bool(referer.get("include_empty", True))
+    if referer_type == 2:
+        valid_referers = []
+        if include_empty:
+            valid_referers.append("none")
+        for value in referers:
+            value = value.replace("http://", "").replace("https://", "").split("/", 1)[0]
+            if not re.match(r"^(?:\*\.)?[A-Za-z0-9.-]+(?::[0-9]{1,5})?$", value):
+                raise ValueError("invalid referer whitelist value")
+            valid_referers.append(value)
+        if valid_referers:
+            lines.extend(["    valid_referers %s;" % " ".join(valid_referers),
+                          "    if ($invalid_referer) { return 403; }"])
+        else:
+            lines.append("    return 403;")
+    elif referer_type == 1:
+        if referers:
+            lines.append("    if ($http_referer ~* %s) { return 403; }" % nginx_string(wildcard_regex(referers)))
+        if include_empty:
+            lines.append('    if ($http_referer = "") { return 403; }')
+
+    ip_type = int(access.get("ipType") or 0)
+    ips = split_values(access.get("ips"))
+    normalized_ips = []
+    for value in ips:
+        try:
+            normalized_ips.append(str(ipaddress.ip_network(value, strict=False)))
+        except ValueError:
+            raise ValueError("invalid IP access rule")
+    if ip_type == 1:
+        lines.extend("    deny %s;" % value for value in normalized_ips)
+    elif ip_type == 2:
+        lines.extend("    allow %s;" % value for value in normalized_ips)
+        lines.append("    deny all;")
+
+    user_agent = access.get("userAgent") or {}
+    ua_type = int(user_agent.get("type") or 0)
+    ua_values = split_values(user_agent.get("ua_list") or user_agent.get("uaList"))
+    if ua_type == 1 and ua_values:
+        lines.append("    if ($http_user_agent ~* %s) { return 403; }" % nginx_string(wildcard_regex(ua_values)))
+    elif ua_type == 2:
+        if ua_values:
+            lines.append("    if ($http_user_agent !~* %s) { return 403; }" % nginx_string(wildcard_regex(ua_values)))
+        else:
+            lines.append("    return 403;")
+
+    url_auth = access.get("urlAuth") or {}
+    if normalize_switch(url_auth.get("status")) == "on":
+        primary_key = str(url_auth.get("primary_key") or url_auth.get("primaryKey") or "")
+        if not primary_key or len(primary_key) > 128:
+            raise ValueError("URL auth primary key is invalid")
+        auth_type = str(url_auth.get("type") or "typeA")
+        signature_arg = "$arg_sign" if auth_type == "typeA" else "$arg_auth_key"
+        expires_arg = "$arg_t" if auth_type == "typeA" else "$arg_timestamp"
+        lines.extend(["    secure_link %s,%s;" % (signature_arg, expires_arg),
+                      "    secure_link_md5 %s;" % nginx_string(primary_key + "$secure_link_expires$uri"),
+                      '    if ($secure_link = "") { return 403; }',
+                      '    if ($secure_link = "0") { return 410; }'])
+    return lines
+
+
+def advanced_server_lines(advanced):
+    lines = []
+    compress = advanced.get("compress") or {}
+    if normalize_switch(compress.get("status"), "on") == "on":
+        lines.extend(["    gzip on;", "    gzip_vary on;", "    gzip_min_length 1024;",
+                      "    gzip_types text/plain text/css application/json application/javascript "
+                      "application/xml application/xml+rss image/svg+xml;"])
+    else:
+        lines.append("    gzip off;")
+    for item in advanced.get("errorCodeRedirectRules") or []:
+        code = int(item.get("error_code") or item.get("errorCode") or 0)
+        target_code = int(item.get("target_code") or item.get("targetCode") or 302)
+        if code in (400, 403, 404, 405, 406, 414, 416, 451, 500, 501, 502, 503, 504) and target_code in (301, 302):
+            lines.append("    error_page %d =%d %s;" % (code, target_code,
+                                                        safe_url(item.get("target_link") or item.get("targetLink"))))
+    for item in advanced.get("errorPages") or []:
+        code = int(item.get("errorHttpCode") or 0)
+        if code in (400, 403, 404, 405, 406, 414, 416, 500, 501, 502, 503, 504):
+            lines.append("    error_page %d =302 %s;" % (code, safe_url(item.get("customPageUrl"))))
+    return lines
+
+
+def flexible_origin_locations(domain, origin_config, cache, origin_host, options, protocol_override=None):
+    locations = []
+    error_rules = cache.get("errorCodeCache") or cache.get("error_code_cache") or []
+    protocol = origin_protocol(domain, protocol_override)
+    port = domain.get("httpsPort", 443) if protocol == "https" else domain.get("httpPort", 80)
+    for rule in sorted(origin_config.get("flexibleOrigins") or [],
+                       key=lambda item: int(item.get("priority") or 0), reverse=True):
+        sources = rule.get("back_sources") or rule.get("backSources") or []
+        if not sources:
+            continue
+        address = sources[0].get("ip_or_domain") or sources[0].get("ipOrDomain")
+        target_origin = "%s://%s" % (protocol, origin_endpoint(address, port))
+        match_type = rule.get("match_type") or rule.get("matchType")
+        values = split_values(rule.get("match_pattern") or rule.get("matchPattern"))
+        selectors = []
+        if match_type == "file_extension":
+            extensions = [value.lstrip(".") for value in values if re.match(r"^[A-Za-z0-9_-]+$", value.lstrip("."))]
+            if extensions:
+                selectors.append("~* \\.(%s)$" % "|".join(extensions))
+        elif match_type in ("file_path", "catalog"):
+            selectors.extend("^~ " + safe_path(value) for value in values)
+        elif match_type == "full_path":
+            selectors.extend("= " + safe_path(value) for value in values if "*" not in value)
+        for selector in selectors:
+            locations.extend(proxy_location(selector, int(cache.get("defaultTtl", 3600)), target_origin,
+                                            origin_host, error_rules, options))
+    return locations
+
+
+def default_flexible_origin(domain, origin_config, fallback, protocol_override=None):
+    protocol = origin_protocol(domain, protocol_override)
+    port = domain.get("httpsPort", 443) if protocol == "https" else domain.get("httpPort", 80)
+    for rule in sorted(origin_config.get("flexibleOrigins") or [],
+                       key=lambda item: int(item.get("priority") or 0), reverse=True):
+        match_type = rule.get("match_type") or rule.get("matchType")
+        sources = rule.get("back_sources") or rule.get("backSources") or []
+        if match_type == "all" and sources:
+            address = sources[0].get("ip_or_domain") or sources[0].get("ipOrDomain")
+            return "%s://%s" % (protocol, origin_endpoint(address, port))
+    return fallback
+
+
+def follow_redirect_location(origin_host, origin_config):
+    if normalize_switch(origin_config.get("followRedirectStatus")) != "on":
+        return []
+    timeout = max(1, min(int(origin_config.get("originReceiveTimeout") or 30), 300))
+    max_times = max(1, min(int(origin_config.get("followRedirectMaxTimes") or 1), 5))
+    lines = []
+    for index in range(1, max_times + 1):
+        lines.extend(["    location @kuocai_follow_redirect_%d {" % index,
+                      "        resolver 223.5.5.5 119.29.29.29 valid=300s;",
+                      "        proxy_set_header Host $proxy_host;",
+                      "        proxy_set_header X-Real-IP $remote_addr;",
+                      "        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;",
+                      "        proxy_connect_timeout %ds;" % timeout,
+                      "        proxy_read_timeout %ds;" % timeout,
+                      "        proxy_ssl_server_name on;"])
+        if index < max_times:
+            lines.extend(["        proxy_intercept_errors on;",
+                          "        error_page 301 302 307 308 = @kuocai_follow_redirect_%d;" % (index + 1)])
+        lines.extend(["        proxy_pass $upstream_http_location;", "    }"])
+    return lines
+
+
+def tls_protocols(value):
+    supported = {"TLSv1.0": "TLSv1", "TLSv1.1": "TLSv1.1",
+                 "TLSv1.2": "TLSv1.2", "TLSv1.3": "TLSv1.3"}
+    protocols = []
+    for item in split_values(value or "TLSv1.2,TLSv1.3"):
+        if item in supported and supported[item] not in protocols:
+            protocols.append(supported[item])
+    return protocols or ["TLSv1.2", "TLSv1.3"]
+
+
+def server_common(domain_name, origin_host, domain, origin_config, cache, access,
+                  advanced, origin, protocol_override=None):
+    options = {"origin": origin_config, "cache": cache, "advanced": advanced}
+    actual_origin = default_flexible_origin(domain, origin_config, origin, protocol_override)
+    locations = flexible_origin_locations(domain, origin_config, cache, origin_host,
+                                          options, protocol_override)
+    locations.extend(cache_locations(cache, actual_origin, origin_host, options))
+    locations.extend(follow_redirect_location(origin_host, origin_config))
+    common = ["    server_name %s;" % domain_name,
+              "    access_log /var/log/nginx/kuocai-edge-access.log kuocai_edge;"]
+    common.extend(access_server_lines(access))
+    common.extend(advanced_server_lines(advanced))
+    common.extend(locations)
+    return common
 
 
 def write_domain_config(release_dir, domain):
     name = safe_name(domain["domainName"])
     domain_name = nginx_quote(domain["domainName"])
-    origin = origin_url(domain)
     origin_host = nginx_quote(domain.get("originHost") or domain_name)
-    cache_json = domain.get("cacheConfigJson") or "{}"
-    try:
-        cache = json.loads(cache_json)
-    except Exception:
-        cache = {}
-    common = [
-        "    server_name %s;" % domain_name,
-        "    access_log /var/log/nginx/kuocai-edge-access.log kuocai_edge;",
-    ]
-    common.extend(cache_locations(cache, origin, origin_host))
-    blocks = ["server {", "    listen 80;", *common, "}"]
+    origin_config = json_config(domain.get("originConfigJson"))
+    cache = json_config(domain.get("cacheConfigJson"))
+    access = json_config(domain.get("accessConfigJson"))
+    advanced = json_config(domain.get("advancedConfigJson"))
+    https_config = json_config(domain.get("httpsConfigJson"))
+    query_maps = query_filter_maps(cache, name)
+    follows_request = str(domain.get("originProtocol") or "http").lower() == "follow"
+    upstream, http_origin = origin_upstream(domain, name + "_http" if follows_request else name,
+                                            origin_config, "http" if follows_request else None)
+    https_origin = http_origin
+    if follows_request and int(domain.get("httpsEnabled") or 0) == 1:
+        https_upstream, https_origin = origin_upstream(domain, name + "_https", origin_config, "https")
+        upstream.extend([""] + https_upstream)
+    http_common = server_common(domain_name, origin_host, domain, origin_config, cache,
+                                access, advanced, http_origin, "http")
+    http_listeners = ["    listen 80;"]
+    if int(domain.get("ipv6Enabled") or 0) == 1:
+        http_listeners.append("    listen [::]:80;")
+    blocks = [*query_maps, "", *upstream, "", "server {", *http_listeners, *http_common, "}"]
     if int(domain.get("httpsEnabled") or 0) == 1:
         certificate = domain.get("certificate") or ""
         private_key = domain.get("privateKey") or ""
@@ -155,20 +560,40 @@ def write_domain_config(release_dir, domain):
             stream.write(private_key)
         os.chmod(key_path, 0o600)
         if domain.get("forceRedirect") == "on":
+            redirect_code = int(https_config.get("redirectCode") or 301)
+            if redirect_code not in (301, 302):
+                redirect_code = 301
             blocks = [
+                *query_maps,
+                "",
+                *upstream,
+                "",
                 "server {",
-                "    listen 80;",
+                *http_listeners,
                 "    server_name %s;" % domain_name,
-                "    return 301 https://$host$request_uri;",
+                "    return %d https://$host$request_uri;" % redirect_code,
                 "}",
             ]
-        blocks.extend([
-            "server {",
-            "    listen 443 ssl http2;",
+        https_listen = "    listen 443 ssl"
+        if normalize_switch(https_config.get("http2Status"), "on") == "on":
+            https_listen += " http2"
+        https_listeners = [https_listen + ";"]
+        if int(domain.get("ipv6Enabled") or 0) == 1:
+            https_listeners.append(https_listen.replace("443", "[::]:443", 1) + ";")
+        ssl_lines = [
             "    ssl_certificate %s;" % cert_path,
             "    ssl_certificate_key %s;" % key_path,
-            "    ssl_protocols TLSv1.2 TLSv1.3;",
-            *common,
+            "    ssl_protocols %s;" % " ".join(tls_protocols(https_config.get("tlsVersion"))),
+        ]
+        if normalize_switch(https_config.get("ocspStaplingStatus")) == "on":
+            ssl_lines.extend(["    ssl_stapling on;", "    ssl_stapling_verify on;"])
+        https_common = server_common(domain_name, origin_host, domain, origin_config, cache,
+                                     access, advanced, https_origin, "https")
+        blocks.extend([
+            "server {",
+            *https_listeners,
+            *ssl_lines,
+            *https_common,
             "}",
         ])
     with open(os.path.join(release_dir, name + ".conf"), "w", encoding="utf-8") as stream:
@@ -262,7 +687,7 @@ def network_bytes():
 def heartbeat(config, applied, last_error):
     rx, tx = network_bytes()
     return api_request(config, "POST", "/api/self-hosted/agent/heartbeat", {
-        "agentVersion": "1.0.1",
+        "agentVersion": "1.1.0",
         "appliedConfigVersion": applied,
         "cpuUsage": 0,
         "memoryUsage": memory_percent(),

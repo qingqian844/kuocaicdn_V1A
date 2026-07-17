@@ -39,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
@@ -466,8 +467,10 @@ public class SelfHostedCdnService {
                 JSONObject item = (JSONObject) JSON.toJSON(config);
                 item.remove("certificateCipher");
                 item.remove("privateKeyCipher");
+                item.remove("accessConfigCipher");
                 item.put("domainName", domain.getDomainName());
                 item.put("cname", domain.getCname());
+                item.put("accessConfigJson", readAccessConfig(config).toJSONString());
                 item.put("certificate", decryptSecret(config.getCertificateCipher(), "certificate"));
                 item.put("privateKey", decryptSecret(config.getPrivateKeyCipher(), "privateKey"));
                 domains.add(item);
@@ -555,7 +558,12 @@ public class SelfHostedCdnService {
                 .originAddress(originAddress).originProtocol(normalizeProtocol(originProtocol))
                 .httpPort(httpPort == null ? 80 : httpPort).httpsPort(httpsPort == null ? 443 : httpsPort)
                 .originHost(Assert.isEmpty(originHost) ? domain.getDomainName() : originHost.trim())
+                .originConfigJson(defaultOriginConfig().toJSONString())
                 .cacheConfigJson("{\"defaultTtl\":3600,\"inactive\":\"7d\"}")
+                .accessConfigCipher(encryptConfigJson(new JSONObject()))
+                .advancedConfigJson(defaultAdvancedConfig().toJSONString())
+                .httpsConfigJson(defaultHttpsConfig().toJSONString())
+                .ipv6Enabled(0)
                 .httpsEnabled(0).forceRedirect("off").desiredConfigVersion(1L)
                 .status("enabled").createTime(now).updateTime(now).build();
         domainConfigDao.insert(config);
@@ -586,6 +594,24 @@ public class SelfHostedCdnService {
         config.setUpdateTime(new Date());
         domainConfigDao.updateById(config);
         bumpGroupVersion(config.getNodeGroupId());
+    }
+
+    public JSONObject readAccessConfig(SelfHostedDomainConfig config) {
+        if (config == null || Assert.isEmpty(config.getAccessConfigCipher())) {
+            return new JSONObject();
+        }
+        try {
+            Map<?, ?> values = ConfigureRsaUtils.decryptConfigStr(config.getAccessConfigCipher(), Map.class);
+            return JSON.parseObject(JSON.toJSONString(values));
+        } catch (Exception e) {
+            log.warn("Unable to decrypt self-hosted access configuration, configId={}", config.getId());
+            return new JSONObject();
+        }
+    }
+
+    public void writeAccessConfig(SelfHostedDomainConfig config, JSONObject accessConfig) {
+        config.setAccessConfigCipher(encryptConfigJson(accessConfig == null ? new JSONObject() : accessConfig));
+        updateDomainConfig(config);
     }
 
     public void deleteDomainConfig(Long cdnDomainId) {
@@ -651,22 +677,31 @@ public class SelfHostedCdnService {
             }
         }
         Map<String, Long> newRecords = new LinkedHashMap<>();
+        boolean ipv6Required = domainConfigDao.selectCount(new QueryWrapper<SelfHostedDomainConfig>()
+                .eq("node_group_id", groupId).eq("status", "enabled").eq("ipv6_enabled", 1)) > 0;
         try {
             for (SelfHostedNode node : nodes) {
-                String ip = resolveIpv4(node.getHost());
-                if (oldRecords.containsKey(ip)) {
-                    newRecords.put(ip, oldRecords.get(ip));
-                    continue;
+                Map<String, String> addresses = resolveNodeAddresses(node.getHost(), ipv6Required);
+                for (Map.Entry<String, String> address : addresses.entrySet()) {
+                    String recordType = address.getKey();
+                    String ip = address.getValue();
+                    String recordKey = recordType + "|" + ip;
+                    String legacyKey = oldRecords.containsKey(ip) ? ip : null;
+                    String existingKey = oldRecords.containsKey(recordKey) ? recordKey : legacyKey;
+                    if (existingKey != null) {
+                        newRecords.put(existingKey, oldRecords.get(existingKey));
+                        continue;
+                    }
+                    CreateRecordDTO dto = new CreateRecordDTO();
+                    dto.setDomain(TencentDns.LOCAL_DOMAIN_NAME).setSubDomain(group.getCnameLabel())
+                            .setRecordType(recordType).setRecordLine("默认").setValue(ip)
+                            .setTTL(DNS_RECORD_TTL_SECONDS);
+                    CreateRecordResponse response = TencentApi.createRecord(dto);
+                    if (response == null || response.getRecordId() == null) {
+                        throw new BusinessException("DNS 服务未返回节点记录 ID");
+                    }
+                    newRecords.put(recordKey, response.getRecordId());
                 }
-                CreateRecordDTO dto = new CreateRecordDTO();
-                dto.setDomain(TencentDns.LOCAL_DOMAIN_NAME).setSubDomain(group.getCnameLabel())
-                        .setRecordType("A").setRecordLine("默认").setValue(ip)
-                        .setTTL(DNS_RECORD_TTL_SECONDS);
-                CreateRecordResponse response = TencentApi.createRecord(dto);
-                if (response == null || response.getRecordId() == null) {
-                    throw new BusinessException("DNS 服务未返回节点记录 ID");
-                }
-                newRecords.put(ip, response.getRecordId());
             }
         } catch (Exception e) {
             for (Map.Entry<String, Long> entry : newRecords.entrySet()) {
@@ -898,14 +933,22 @@ public class SelfHostedCdnService {
         return "旧版自建 CDN";
     }
 
-    private String resolveIpv4(String host) throws BusinessException {
+    private Map<String, String> resolveNodeAddresses(String host, boolean includeIpv6) throws BusinessException {
+        Map<String, String> result = new LinkedHashMap<>();
         try {
             for (InetAddress address : InetAddress.getAllByName(host)) {
-                if (address instanceof Inet4Address) {
-                    return address.getHostAddress();
+                if (address instanceof Inet4Address && !result.containsKey("A")) {
+                    result.put("A", address.getHostAddress());
+                } else if (includeIpv6 && address instanceof Inet6Address && !result.containsKey("AAAA")) {
+                    String value = address.getHostAddress();
+                    int zoneIndex = value.indexOf('%');
+                    result.put("AAAA", zoneIndex < 0 ? value : value.substring(0, zoneIndex));
                 }
             }
-            throw new BusinessException("节点没有可用的 IPv4 地址：" + host);
+            if (result.isEmpty() || (!includeIpv6 && !result.containsKey("A"))) {
+                throw new BusinessException("节点没有可用的 IP 地址：" + host);
+            }
+            return result;
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
@@ -924,6 +967,48 @@ public class SelfHostedCdnService {
         Map<String, String> secret = new LinkedHashMap<>();
         secret.put(key, value);
         return ConfigureRsaUtils.encryptConfigStr(secret);
+    }
+
+    private String encryptConfigJson(JSONObject config) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        if (config != null) {
+            values.putAll(config);
+        }
+        return ConfigureRsaUtils.encryptConfigStr(values);
+    }
+
+    private JSONObject defaultOriginConfig() {
+        JSONObject config = new JSONObject();
+        config.put("rangeStatus", "on");
+        config.put("etagStatus", "off");
+        config.put("originReceiveTimeout", 30);
+        config.put("followRedirectStatus", "off");
+        config.put("followRedirectMaxTimes", 1);
+        config.put("originRequestUrlRewrite", new JSONArray());
+        config.put("flexibleOrigins", new JSONArray());
+        config.put("originRequestHeader", new JSONArray());
+        return config;
+    }
+
+    private JSONObject defaultAdvancedConfig() {
+        JSONObject config = new JSONObject();
+        config.put("httpResponseHeaders", new JSONArray());
+        config.put("errorCodeRedirectRules", new JSONArray());
+        config.put("errorPages", new JSONArray());
+        JSONObject compress = new JSONObject();
+        compress.put("status", "on");
+        compress.put("type", "gzip");
+        config.put("compress", compress);
+        return config;
+    }
+
+    private JSONObject defaultHttpsConfig() {
+        JSONObject config = new JSONObject();
+        config.put("certificateName", "self-hosted");
+        config.put("http2Status", "on");
+        config.put("tlsVersion", "TLSv1.2,TLSv1.3");
+        config.put("ocspStaplingStatus", "off");
+        return config;
     }
 
     private String decryptSecret(String cipher, String key) {
