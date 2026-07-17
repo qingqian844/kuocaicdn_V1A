@@ -16,6 +16,7 @@ import com.kuocai.cdn.entity.SelfHostedDomainConfig;
 import com.kuocai.cdn.entity.SelfHostedGroupNode;
 import com.kuocai.cdn.entity.SysUser;
 import com.kuocai.cdn.enumeration.CacheTaskType;
+import com.kuocai.cdn.enumeration.domainmerage.CdnRoute;
 import com.kuocai.cdn.exception.CdnHuaweiException;
 import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.vo.cacheset.CacheTaskVo;
@@ -99,7 +100,8 @@ public class SelfHostedDomainCacheSettingServiceImpl implements ICdnCacheSetting
                 String host = new URI(url).getHost();
                 if (host == null) continue;
                 CdnDomain domain = cdnDomainDao.selectOne(new QueryWrapper<CdnDomain>()
-                        .eq("domain_name", host.toLowerCase()).eq("route", "self_hosted").last("LIMIT 1"));
+                        .eq("domain_name", host.toLowerCase())
+                        .in("route", CdnRoute.selfHostedCodes()).last("LIMIT 1"));
                 if (domain == null) continue;
                 SelfHostedDomainConfig config = domainConfigDao.selectOne(new QueryWrapper<SelfHostedDomainConfig>()
                         .eq("cdn_domain_id", domain.getId()).eq("status", "enabled").last("LIMIT 1"));

@@ -41,6 +41,9 @@ import static com.kuocai.cdn.constant.KuoCaiConstants.*;
 @Controller
 @Scope(value = "session")
 public class CdnManagePageController extends BaseController {
+    private static final String CACHE_HISTORY_PREFIX = "CacheHistory:v2:";
+    private static final int ACTIVE_HISTORY_CACHE_SECONDS = 10;
+    private static final int TERMINAL_HISTORY_CACHE_SECONDS = 300;
 
     @Resource
     private CacheTaskService cacheTaskService;
@@ -269,15 +272,13 @@ public class CdnManagePageController extends BaseController {
             userId = loginUserId;
         }
         try {
-            String key = String.format("%s:%s:%s:%s", CacheTaskType.PREHEATING, loginUserRoleCode, loginUserId, userId);
+            String key = cacheHistoryKey(CacheTaskType.PREHEATING, userId);
             String cacheData = JedisUtil.getStr(key);
             if (Assert.notEmpty(cacheData) && !"[]".equals(cacheData)) {
                 map.put("results", JSONArray.parseArray(cacheData));
             } else {
                 List<JSONObject> results = cacheTaskService.queryCdnInfos(CacheTaskType.PREHEATING, loginUserRoleCode, loginUserId, userId);
-                if (Assert.notEmpty(results)) {
-                    JedisUtil.setStr(key, JSONObject.toJSONString(results), 60 * 60 * 2);
-                }
+                cacheHistory(key, results);
                 map.put("results", results);
             }
             map.put("users", sysUserService.queryAll());
@@ -298,15 +299,13 @@ public class CdnManagePageController extends BaseController {
             userId = loginUserId;
         }
         try {
-            String key = String.format("%s:%s:%s:%s", CacheTaskType.REFRESH, loginUserRoleCode, loginUserId, userId);
+            String key = cacheHistoryKey(CacheTaskType.REFRESH, userId);
             String cacheData = JedisUtil.getStr(key);
             if (Assert.notEmpty(cacheData) && !"[]".equals(cacheData)) {
                 map.put("results", JSONArray.parseArray(cacheData));
             } else {
                 List<JSONObject> results = cacheTaskService.queryCdnInfos(CacheTaskType.REFRESH, loginUserRoleCode, loginUserId, userId);
-                if (Assert.notEmpty(results)) {
-                    JedisUtil.setStr(key, JSONObject.toJSONString(results), 60 * 60 * 2);
-                }
+                cacheHistory(key, results);
                 map.put("results", results);
             }
             map.put("users", sysUserService.queryAll());
@@ -315,5 +314,20 @@ public class CdnManagePageController extends BaseController {
             return "redirect:/500";
         }
         return "admin/cache/cache-history-refresh";
+    }
+
+    private String cacheHistoryKey(CacheTaskType taskType, Long userId) {
+        return String.format("%s%s:%s:%s:%s",
+                CACHE_HISTORY_PREFIX, taskType, loginUserRoleCode, loginUserId, userId);
+    }
+
+    private void cacheHistory(String key, List<JSONObject> results) {
+        if (Assert.isEmpty(results)) {
+            return;
+        }
+        boolean processing = results.stream()
+                .anyMatch(item -> "处理中".equals(item.getString("status")));
+        JedisUtil.setStr(key, JSONObject.toJSONString(results),
+                processing ? ACTIVE_HISTORY_CACHE_SECONDS : TERMINAL_HISTORY_CACHE_SECONDS);
     }
 }

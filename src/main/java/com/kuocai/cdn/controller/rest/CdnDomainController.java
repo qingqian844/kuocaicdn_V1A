@@ -20,7 +20,7 @@ import com.kuocai.cdn.dto.datatable.DataTableQuery;
 import com.kuocai.cdn.dto.resp.RespResult;
 import com.kuocai.cdn.entity.CdnDomain;
 import com.kuocai.cdn.entity.SysUser;
-import com.kuocai.cdn.enumeration.domainmerage.route.CdnOperationRoute;
+import com.kuocai.cdn.enumeration.domainmerage.CdnRoute;
 import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.service.CdnDomainService;
 import com.kuocai.cdn.service.EdgeOneDomainQuotaService;
@@ -193,6 +193,10 @@ public class CdnDomainController extends BaseController {
                 return RespResult.fail("当前用户已欠费或存在尚未支付的流量账单");
             }
         }
+        String fixedSelfHostedServiceArea = CdnRoute.selfHostedServiceArea(route);
+        if (fixedSelfHostedServiceArea != null) {
+            serviceArea = fixedSelfHostedServiceArea;
+        }
         // 参数校验
         if (Assert.isEmpty(domainName) || Assert.isEmpty(businessType) || Assert.isEmpty(serviceArea) || Assert.isEmpty(originType)) {
             return RespResult.paramEmpty();
@@ -217,7 +221,7 @@ public class CdnDomainController extends BaseController {
         }
         boolean edgeOneRoute = isTencentEdgeOneRoute();
         boolean edgeOneResume = false;
-        boolean selfHostedRoute = CdnOperationRoute.SELF_HOSTED.getRoute().equals(route);
+        boolean selfHostedRoute = CdnRoute.isSelfHosted(route);
         boolean selfHostedResume = false;
         CdnDomain existingDomain = cdnDomainService.queryByDomainName(domainName);
         if (Assert.notEmpty(existingDomain)) {
@@ -225,7 +229,7 @@ public class CdnDomainController extends BaseController {
                     && "tencent_edgeone".equals(existingDomain.getRoute())
                     && ObjectUtil.equal(loginUserId, existingDomain.getUserId());
             boolean ownedSelfHostedDomain = selfHostedRoute
-                    && CdnOperationRoute.SELF_HOSTED.getRoute().equals(existingDomain.getRoute())
+                    && CdnRoute.isSelfHosted(existingDomain.getRoute())
                     && ObjectUtil.equal(loginUserId, existingDomain.getUserId());
             if (!ownedEdgeOneDomain && !ownedSelfHostedDomain) {
                 return RespResult.fail("加速域名已创建，不可重复添加");
@@ -388,7 +392,7 @@ public class CdnDomainController extends BaseController {
         if (accessResult != null) {
             return accessResult;
         }
-        if (!CdnOperationRoute.SELF_HOSTED.getRoute().equals(cdnDomain.getRoute())) {
+        if (!CdnRoute.isSelfHosted(cdnDomain.getRoute())) {
             return RespResult.fail("仅自建 CDN 域名支持此重试操作");
         }
         if (!"configure_failed".equals(cdnDomain.getDomainStatus())) {

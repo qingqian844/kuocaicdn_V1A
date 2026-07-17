@@ -3,6 +3,7 @@ package com.kuocai.cdn.service;
 import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kuocai.cdn.dto.SelfHostedNodeSaveRequest;
+import com.kuocai.cdn.dto.SelfHostedHeartbeatRequest;
 import com.kuocai.cdn.dao.CdnDomainDao;
 import com.kuocai.cdn.dao.SelfHostedCacheJobDao;
 import com.kuocai.cdn.dao.SelfHostedCacheJobNodeDao;
@@ -13,6 +14,7 @@ import com.kuocai.cdn.dao.SelfHostedNodeGroupDao;
 import com.kuocai.cdn.entity.SelfHostedNode;
 import com.kuocai.cdn.entity.SelfHostedGroupNode;
 import com.kuocai.cdn.entity.SelfHostedDomainConfig;
+import com.kuocai.cdn.entity.SelfHostedNodeGroup;
 import com.kuocai.cdn.entity.CdnDomain;
 import com.kuocai.cdn.enumeration.domainmerage.CdnRoute;
 import com.kuocai.cdn.enumeration.domainmerage.route.CdnCacheSettingRoute;
@@ -25,6 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -41,6 +45,19 @@ class SelfHostedCdnRouteTest {
         assertEquals(route, CdnOperationRoute.convert(route).getRoute());
         assertEquals(route, CdnCacheSettingRoute.convert(route).getRoute());
         assertEquals(route, CdnStatisticsRoute.convert(route).getRoute());
+    }
+
+    @Test
+    void selfHostedProductRoutesMapToIndependentAreasAndCapabilities() {
+        assertSelfHostedProductRoute(CdnRoute.SELF_HOSTED_MAINLAND.getCode(),
+                "mainland", "mainland_china", "国内自建 CDN");
+        assertSelfHostedProductRoute(CdnRoute.SELF_HOSTED_OVERSEAS.getCode(),
+                "overseas", "outside_mainland_china", "海外自建 CDN");
+        assertSelfHostedProductRoute(CdnRoute.SELF_HOSTED_GLOBAL.getCode(),
+                "global", "global", "全球自建 CDN");
+        assertTrue(CdnRoute.isSelfHosted(CdnRoute.SELF_HOSTED.getCode()));
+        assertEquals(CdnRoute.SELF_HOSTED_OVERSEAS.getCode(),
+                CdnRoute.selfHostedRouteForServiceArea("outside_mainland_china"));
     }
 
     @Test
@@ -67,15 +84,22 @@ class SelfHostedCdnRouteTest {
     @Test
     void nodeListNeverExposesEncryptedPasswordOrAgentTokenHash() {
         SelfHostedNodeDao nodeDao = mock(SelfHostedNodeDao.class);
+        SelfHostedNodeGroupDao groupDao = mock(SelfHostedNodeGroupDao.class);
         SelfHostedGroupNodeDao groupNodeDao = mock(SelfHostedGroupNodeDao.class);
         when(nodeDao.selectList(any())).thenReturn(Collections.singletonList(SelfHostedNode.builder()
                 .id(1L).nodeName("edge-1").host("192.0.2.10").sshPort(22)
                 .sshPasswordCipher("encrypted-password").agentTokenHash("token-hash")
                 .enabled(1).status("pending").build()));
-        when(groupNodeDao.selectList(any())).thenReturn(Collections.emptyList());
+        when(groupNodeDao.selectList(any())).thenReturn(java.util.Arrays.asList(
+                SelfHostedGroupNode.builder().groupId(11L).nodeId(1L).build(),
+                SelfHostedGroupNode.builder().groupId(12L).nodeId(1L).build()));
+        when(groupDao.selectById(11L)).thenReturn(SelfHostedNodeGroup.builder()
+                .id(11L).groupName("海外节点组").coverage("overseas").build());
+        when(groupDao.selectById(12L)).thenReturn(SelfHostedNodeGroup.builder()
+                .id(12L).groupName("全球节点组").coverage("global").build());
 
         SelfHostedCdnService service = new SelfHostedCdnService(nodeDao,
-                mock(SelfHostedNodeGroupDao.class), groupNodeDao,
+                groupDao, groupNodeDao,
                 mock(SelfHostedDomainConfigDao.class), mock(SelfHostedCacheJobDao.class),
                 mock(SelfHostedCacheJobNodeDao.class), mock(CdnDomainDao.class));
 
@@ -84,6 +108,8 @@ class SelfHostedCdnRouteTest {
         assertFalse(json.contains("token-hash"));
         assertFalse(json.contains("sshPasswordCipher"));
         assertFalse(json.contains("agentTokenHash"));
+        assertTrue(json.contains("海外节点组、全球节点组"));
+        assertTrue(json.contains("\"groupIds\":[11,12]"));
     }
 
     @Test
@@ -98,7 +124,7 @@ class SelfHostedCdnRouteTest {
                         .certificateCipher("certificate-ciphertext")
                         .privateKeyCipher("private-key-ciphertext").status("enabled").build()));
         when(domainDao.selectById(4L)).thenReturn(CdnDomain.builder().id(4L).domainName("cdn.example.com")
-                .route("self_hosted").domainStatus("online").build());
+                .route(CdnRoute.SELF_HOSTED_OVERSEAS.getCode()).domainStatus("online").build());
         SelfHostedCdnService service = new SelfHostedCdnService(mock(SelfHostedNodeDao.class),
                 mock(SelfHostedNodeGroupDao.class), groupNodeDao, domainConfigDao,
                 mock(SelfHostedCacheJobDao.class), mock(SelfHostedCacheJobNodeDao.class), domainDao);
@@ -126,5 +152,96 @@ class SelfHostedCdnRouteTest {
 
         assertEquals("stored-certificate", config.getCertificateCipher());
         assertEquals("stored-private-key", config.getPrivateKeyCipher());
+    }
+
+    @Test
+    void heartbeatDoesNotDispatchCacheJobsBeforeLatestConfigIsApplied() {
+        SelfHostedCacheJobNodeDao cacheJobNodeDao = mock(SelfHostedCacheJobNodeDao.class);
+        SelfHostedCdnService service = new SelfHostedCdnService(mock(SelfHostedNodeDao.class),
+                mock(SelfHostedNodeGroupDao.class), mock(SelfHostedGroupNodeDao.class),
+                mock(SelfHostedDomainConfigDao.class), mock(SelfHostedCacheJobDao.class),
+                cacheJobNodeDao, mock(CdnDomainDao.class));
+        SelfHostedNode node = SelfHostedNode.builder().id(1L).desiredConfigVersion(8L)
+                .appliedConfigVersion(7L).enabled(1).build();
+        SelfHostedHeartbeatRequest request = new SelfHostedHeartbeatRequest();
+        request.setAppliedConfigVersion(7L);
+
+        String json = service.heartbeat(node, request).toJSONString();
+
+        assertTrue(json.contains("\"configChanged\":true"));
+        assertTrue(json.contains("\"cacheJobs\":[]"));
+        verify(cacheJobNodeDao, never()).selectList(any());
+    }
+
+    @Test
+    void heartbeatMarksConfiguredDomainOnlineAfterNodeAppliesLatestVersion() {
+        SelfHostedNodeDao nodeDao = mock(SelfHostedNodeDao.class);
+        SelfHostedGroupNodeDao groupNodeDao = mock(SelfHostedGroupNodeDao.class);
+        SelfHostedDomainConfigDao domainConfigDao = mock(SelfHostedDomainConfigDao.class);
+        SelfHostedCacheJobNodeDao cacheJobNodeDao = mock(SelfHostedCacheJobNodeDao.class);
+        CdnDomainDao domainDao = mock(CdnDomainDao.class);
+        when(groupNodeDao.selectList(any())).thenReturn(Collections.singletonList(
+                SelfHostedGroupNode.builder().groupId(2L).nodeId(1L).build()));
+        when(domainConfigDao.selectList(any())).thenReturn(Collections.singletonList(
+                SelfHostedDomainConfig.builder().cdnDomainId(4L).nodeGroupId(2L).status("enabled").build()));
+        CdnDomain domain = CdnDomain.builder().id(4L).domainName("cdn.example.com")
+                .route(CdnRoute.SELF_HOSTED.getCode()).cname("cdn.example.com.edge.test")
+                .domainStatus("configuring").build();
+        when(domainDao.selectById(4L)).thenReturn(domain);
+        when(cacheJobNodeDao.selectList(any())).thenReturn(Collections.emptyList());
+        SelfHostedCdnService service = new SelfHostedCdnService(nodeDao,
+                mock(SelfHostedNodeGroupDao.class), groupNodeDao, domainConfigDao,
+                mock(SelfHostedCacheJobDao.class), cacheJobNodeDao, domainDao);
+        SelfHostedNode node = SelfHostedNode.builder().id(1L).desiredConfigVersion(8L)
+                .appliedConfigVersion(7L).enabled(1).build();
+        SelfHostedHeartbeatRequest request = new SelfHostedHeartbeatRequest();
+        request.setAppliedConfigVersion(8L);
+
+        service.heartbeat(node, request);
+
+        assertEquals("online", domain.getDomainStatus());
+        verify(domainDao).updateById(domain);
+    }
+
+    @Test
+    void domainIsReadyOnlyWhenARecentEnabledNodeHasAppliedLatestVersion() throws Exception {
+        SelfHostedNodeDao nodeDao = mock(SelfHostedNodeDao.class);
+        SelfHostedGroupNodeDao groupNodeDao = mock(SelfHostedGroupNodeDao.class);
+        SelfHostedDomainConfigDao domainConfigDao = mock(SelfHostedDomainConfigDao.class);
+        when(domainConfigDao.selectOne(any())).thenReturn(SelfHostedDomainConfig.builder()
+                .cdnDomainId(4L).nodeGroupId(2L).status("enabled").build());
+        when(groupNodeDao.selectList(any())).thenReturn(Collections.singletonList(
+                SelfHostedGroupNode.builder().groupId(2L).nodeId(1L).build()));
+        when(nodeDao.selectById(1L)).thenReturn(SelfHostedNode.builder().id(1L).enabled(1)
+                .lastHeartbeat(new java.util.Date()).desiredConfigVersion(8L)
+                .appliedConfigVersion(8L).build());
+        SelfHostedCdnService service = new SelfHostedCdnService(nodeDao,
+                mock(SelfHostedNodeGroupDao.class), groupNodeDao, domainConfigDao,
+                mock(SelfHostedCacheJobDao.class), mock(SelfHostedCacheJobNodeDao.class),
+                mock(CdnDomainDao.class));
+
+        assertTrue(service.isDomainConfigurationApplied(4L));
+    }
+
+    @Test
+    void newAgentAppliesConfigurationBeforeProcessingCacheJobs() throws Exception {
+        String source = new String(Files.readAllBytes(Paths.get(
+                "src/main/resources/self-hosted/kuocai-edge-agent.py")), StandardCharsets.UTF_8);
+
+        assertTrue(source.indexOf("applied = apply_config(config, desired)")
+                < source.indexOf("process_cache_jobs(config, response.get(\"cacheJobs\"))"));
+        assertTrue(source.contains("\"agentVersion\": \"1.0.1\""));
+    }
+
+    private void assertSelfHostedProductRoute(String route, String coverage,
+                                              String serviceArea, String name) {
+        assertTrue(CdnRoute.isSelfHosted(route));
+        assertEquals(coverage, CdnRoute.selfHostedCoverage(route));
+        assertEquals(serviceArea, CdnRoute.selfHostedServiceArea(route));
+        assertEquals(route, CdnOperationRoute.convert(route).getRoute());
+        assertEquals(route, CdnCacheSettingRoute.convert(route).getRoute());
+        assertEquals(route, CdnStatisticsRoute.convert(route).getRoute());
+        assertTrue(LicenseVendorRegistry.isSupported(route));
+        assertEquals(name, LicenseVendorRegistry.getName(route));
     }
 }

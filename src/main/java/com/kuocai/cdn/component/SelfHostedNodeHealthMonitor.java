@@ -34,6 +34,11 @@ public class SelfHostedNodeHealthMonitor {
 
     private void reconcile() {
         try {
+            selfHostedCdnService.expireStaleCacheJobs();
+        } catch (Exception e) {
+            log.warn("Self-hosted CDN cache job reconciliation failed: {}", e.getMessage());
+        }
+        try {
             selfHostedCdnService.reconcileGroupDns();
         } catch (Exception e) {
             log.warn("Self-hosted CDN health reconciliation failed: {}", e.getMessage());

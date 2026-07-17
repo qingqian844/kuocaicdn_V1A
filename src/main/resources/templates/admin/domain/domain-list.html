@@ -718,7 +718,7 @@
                                     </button>`;
                         }
                         let canConfigure = row.domainStatus === 'online' || row.domainStatus === 'offline';
-                        let canRetrySelfHosted = row.route === 'self_hosted' && row.domainStatus === 'configure_failed';
+                        let canRetrySelfHosted = String(row.route || '').indexOf('self_hosted') === 0 && row.domainStatus === 'configure_failed';
                         let configButton = canRetrySelfHosted
                             ? `<button type="button" class="btn btn-white btn-sm" onclick="retrySelfHostedDomain('${row.id}', this)">
                                     <i class="bi-arrow-repeat"></i> 重试配置

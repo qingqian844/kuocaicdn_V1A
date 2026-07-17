@@ -38,7 +38,7 @@ public class CdnDomainCacheService {
         if (Assert.isEmpty(urls)) {
             return "";
         }
-        if (CdnRoute.SELF_HOSTED.getCode().equals(route)) {
+        if (CdnRoute.isSelfHosted(route)) {
             return purchaseTicketByDomainRoute(prefix, urls, taskType, type, loginUserId);
         }
         return purchaseTicketSingle(prefix, urls, taskType, type, loginUserId, route);
@@ -72,7 +72,7 @@ public class CdnDomainCacheService {
     private String purchaseTicketSingle(String prefix, List<String> urls, String taskType,
                                         String type, Long loginUserId, String route) throws CdnHuaweiException {
         try {
-            if (ObjectUtil.equal(route, CdnRoute.SELF_HOSTED.getCode())) {
+            if (CdnRoute.isSelfHosted(route)) {
                 return submitSelfHostedCacheTask(urls, taskType, type, loginUserId, route);
             }
             if (ObjectUtil.equal(route, CdnRoute.HUAWEI_VOLCENGINE.getCode())) {

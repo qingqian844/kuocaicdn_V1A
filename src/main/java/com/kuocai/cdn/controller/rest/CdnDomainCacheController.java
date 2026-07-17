@@ -236,6 +236,7 @@ public class CdnDomainCacheController extends BaseController {
 
         String key = String.format("%s:%s:%s:%s", CacheTaskType.PREHEATING, loginUserRoleCode, loginUserId, loginUserId);
         JedisUtil.delKey(key);
+        JedisUtil.delKey("CacheHistory:v2:" + key);
 
         for (String url : urls) {
             try {
@@ -275,7 +276,7 @@ public class CdnDomainCacheController extends BaseController {
                     baiduUrlList.add(url);
                 }
                 if (ObjectUtil.equal(route, CdnRoute.KINGSOFT.getCode())) kingsoftUrlList.add(url);
-                if (ObjectUtil.equal(route, CdnRoute.SELF_HOSTED.getCode())) selfHostedUrlList.add(url);
+                if (CdnRoute.isSelfHosted(route)) selfHostedUrlList.add(url);
             } catch (URISyntaxException e) {
                 return RespResult.fail("URL格式错误：" + url);
             }
@@ -378,6 +379,7 @@ public class CdnDomainCacheController extends BaseController {
 
         String key = String.format("%s:%s:%s:%s", CacheTaskType.REFRESH, loginUserRoleCode, loginUserId, loginUserId);
         JedisUtil.delKey(key);
+        JedisUtil.delKey("CacheHistory:v2:" + key);
 
         for (String url : urls) {
             try {
@@ -417,7 +419,7 @@ public class CdnDomainCacheController extends BaseController {
                     baiduUrlList.add(url);
                 }
                 if (ObjectUtil.equal(route, CdnRoute.KINGSOFT.getCode())) kingsoftUrlList.add(url);
-                if (ObjectUtil.equal(route, CdnRoute.SELF_HOSTED.getCode())) selfHostedUrlList.add(url);
+                if (CdnRoute.isSelfHosted(route)) selfHostedUrlList.add(url);
             } catch (URISyntaxException e) {
                 return RespResult.fail("URL格式错误：" + url);
             }

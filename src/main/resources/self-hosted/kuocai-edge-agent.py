@@ -262,7 +262,7 @@ def network_bytes():
 def heartbeat(config, applied, last_error):
     rx, tx = network_bytes()
     return api_request(config, "POST", "/api/self-hosted/agent/heartbeat", {
-        "agentVersion": "1.0.0",
+        "agentVersion": "1.0.1",
         "appliedConfigVersion": applied,
         "cpuUsage": 0,
         "memoryUsage": memory_percent(),
@@ -287,9 +287,10 @@ def process_cache_jobs(config, jobs):
                         raise ValueError("invalid preheat URL")
                     port = parsed.port or (443 if parsed.scheme == "https" else 80)
                     command = ["curl", "-fsS", "--max-time", "30", "-o", "/dev/null",
-                               "--resolve", "%s:%d:127.0.0.1" % (parsed.hostname, port), target]
+                               "--resolve", "%s:%d:127.0.0.1" % (parsed.hostname, port)]
                     if parsed.scheme == "https":
                         command.append("-k")
+                    command.append(target)
                     subprocess.check_call(command)
             api_request(config, "POST", "/api/self-hosted/agent/cache-result", {
                 "taskId": task_id, "success": True, "error": ""
@@ -308,11 +309,11 @@ def main():
     while True:
         try:
             response = heartbeat(config, applied, last_error)
-            process_cache_jobs(config, response.get("cacheJobs"))
             desired_version = int(response.get("desiredConfigVersion") or 0)
             if desired_version != applied:
                 desired = api_request(config, "GET", "/api/self-hosted/agent/config")
                 applied = apply_config(config, desired)
+            process_cache_jobs(config, response.get("cacheJobs"))
             last_error = ""
         except Exception as error:
             last_error = str(error)[:900]

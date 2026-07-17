@@ -1826,10 +1826,31 @@ function openUserFlowPriceUpdateModal(dataStr) {
     $('#userName').val(data.user.userName);
     $('#flowPrice').val(data.user.flowPrice);
     $('#maxDomainCount').val(data.user.maxDomainCount);
-    if ($('#route option[value="' + data.user.route + '"]').length > 0) {
-        $('#route').val(data.user.route);
+    const routeSelect = document.getElementById('route');
+    const routeTomSelect = routeSelect && routeSelect.tomselect ? routeSelect.tomselect : null;
+    if (routeTomSelect) {
+        routeTomSelect.removeOption('self_hosted');
+        if (data.user.route === 'self_hosted') {
+            routeTomSelect.addOption({
+                value: 'self_hosted',
+                text: '自建 CDN（旧版兼容）'
+            });
+        }
+        if (routeTomSelect.options[data.user.route]) {
+            routeTomSelect.setValue(data.user.route, true);
+        } else {
+            routeTomSelect.setValue(Object.keys(routeTomSelect.options)[0] || '', true);
+        }
     } else {
-        $('#route').val($('#route option:first').val());
+        $('#route option[value="self_hosted"]').remove();
+        if (data.user.route === 'self_hosted') {
+            $('#route').append('<option value="self_hosted">自建 CDN（旧版兼容）</option>');
+        }
+        if ($('#route option[value="' + data.user.route + '"]').length > 0) {
+            $('#route').val(data.user.route);
+        } else {
+            $('#route').val($('#route option:first').val());
+        }
     }
     // 赋值
     if (data.user.enableOverseas && data.user.enableOverseas == 1) {

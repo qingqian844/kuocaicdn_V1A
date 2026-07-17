@@ -26,6 +26,7 @@ public class SelfHostedNodeGroup implements Serializable {
     private Long id;
     private String groupName;
     private String cnameLabel;
+    private String coverage;
     private String dnsRecordIds;
     private Integer isDefault;
     private String status;

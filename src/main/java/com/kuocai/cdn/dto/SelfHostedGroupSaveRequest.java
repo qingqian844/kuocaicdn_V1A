@@ -9,6 +9,7 @@ public class SelfHostedGroupSaveRequest {
     private Long id;
     private String groupName;
     private String cnameLabel;
+    private String coverage;
     private Integer isDefault;
     private String status;
     private String remark;

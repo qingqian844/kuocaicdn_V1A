@@ -29,6 +29,7 @@ import com.kuocai.cdn.entity.SelfHostedDomainConfig;
 import com.kuocai.cdn.entity.SelfHostedGroupNode;
 import com.kuocai.cdn.entity.SelfHostedNode;
 import com.kuocai.cdn.entity.SelfHostedNodeGroup;
+import com.kuocai.cdn.enumeration.domainmerage.CdnRoute;
 import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.util.ConfigureRsaUtils;
@@ -42,12 +43,15 @@ import java.net.InetAddress;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 @Slf4j
@@ -59,6 +63,11 @@ public class SelfHostedCdnService {
     private static final Pattern USER_PATTERN = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_-]{0,63}$");
     private static final Pattern LABEL_PATTERN = Pattern.compile("^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$");
     private static final long OFFLINE_AFTER_MS = 90_000L;
+    private static final long CACHE_JOB_TIMEOUT_MS = 10 * 60_000L;
+    private static final long CONFIG_APPLY_POLL_MS = 1_000L;
+    private static final String LEGACY_COVERAGE = "legacy";
+    private static final List<String> GROUP_COVERAGES = Arrays.asList(
+            LEGACY_COVERAGE, "mainland", "overseas", "global");
 
     private final SelfHostedNodeDao nodeDao;
     private final SelfHostedNodeGroupDao groupDao;
@@ -108,11 +117,20 @@ public class SelfHostedCdnService {
             item.put("passwordConfigured", !Assert.isEmpty(node.getSshPasswordCipher()));
             List<SelfHostedGroupNode> relations = groupNodeDao.selectList(
                     new QueryWrapper<SelfHostedGroupNode>().eq("node_id", node.getId()).orderByAsc("id"));
+            List<Long> groupIds = new ArrayList<>();
+            List<String> groupNames = new ArrayList<>();
             if (!relations.isEmpty()) {
-                SelfHostedNodeGroup group = groupDao.selectById(relations.get(0).getGroupId());
-                if (group != null) {
-                    item.put("groupId", group.getId());
-                    item.put("groupName", group.getGroupName());
+                for (SelfHostedGroupNode relation : relations) {
+                    SelfHostedNodeGroup group = groupDao.selectById(relation.getGroupId());
+                    if (group != null) {
+                        groupIds.add(group.getId());
+                        groupNames.add(group.getGroupName());
+                    }
+                }
+                if (!groupIds.isEmpty()) {
+                    item.put("groupId", groupIds.get(0));
+                    item.put("groupIds", groupIds);
+                    item.put("groupName", String.join("、", groupNames));
                 }
             }
             result.add(item);
@@ -126,9 +144,28 @@ public class SelfHostedCdnService {
 
     public SelfHostedNodeGroup defaultGroup() throws BusinessException {
         SelfHostedNodeGroup group = groupDao.selectOne(new QueryWrapper<SelfHostedNodeGroup>()
-                .eq("is_default", 1).eq("status", "enabled").last("LIMIT 1"));
+                .eq("coverage", LEGACY_COVERAGE).eq("is_default", 1)
+                .eq("status", "enabled").last("LIMIT 1"));
+        if (group == null) {
+            group = groupDao.selectOne(new QueryWrapper<SelfHostedNodeGroup>()
+                    .eq("is_default", 1).eq("status", "enabled").last("LIMIT 1"));
+        }
         if (group == null) {
             throw new BusinessException("请先创建并启用一个默认自建 CDN 节点组");
+        }
+        return group;
+    }
+
+    public SelfHostedNodeGroup defaultGroup(String route) throws BusinessException {
+        String coverage = CdnRoute.selfHostedCoverage(route);
+        if (coverage == null) {
+            return defaultGroup();
+        }
+        SelfHostedNodeGroup group = groupDao.selectOne(new QueryWrapper<SelfHostedNodeGroup>()
+                .eq("coverage", coverage).eq("is_default", 1)
+                .eq("status", "enabled").last("LIMIT 1"));
+        if (group == null) {
+            throw new BusinessException("请先创建并启用一个“" + coverageName(coverage) + "”默认节点组");
         }
         return group;
     }
@@ -178,9 +215,31 @@ public class SelfHostedCdnService {
         } else {
             nodeDao.updateById(node);
         }
-        Long targetGroupId = request.getGroupId() == null ? defaultGroup().getId() : request.getGroupId();
+        List<SelfHostedGroupNode> oldRelations = groupNodeDao.selectList(
+                new QueryWrapper<SelfHostedGroupNode>().eq("node_id", node.getId()));
+        Set<Long> targetGroupIds = new LinkedHashSet<>();
+        if (request.getGroupIds() != null) {
+            for (Long groupId : request.getGroupIds()) {
+                if (groupId != null) {
+                    targetGroupIds.add(groupId);
+                }
+            }
+        }
+        if (targetGroupIds.isEmpty() && request.getGroupId() != null) {
+            targetGroupIds.add(request.getGroupId());
+        }
+        if (targetGroupIds.isEmpty()) {
+            targetGroupIds.add(defaultGroup().getId());
+        }
         groupNodeDao.delete(new QueryWrapper<SelfHostedGroupNode>().eq("node_id", node.getId()));
-        assignNode(node.getId(), targetGroupId);
+        for (Long targetGroupId : targetGroupIds) {
+            assignNode(node.getId(), targetGroupId);
+        }
+        for (SelfHostedGroupNode oldRelation : oldRelations) {
+            if (!targetGroupIds.contains(oldRelation.getGroupId())) {
+                bumpGroupVersion(oldRelation.getGroupId());
+            }
+        }
         return nodeDao.selectById(node.getId());
     }
 
@@ -206,12 +265,7 @@ public class SelfHostedCdnService {
         if (request.getId() != null && group == null) {
             throw new BusinessException("节点组不存在");
         }
-        if (group != null && group.getIsDefault() != null && group.getIsDefault() == 1
-                && (request.getIsDefault() == null || request.getIsDefault() == 0)
-                && groupDao.selectCount(new QueryWrapper<SelfHostedNodeGroup>()
-                .eq("is_default", 1).ne("id", group.getId())) == 0) {
-            throw new BusinessException("请先将其他节点组设为默认组");
-        }
+        String coverage = normalizeCoverage(request.getCoverage(), group);
         Date now = new Date();
         if (group == null) {
             group = new SelfHostedNodeGroup();
@@ -219,12 +273,14 @@ public class SelfHostedCdnService {
         }
         group.setGroupName(request.getGroupName().trim());
         group.setCnameLabel(label);
+        group.setCoverage(coverage);
         group.setIsDefault(request.getIsDefault() == null ? 0 : request.getIsDefault());
         group.setStatus(Assert.isEmpty(request.getStatus()) ? "enabled" : request.getStatus());
         group.setRemark(trim(request.getRemark()));
         group.setUpdateTime(now);
         if (group.getIsDefault() == 1) {
-            groupDao.update(null, new UpdateWrapper<SelfHostedNodeGroup>().set("is_default", 0));
+            groupDao.update(null, new UpdateWrapper<SelfHostedNodeGroup>()
+                    .eq("coverage", coverage).set("is_default", 0));
         }
         if (group.getId() == null) {
             groupDao.insert(group);
@@ -334,11 +390,15 @@ public class SelfHostedCdnService {
         node.setLastError(trim(request.getLastError()));
         node.setUpdateTime(new Date());
         nodeDao.updateById(node);
+        boolean configCurrent = isNodeConfigCurrent(node);
+        if (configCurrent) {
+            reconcileAppliedDomains(node);
+        }
         JSONObject response = new JSONObject();
         response.put("desiredConfigVersion", node.getDesiredConfigVersion());
-        response.put("configChanged", !safeEquals(node.getDesiredConfigVersion(), node.getAppliedConfigVersion()));
+        response.put("configChanged", !configCurrent);
         response.put("heartbeatIntervalSeconds", 30);
-        response.put("cacheJobs", pendingCacheJobs(node.getId()));
+        response.put("cacheJobs", configCurrent ? pendingCacheJobs(node.getId()) : new JSONArray());
         return response;
     }
 
@@ -400,7 +460,7 @@ public class SelfHostedCdnService {
                             .eq("status", "enabled"));
             for (SelfHostedDomainConfig config : configs) {
                 CdnDomain domain = cdnDomainDao.selectById(config.getCdnDomainId());
-                if (domain == null || !"self_hosted".equals(domain.getRoute()) || "offline".equals(domain.getDomainStatus())) {
+                if (domain == null || !CdnRoute.isSelfHosted(domain.getRoute()) || "offline".equals(domain.getDomainStatus())) {
                     continue;
                 }
                 JSONObject item = (JSONObject) JSON.toJSON(config);
@@ -428,12 +488,66 @@ public class SelfHostedCdnService {
         }
         node.setUpdateTime(new Date());
         nodeDao.updateById(node);
+        if (Boolean.TRUE.equals(request.getSuccess()) && isNodeConfigCurrent(node)) {
+            reconcileAppliedDomains(node);
+        }
+    }
+
+    public boolean isDomainConfigurationApplied(Long cdnDomainId) throws BusinessException {
+        SelfHostedDomainConfig config = getDomainConfig(cdnDomainId);
+        long now = System.currentTimeMillis();
+        for (SelfHostedNode node : nodesInGroup(config.getNodeGroupId(), true)) {
+            if (node.getLastHeartbeat() != null
+                    && now - node.getLastHeartbeat().getTime() <= OFFLINE_AFTER_MS
+                    && isNodeConfigCurrent(node)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean waitForDomainConfigurationApplied(Long cdnDomainId, long timeoutMs) throws BusinessException {
+        long deadline = System.currentTimeMillis() + Math.max(0L, timeoutMs);
+        while (System.currentTimeMillis() <= deadline) {
+            if (isDomainConfigurationApplied(cdnDomainId)) {
+                return true;
+            }
+            try {
+                Thread.sleep(CONFIG_APPLY_POLL_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new BusinessException("等待节点配置下发时任务被中断");
+            }
+        }
+        return false;
+    }
+
+    public void expireStaleCacheJobs() {
+        Date cutoff = new Date(System.currentTimeMillis() - CACHE_JOB_TIMEOUT_MS);
+        List<SelfHostedCacheJob> jobs = cacheJobDao.selectList(new QueryWrapper<SelfHostedCacheJob>()
+                .in("status", "pending", "processing").lt("update_time", cutoff));
+        for (SelfHostedCacheJob job : jobs) {
+            cacheJobNodeDao.update(null, new UpdateWrapper<SelfHostedCacheJobNode>()
+                    .eq("job_id", job.getId()).in("status", "pending", "processing")
+                    .set("status", "failed")
+                    .set("last_error", "节点在规定时间内未返回缓存任务结果")
+                    .set("update_time", new Date()));
+            int success = cacheJobNodeDao.selectCount(new QueryWrapper<SelfHostedCacheJobNode>()
+                    .eq("job_id", job.getId()).eq("status", "completed")).intValue();
+            int failed = cacheJobNodeDao.selectCount(new QueryWrapper<SelfHostedCacheJobNode>()
+                    .eq("job_id", job.getId()).eq("status", "failed")).intValue();
+            job.setSuccessNodes(success);
+            job.setFailedNodes(failed);
+            job.setStatus("failed");
+            job.setUpdateTime(new Date());
+            cacheJobDao.updateById(job);
+        }
     }
 
     public SelfHostedDomainConfig createDomainConfig(CdnDomain domain, String originType, String originAddress,
                                                       String originProtocol, Integer httpPort, Integer httpsPort,
                                                       String originHost) throws BusinessException {
-        SelfHostedNodeGroup group = defaultGroup();
+        SelfHostedNodeGroup group = defaultGroup(domain.getRoute());
         requireActiveNode(group.getId());
         Date now = new Date();
         SelfHostedDomainConfig config = SelfHostedDomainConfig.builder()
@@ -460,7 +574,7 @@ public class SelfHostedCdnService {
 
     public SelfHostedDomainConfig getDomainConfigByName(String domainName) throws BusinessException {
         CdnDomain domain = cdnDomainDao.selectOne(new QueryWrapper<CdnDomain>()
-                .eq("domain_name", domainName).eq("route", "self_hosted").last("LIMIT 1"));
+                .eq("domain_name", domainName).in("route", CdnRoute.selfHostedCodes()).last("LIMIT 1"));
         if (domain == null) {
             throw new BusinessException("自建 CDN 域名不存在");
         }
@@ -715,17 +829,73 @@ public class SelfHostedCdnService {
     }
 
     private void bumpGroupVersion(Long groupId) {
-        long version = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
         List<SelfHostedNode> nodes = nodesInGroup(groupId, false);
         for (SelfHostedNode node : nodes) {
+            long current = node.getDesiredConfigVersion() == null ? 0L : node.getDesiredConfigVersion();
+            long version = Math.max(now, current + 1L);
             node.setDesiredConfigVersion(version);
             node.setUpdateTime(new Date());
             nodeDao.updateById(node);
         }
     }
 
+    private boolean isNodeConfigCurrent(SelfHostedNode node) {
+        return node != null
+                && node.getDesiredConfigVersion() != null
+                && node.getDesiredConfigVersion() > 0
+                && safeEquals(node.getDesiredConfigVersion(), node.getAppliedConfigVersion());
+    }
+
+    private void reconcileAppliedDomains(SelfHostedNode node) {
+        List<SelfHostedGroupNode> relations = groupNodeDao.selectList(
+                new QueryWrapper<SelfHostedGroupNode>().eq("node_id", node.getId()));
+        Set<Long> processedDomainIds = new LinkedHashSet<>();
+        for (SelfHostedGroupNode relation : relations) {
+            List<SelfHostedDomainConfig> configs = domainConfigDao.selectList(
+                    new QueryWrapper<SelfHostedDomainConfig>().eq("node_group_id", relation.getGroupId())
+                            .eq("status", "enabled"));
+            for (SelfHostedDomainConfig config : configs) {
+                if (!processedDomainIds.add(config.getCdnDomainId())) {
+                    continue;
+                }
+                CdnDomain domain = cdnDomainDao.selectById(config.getCdnDomainId());
+                if (domain == null || !CdnRoute.isSelfHosted(domain.getRoute())
+                        || !"configuring".equals(domain.getDomainStatus()) || Assert.isEmpty(domain.getCname())) {
+                    continue;
+                }
+                domain.setDomainStatus("online");
+                domain.setUpdateTime(new Date());
+                cdnDomainDao.updateById(domain);
+            }
+        }
+    }
+
     private int normalizePort(Integer port) {
         return port == null ? 22 : port;
+    }
+
+    private String normalizeCoverage(String coverage, SelfHostedNodeGroup existing) throws BusinessException {
+        String normalized = Assert.isEmpty(coverage)
+                ? (existing == null || Assert.isEmpty(existing.getCoverage()) ? "global" : existing.getCoverage())
+                : coverage.trim().toLowerCase();
+        if (!GROUP_COVERAGES.contains(normalized)) {
+            throw new BusinessException("节点组服务区域不正确");
+        }
+        return normalized;
+    }
+
+    private String coverageName(String coverage) {
+        if ("mainland".equals(coverage)) {
+            return "国内自建 CDN";
+        }
+        if ("overseas".equals(coverage)) {
+            return "海外自建 CDN";
+        }
+        if ("global".equals(coverage)) {
+            return "全球自建 CDN";
+        }
+        return "旧版自建 CDN";
     }
 
     private String resolveIpv4(String host) throws BusinessException {

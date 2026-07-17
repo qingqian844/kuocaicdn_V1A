@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.ToString;
 
+import java.util.List;
+
 @Data
 public class SelfHostedNodeSaveRequest {
     private Long id;
@@ -20,5 +22,6 @@ public class SelfHostedNodeSaveRequest {
     private Integer weight;
     private Integer enabled;
     private Long groupId;
+    private List<Long> groupIds;
     private String remark;
 }

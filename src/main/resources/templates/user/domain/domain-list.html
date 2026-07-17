@@ -493,7 +493,11 @@
             aliyun: '阿里云 CDN',
             baidu: '百度云 CDN',
             wangsu: '网宿 CDN',
-            kingsoft: '金山云 CDN'
+            kingsoft: '金山云 CDN',
+            self_hosted: '自建 CDN',
+            self_hosted_mainland: '国内自建 CDN',
+            self_hosted_overseas: '海外自建 CDN',
+            self_hosted_global: '全球自建 CDN'
         };
         return routeNames[route] || route || '-';
     }
@@ -673,7 +677,7 @@
                                     </button>`;
                         }
                         let canConfigure = row.domainStatus === 'online' || row.domainStatus === 'offline';
-                        let canRetrySelfHosted = row.route === 'self_hosted' && row.domainStatus === 'configure_failed';
+                        let canRetrySelfHosted = String(row.route || '').indexOf('self_hosted') === 0 && row.domainStatus === 'configure_failed';
                         let configButton = canRetrySelfHosted
                             ? `<button type="button" class="btn btn-white btn-sm" onclick="retrySelfHostedDomain('${row.id}', this)">
                                     <i class="bi-arrow-repeat"></i> 重试配置

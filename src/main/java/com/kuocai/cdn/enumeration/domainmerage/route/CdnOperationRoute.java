@@ -32,7 +32,10 @@ public enum CdnOperationRoute {
     ALIYUN(CdnRoute.ALIYUN.getCode(), "阿里云", () -> SpringUtil.getBean(AliyunDomainServiceImpl.class)),
     BAIDU(CdnRoute.BAIDU.getCode(), "百度云", () -> SpringUtil.getBean(BaiduDomainServiceImpl.class)),
     KINGSOFT(CdnRoute.KINGSOFT.getCode(), "金山云", () -> SpringUtil.getBean(KingsoftDomainServiceImpl.class)),
-    SELF_HOSTED(CdnRoute.SELF_HOSTED.getCode(), "自建 CDN", () -> SpringUtil.getBean(SelfHostedDomainServiceImpl.class));
+    SELF_HOSTED(CdnRoute.SELF_HOSTED.getCode(), "自建 CDN", () -> SpringUtil.getBean(SelfHostedDomainServiceImpl.class)),
+    SELF_HOSTED_MAINLAND(CdnRoute.SELF_HOSTED_MAINLAND.getCode(), "国内自建 CDN", () -> SpringUtil.getBean(SelfHostedDomainServiceImpl.class)),
+    SELF_HOSTED_OVERSEAS(CdnRoute.SELF_HOSTED_OVERSEAS.getCode(), "海外自建 CDN", () -> SpringUtil.getBean(SelfHostedDomainServiceImpl.class)),
+    SELF_HOSTED_GLOBAL(CdnRoute.SELF_HOSTED_GLOBAL.getCode(), "全球自建 CDN", () -> SpringUtil.getBean(SelfHostedDomainServiceImpl.class));
 
     /**
      * 路由编码
