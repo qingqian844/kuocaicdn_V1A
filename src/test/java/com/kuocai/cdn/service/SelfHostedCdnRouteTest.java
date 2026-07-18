@@ -249,6 +249,7 @@ class SelfHostedCdnRouteTest {
         assertTrue(source.contains("\"agentVersion\": \"1.2.0\""));
         assertTrue(source.contains("listen 80 default_server"));
         assertTrue(source.contains("return 444"));
+        assertTrue(source.contains("remove_distribution_default_server"));
     }
 
     @Test

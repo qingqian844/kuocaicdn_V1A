@@ -639,6 +639,7 @@ def install_base_config():
                 os.unlink(default_path)
         except OSError:
             pass
+    remove_distribution_default_server()
     path = "/etc/nginx/conf.d/kuocai-edge-base.conf"
     content = """proxy_cache_path /var/cache/kuocai-cdn levels=1:2 keys_zone=kuocai_edge_cache:100m max_size=50g inactive=7d use_temp_path=off;
 log_format kuocai_edge '$msec $host $status $body_bytes_sent $upstream_cache_status $request_time';
@@ -652,6 +653,42 @@ server {
     if not os.path.exists(path) or open(path, "r", encoding="utf-8").read() != content:
         with open(path, "w", encoding="utf-8") as stream:
             stream.write(content)
+
+
+def remove_distribution_default_server():
+    path = "/etc/nginx/nginx.conf"
+    if not os.path.exists(path):
+        return
+    try:
+        with open(path, "r", encoding="utf-8") as stream:
+            lines = stream.readlines()
+        kept = []
+        index = 0
+        changed = False
+        while index < len(lines):
+            if lines[index].strip() != "server {":
+                kept.append(lines[index])
+                index += 1
+                continue
+            end = index
+            depth = 0
+            while end < len(lines):
+                depth += lines[end].count("{") - lines[end].count("}")
+                end += 1
+                if depth == 0:
+                    break
+            block = "".join(lines[index:end])
+            if "server_name  _;" in block and "root         /usr/share/nginx/html;" in block:
+                changed = True
+                index = end
+            else:
+                kept.extend(lines[index:end])
+                index = end
+        if changed:
+            with open(path, "w", encoding="utf-8") as stream:
+                stream.writelines(kept)
+    except (OSError, UnicodeError):
+        return
 
 
 def ensure_stream_module():
