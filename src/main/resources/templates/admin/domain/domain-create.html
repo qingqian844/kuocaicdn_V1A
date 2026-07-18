@@ -418,14 +418,17 @@
                                     </label>
                                 </div>
 
-                                <div th:if='${route != "baishan" and route != "tencent_edgeone" and route != "self_hosted_mainland" and route != "self_hosted_overseas" and route != "self_hosted_global"}' class="input-group input-group-sm-vertical">
+                                <div th:if='${route != "baishan" and route != "tencent_edgeone" and route != "self_hosted_mainland" and route != "self_hosted_overseas" and route != "self_hosted_global"}'
+                                     th:with="currentWebsiteName=${openAgent and agentConfig != null and !#strings.isEmpty(agentConfig.websiteName) ? agentConfig.websiteName : websiteBaseConfig.websiteName}"
+                                     class="input-group input-group-sm-vertical">
                                     <label class="form-control" for="serviceAreaMainlandChina">
                                     <span class="form-check">
                                         <input type="radio" class="form-check-input" name="serviceArea"
                                                id="serviceAreaMainlandChina" checked value="mainland_china">
 
                                         <span class="form-check-label">中国大陆</span>
-                                        <i class="bi-question-circle text-body ms-1" title="所有用户均使用括彩云中国境内节点就近提供加速服务；选择该加速区域时，加速域名需为已备案域名。"></i>
+                                        <i class="bi-question-circle text-body ms-1"
+                                           th:title="|所有用户均使用${currentWebsiteName}中国境内节点就近提供加速服务；选择该加速区域时，加速域名需为已备案域名。|"></i>
                                     </span>
                                 </label>
                                     <label class="form-control" for="serviceAreaOutSideMainlandChina" th:if="${enableOverseas == 1}">
