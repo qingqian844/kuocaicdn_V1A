@@ -304,14 +304,41 @@ async function loginAdmin() {
 /**
  * 退出登录
  */
-async function logout() {
-    let data = await sendRequest("POST", "logout", {});
-    autoLayer(data)
-    console.log(data);
-    if (data['code'] === 'SUCCESS') {
-        setTimeout(function() {
-            window.location.href = '.'
-        }, 1000);
+let logoutInProgress = false;
+
+async function logout(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    if (logoutInProgress) {
+        return;
+    }
+
+    logoutInProgress = true;
+    const button = event && event.currentTarget
+        ? event.currentTarget
+        : document.getElementById('logoutButton');
+    if (button) {
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+    }
+
+    try {
+        const data = await sendRequest("POST", "logout", {}, undefined, false);
+        if (data && data['code'] === 'SUCCESS') {
+            window.location.replace('.');
+            return;
+        }
+        autoLayer(data);
+    } catch (error) {
+        console.error('Logout request failed', error);
+    } finally {
+        logoutInProgress = false;
+        if (button) {
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+        }
     }
 }
 
