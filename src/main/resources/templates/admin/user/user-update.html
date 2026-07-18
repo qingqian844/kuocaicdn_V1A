@@ -431,50 +431,6 @@
 
                                     <!-- End Form -->
                                     <div class="row mb-4">
-                                        <label class="col-sm-3 col-form-label form-label">代理等级</label>
-
-                                        <div class="col-sm-9">
-                                            <!-- Select -->
-                                            <div class="tom-select-custom">
-                                                <select class="js-select form-select" autocomplete="off" id="agentLevel"
-                                                        data-hs-tom-select-options='{
-                                                          "placeholder": "选择代理等级",
-                                                          "hideSearch": true
-                                                        }'>
-                                                    <option value="">无代理权限</option>
-                                                    <option th:each="a: ${agentLevelList}" th:value="${a.id}"
-                                                            th:selected="${a.id == consumer.agentLevelId}"
-                                                            th:text="${a.name}"></option>
-                                                </select>
-                                            </div>
-                                            <!-- End Select -->
-                                        </div>
-                                    </div>
-
-                                    <!-- End Form -->
-                                    <div class="row mb-4">
-                                        <label class="col-sm-3 col-form-label form-label">上级代理</label>
-
-                                        <div class="col-sm-9">
-                                            <!-- Select -->
-                                            <div class="tom-select-custom">
-                                                <select class="js-select form-select" autocomplete="off" id="agentUserId"
-                                                        data-hs-tom-select-options='{
-                                                          "placeholder": "选择上级代理用户"
-                                                        }'>
-                                                    <option value="">无上级代理</option>
-                                                    <option th:each="a: ${agents}" th:value="${a.id}"
-                                                            th:selected="${a.id == consumer.agentUserId}">
-                                                        [[${a.userName}]] [[${a.phone}]] [[${a.email}]]
-                                                    </option>
-                                                </select>
-                                            </div>
-                                            <!-- End Select -->
-                                        </div>
-                                    </div>
-
-                                    <!-- End Form -->
-                                    <div class="row mb-4">
                                         <label class="col-sm-3 col-form-label form-label">自动结算</label>
 
                                         <div class="col-sm-9">
@@ -550,64 +506,6 @@
                 <!-- End Row -->
             </form>
             <!-- End Step Form -->
-            <div class="col-lg-8 mt-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title h4">EdgeOne根域名额度</h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="row text-center mb-4" th:if="${edgeOneQuotaSummary != null}">
-                            <div class="col">
-                                <span class="d-block h3 mb-0">[[${edgeOneQuotaSummary.totalQuota}]]</span>
-                                <span class="d-block text-muted">总额度</span>
-                            </div>
-                            <div class="col">
-                                <span class="d-block h3 mb-0">[[${edgeOneQuotaSummary.usedQuota}]]</span>
-                                <span class="d-block text-muted">已用</span>
-                            </div>
-                            <div class="col">
-                                <span class="d-block h3 mb-0">[[${edgeOneQuotaSummary.remainingQuota}]]</span>
-                                <span class="d-block text-muted">剩余</span>
-                            </div>
-                            <div class="col">
-                                <span class="d-block h3 mb-0">[[${edgeOneQuotaSummary.paidQuota}]]</span>
-                                <span class="d-block text-muted">付费额度</span>
-                            </div>
-                            <div class="col">
-                                <span class="d-block h3 mb-0">[[${edgeOneQuotaSummary.packageQuota}]]</span>
-                                <span class="d-block text-muted">套餐赠送</span>
-                            </div>
-                        </div>
-                        <div class="alert alert-soft-warning mb-4"
-                             th:if="${edgeOneQuotaSummary != null and edgeOneQuotaSummary.overQuota}">
-                            当前用户已超出EdgeOne根域名额度，已有域名不会自动删除，但会限制继续新增。
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-sm table-thead-bordered table-nowrap table-align-middle mb-0">
-                                <thead class="thead-light">
-                                <tr>
-                                    <th>根域名</th>
-                                    <th>首次绑定域名</th>
-                                    <th>状态</th>
-                                    <th>创建时间</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr th:if="${#lists.isEmpty(edgeOneRootDomainRecords)}">
-                                    <td colspan="4" class="text-center text-muted">暂无已绑定的EdgeOne根域名</td>
-                                </tr>
-                                <tr th:each="record : ${edgeOneRootDomainRecords}">
-                                    <td>[[${record.rootDomain}]]</td>
-                                    <td>[[${record.firstDomainName}]]</td>
-                                    <td><span class="badge bg-success">[[${record.status}]]</span></td>
-                                    <td>[[${#dates.format(record.createTime, 'yyyy-MM-dd HH:mm')}]]</td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
     <!-- End Content -->
@@ -695,8 +593,6 @@
                     let idCardNum = $("#idCardNum").val()
                     let flowPrice = $("#flowPrice").val()
                     let role = $("#roleSelect option:checked").val()
-                    let agentLevel = $("#agentLevel option:checked").val()
-                    let agentUserId = $("#agentUserId option:checked").val()
                     let autoBalance = $("#autoBalance option:checked").val()
                     console.log(autoBalance)
                     // 1是没有修改
@@ -738,8 +634,6 @@
                     params.append("flowPrice", flowPrice)
                     params.append("idCardNum", idCardNum)
                     params.append("type", type)
-                    params.append("agentLevelId", agentLevel)
-                    params.append("agentUserId", agentUserId)
                     params.append("autoBalance", autoBalance)
                     console.log(params)
                     let data = await sendFileUploadRequest(

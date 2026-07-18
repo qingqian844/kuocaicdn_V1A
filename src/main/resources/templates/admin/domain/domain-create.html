@@ -253,23 +253,6 @@
 
                         <!-- Body -->
                         <div class="card-body">
-                            <div class="alert alert-soft-primary d-flex justify-content-between align-items-center"
-                                 th:if="${edgeOneQuotaSummary != null and edgeOneQuotaSummary.enabled}">
-                                <div>
-                                EdgeOne根域名额度：
-                                总额度 <strong>[[${edgeOneQuotaSummary.totalQuota}]]</strong> 个，
-                                已用 <strong>[[${edgeOneQuotaSummary.usedQuota}]]</strong> 个，
-                                剩余 <strong>[[${edgeOneQuotaSummary.remainingQuota}]]</strong> 个；
-                                超出后单价 <strong>[[${edgeOneQuotaSummary.unitPrice}]]</strong> 元/个，
-                                有效期 <strong>[[${edgeOneQuotaSummary.quotaValidDays}]]</strong> 天。
-                                </div>
-                                <button type="button" class="btn btn-sm btn-primary ms-3"
-                                        th:if="${edgeOneQuotaSummary.remainingQuota <= 0}"
-                                        th:onclick="|showEdgeOneQuotaModal({data:{summary:{unitPrice:${edgeOneQuotaSummary.unitPrice},quotaValidDays:${edgeOneQuotaSummary.quotaValidDays}}}})|">购买额度</button>
-                            </div>
-                            <div class="alert alert-danger" th:if="${routeAuthorized == false}">
-                                当前用户 CDN 路线未授权：<span th:text="${licenseVendorNameMap[route] != null ? licenseVendorNameMap[route] : route}">route</span>
-                            </div>
                             <!-- Form -->
                             <div class="mb-4">
                                 <label for="domainName" class="form-label">加速域名 <i
@@ -530,9 +513,7 @@
                                 <a id="cancelDomainCreateBtn" class="btn btn-outline-danger" style="margin: 0px 5px" href="domain-list">
                                     取消
                                 </a>
-                                <button id="createDomainBtn" type="button" class="btn btn-primary"
-                                        th:disabled="${routeAuthorized == false}"
-                                        onclick="createDomain()">
+                                <button id="createDomainBtn" type="button" class="btn btn-primary" onclick="createDomain()">
                                 创建
                             </button>
                                 <span style="display: none" id="verifyCode" th:text="${verifyCode}"></span>

@@ -320,16 +320,10 @@
                                                       "dropdownWidth": "10rem"
                                                     }'>
                                                 <option value="all">全部</option>
-                                                <option value="flow_package">流量包购买</option>
                                                 <option value="balance_deduction">余额扣款</option>
-                                                <option value="balance_withdrawal">余额提现</option>
-                                                <option value="balance_recharge">余额充值</option>
                                                 <option value="admin_balance_recharge">管理员充值</option>
                                                 <option value="admin_balance_deduction">管理员扣款</option>
-                                                <option value="flow_deduction">流量账单扣款</option>
-                                                <option value="recommendation_reward">注册推荐奖励</option>
-                                                <option value="flow_package_profit">流量包分润</option>
-                                                <option value="flow_order_profit">流量订单分润</option>
+                                                <option value="flow_deduction">按量流量账单</option>
 
                                             </select>
                                         </div>
@@ -642,16 +636,14 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title" id="noMoneyModalCenterTitle">
-                    余额不足,前往充值</h3>
+                    余额不足</h3>
             </div>
             <div class="modal-body">
                 <span>当前余额：<span style="color: orangered;">¥ [[${balance}]]</span></span>
             </div>
 
             <div class="modal-footer">
-                <a class="btn btn-primary"
-                   href="recharge">确认
-                </a>
+                <span class="text-muted me-auto">请联系管理员补充余额</span>
                 <button type="button" class="btn btn-white" data-bs-dismiss="modal">取消</button>
             </div>
         </div>
@@ -760,30 +752,16 @@
                     targets: 3,
                     render: function (data, type, row, meta) {
                         data = (row && (row.orderType || row.order_type)) || data || '';
-                        if (data === 'edgeone_domain_quota') {
-                            return 'EdgeOne根域名额度';
-                        }
-                        if (data === 'flow_package') {
-                            return '流量包购买';
-                        } else if (data === 'balance_deduction') {
+                        if (data === 'balance_deduction') {
                             return '余额扣款';
-                        } else if (data === 'balance_withdrawal') {
-                            return '余额提现';
-                        } else if (data === 'balance_recharge') {
-                            return '余额充值';
                         } else if (data === 'admin_balance_recharge') {
                             return '管理员充值';
                         } else if (data === 'admin_balance_deduction') {
                             return '管理员扣款';
                         } else if (data === 'flow_deduction') {
-                            return '流量账单扣款';
-                        } else if (data === 'recommendation_reward') {
-                            return '注册推荐奖励'
-                        } else if (data === 'flow_package_profit') {
-                            return '流量包分润';
-                        } else if (data === 'flow_order_profit') {
-                            return '流量订单分润';
+                            return '按量流量账单';
                         }
+                        return '历史订单';
                     }
                 },
                 {
@@ -807,10 +785,6 @@
                     render: function (data, type, row, meta) {
                         if (data === 'balance_pay') {
                             return '余额支付';
-                        } else if (data === 'alipay') {
-                            return '支付宝支付';
-                        } else if (data === 'wechat_pay') {
-                            return '微信支付';
                         } else {
                             return '系统操作'
                         }
@@ -832,15 +806,8 @@
                                         : (data.status === 'REFUNDING' ? '<button disabled class="btn btn-white btn-sm text-danger"> <i class="bi bi-hourglass-bottom"></i> 退款中</button>'
                                             : '<button class="btn btn-white btn-sm text-primary" onclick=toPayFlowDeduction(' + '"' + data.id + '","' + [[${balance}]] + '","' + data.amount + '"' + ')> <i class="bi bi-arrow-right-circle-fill"></i> 去支付</button>'))))));
                             return btn + t;
-                        } else {
-                            let t = data.status === 'TRADE_SUCCESS' ? '<button disabled class="btn btn-white btn-sm text-success"> <i class="bi bi-check-circle-fill"></i> 已支付</button>'
-                                : (((data.status === 'expired' ? '<button disabled class="btn btn-white btn-sm text-danger"> <i class="bi bi-hourglass-bottom"></i> 已过期</button>'
-                                    : ((data.status === 'REFUND' ? '<button disabled class="btn btn-white btn-sm text-danger"> <i class="bi bi-hourglass-bottom"></i> 已退款</button>'
-                                        : (data.status === 'REFUNDING' ? '<button disabled class="btn btn-white btn-sm text-danger"> <i class="bi bi-hourglass-bottom"></i> 退款中</button>'
-                                            : '<button class="btn btn-white btn-sm text-primary" onclick=toPay(' + '"' + data.id + '","' + data.payType + '"' + ')> <i class="bi bi-arrow-right-circle-fill"></i> 去支付</button>'))))));
-                            return btn + t;
                         }
-
+                        return btn;
                     }
                 },
                 {"orderable": false, "targets": [0, 1, 2, 3, 5, 6, 8]},

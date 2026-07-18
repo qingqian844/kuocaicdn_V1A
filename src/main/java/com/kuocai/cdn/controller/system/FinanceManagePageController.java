@@ -1,7 +1,6 @@
 package com.kuocai.cdn.controller.system;
 
 import com.kuocai.cdn.annotation.AuthorLimiter;
-import com.kuocai.cdn.config.SystemConfig;
 import com.kuocai.cdn.controller.base.BaseController;
 import com.kuocai.cdn.entity.SysUser;
 import com.kuocai.cdn.entity.SysUserAccount;
@@ -28,9 +27,6 @@ import java.util.stream.Collectors;
 @Scope(value = "session")
 public class FinanceManagePageController extends BaseController {
 
-//    @Value("${alipay.limit.money}")
-    private double aliPayLimitMoney;
-
     /**
      * 人工充值
      */
@@ -51,19 +47,6 @@ public class FinanceManagePageController extends BaseController {
         List<Map<String, Object>> queryRankingList = sysUserAccountService.queryRankingList(18737204);
         map.put("sysUsers", queryRankingList);
         return "admin/account/manual-deduction";
-    }
-
-    /**
-     * 账户充值
-     */
-    @GetMapping("/recharge")
-    public String recharge(Map<String, Object> map) {
-        SysUserAccount sysUserAccount = sysUserAccountService.getSysUserAccountByUserId(loginUserId);
-        map.put("userAccount", sysUserAccount);
-        map.put("wechatConfig", SystemConfig.weChatConfig);
-        map.put("aliPayConfig", SystemConfig.aliPayConfig);
-        map.put("limitMoney", aliPayLimitMoney);
-        return "admin/account/recharge";
     }
 
     /**
@@ -103,13 +86,4 @@ public class FinanceManagePageController extends BaseController {
         return "admin/account/transaction-order-list";
     }
 
-    @GetMapping("/withdraw_records")
-    public String withdrawRecordsList(Map<String, Object> map) {
-        if (loginUser.getRoleId() != 1) {
-            map.put("isAdmin", false);
-        } else {
-            map.put("isAdmin", true);
-        }
-        return "admin/account/withdraw_records";
-    }
 }

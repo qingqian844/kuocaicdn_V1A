@@ -5,7 +5,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.kuocai.cdn.annotation.AuthorLimiter;
 import com.kuocai.cdn.annotation.RateLimiter;
 import com.kuocai.cdn.annotation.SysLog;
-import com.kuocai.cdn.common.mongo.entity.InviteReward;
 import com.kuocai.cdn.controller.base.BaseController;
 import com.kuocai.cdn.dto.datatable.DataTableColumn;
 import com.kuocai.cdn.dto.datatable.DataTableQuery;
@@ -15,15 +14,12 @@ import com.kuocai.cdn.entity.SysUser;
 import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.service.SysUserService;
 import com.kuocai.cdn.util.Assert;
-import com.kuocai.cdn.util.KuocaiDateUtil;
-import com.kuocai.cdn.util.RecommendCodeUtils;
 import com.kuocai.cdn.util.ValidatorUtils;
 import com.kuocai.cdn.vo.SysUserVo;
 import com.kuocai.cdn.vo.UserVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -47,11 +43,9 @@ import java.util.List;
 public class SysUserController extends BaseController {
 
     protected final SysUserService userService;
-    protected final MongoTemplate mongoTemplate;
 
-    SysUserController(SysUserService sysUserService, MongoTemplate mongoTemplate) {
+    SysUserController(SysUserService sysUserService) {
         this.userService = sysUserService;
-        this.mongoTemplate = mongoTemplate;
     }
 
     /**
@@ -268,27 +262,11 @@ public class SysUserController extends BaseController {
         }
         SysUser sysUser = null;
         try {
-            sysUser = userService.registerUser(userName, userPwd, smsCode, phone, agentId);
+            sysUser = userService.registerUser(userName, userPwd, smsCode, phone, null);
         } catch (BusinessException e) {
             return RespResult.fail(e.getMessage());
         }
 
-        String code = userVo.getRecommend();
-        if (Assert.notEmpty(code)) {
-            // 获取推荐人ID
-            long id = RecommendCodeUtils.codeToId(code);
-            if (Assert.notEmpty(userService.queryById(id))) {
-                // 注册用户设置推荐人
-                sysUser.setReferrerId(id);
-                userService.save(sysUser);
-                // 推荐奖励
-                sendInviteReward(sysUser.getId(), id);
-                // 推荐人奖励
-                // flowDonateService.sendFlowGift("推荐注册奖励", id, SystemConfig.websiteBaseConfig.getInviteRewardGb(), 365);
-                // 自己奖励
-                // flowDonateService.sendFlowGift("受邀注册奖励", sysUser.getId(), SystemConfig.websiteBaseConfig.getInvitedRewardGb(), 365);
-            }
-        }
         SysUserVo sysUserVo = SysUserVo.builder().userAccount(phone).userPwd(userPwd).RoleId(2L).remember(false).build();
         try {
             String token = userService.loginUser(sysUserVo, request);
@@ -297,15 +275,6 @@ public class SysUserController extends BaseController {
         } catch (BusinessException e) {
             return RespResult.fail(e.getMessage());
         }
-    }
-
-    private void sendInviteReward(Long userId, Long inviteUserId) {
-        InviteReward inviteReward = new InviteReward();
-        inviteReward.setUserId(userId);
-        inviteReward.setInviteUserId(inviteUserId);
-        inviteReward.setStatus(0B00);
-        inviteReward.setTimestamp(KuocaiDateUtil.getCurrentTime());
-        mongoTemplate.save(inviteReward);
     }
 
     /**
@@ -337,25 +306,9 @@ public class SysUserController extends BaseController {
         }
         SysUser sysUser = null;
         try {
-            sysUser = userService.registerUserByEmail(userName, userPwd, smsCode, email, agentId);
+            sysUser = userService.registerUserByEmail(userName, userPwd, smsCode, email, null);
         } catch (BusinessException e) {
             return RespResult.fail(e.getMessage());
-        }
-        String code = userVo.getRecommend();
-        if (Assert.notEmpty(code)) {
-            // 推荐人奖励
-            long id = RecommendCodeUtils.codeToId(code);
-            if (Assert.notEmpty(userService.queryById(id))) {
-                // 注册用户设置推荐人
-                sysUser.setReferrerId(id);
-                userService.save(sysUser);
-                // 推荐奖励
-                sendInviteReward(sysUser.getId(), id);
-                // 推荐人奖励
-//                flowDonateService.sendFlowGift("推荐注册奖励", id, SystemConfig.websiteBaseConfig.getInviteRewardGb(), 30);
-                // 自己奖励
-//                flowDonateService.sendFlowGift("受邀注册奖励", sysUser.getId(), SystemConfig.websiteBaseConfig.getInvitedRewardGb(), 30);
-            }
         }
         SysUserVo sysUserVo = SysUserVo.builder().userAccount(email).userPwd(userPwd).RoleId(2L).remember(false).build();
         try {
@@ -402,7 +355,7 @@ public class SysUserController extends BaseController {
             return RespResult.fail("密码格式不正确");
         }
         try {
-            userService.addUser(userName, userPwd, email, phone, idCardNum, myWebSite, realName, roleId, flowPrice, maxDomainCount, file, agentLevelId, autoBalance);
+            userService.addUser(userName, userPwd, email, phone, idCardNum, myWebSite, realName, roleId, flowPrice, maxDomainCount, file, null, autoBalance);
             return RespResult.success("新增成功");
         } catch (BusinessException e) {
             return RespResult.fail(e.getMessage());
@@ -453,7 +406,7 @@ public class SysUserController extends BaseController {
             return RespResult.fail("身份证已经注册");
         }
         try {
-            if (userService.updateUser(id, userName, userPwd, email, phone, idCardNum, myWebSite, realName, roleId, flowPrice, type, agentLevelId, file, autoBalance, agentUserId)) {
+            if (userService.updateUser(id, userName, userPwd, email, phone, idCardNum, myWebSite, realName, roleId, flowPrice, type, null, file, autoBalance, null)) {
                 userService.rmCacheUser(loginUserId);
             }
         } catch (BusinessException e) {

@@ -48,7 +48,7 @@ public class SysMenu implements Serializable {
     private String url;
 
     /**
-     * 菜单类型：only-main、only-proxy、both
+     * 菜单类型：only-main
      */
     private String type;
 

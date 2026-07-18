@@ -4,6 +4,8 @@ KuocaiCDN Open Source Edition is a Spring Boot based CDN management platform for
 
 括彩 CDN 开源版是一套基于 Spring Boot 的 CDN 管理系统，适合需要自建 CDN 管理平台的企业、服务商和技术团队使用。系统可用于统一管理 CDN 域名、厂商账号、证书、源站配置、缓存规则、流量统计和余额计费。
 
+当前版本：`K2.1.3.0`，详细变更见 [CHANGELOG.md](CHANGELOG.md)。
+
 ## 界面截图 / Screenshots
 
 以下截图来自实际页面，敏感信息已打码。
@@ -23,6 +25,16 @@ KuocaiCDN Open Source Edition is a Spring Boot based CDN management platform for
 ---
 官网：[https://www.kuocai.net/](https://www.kuocai.net/) 
 
+## K2.1.3.0 更新重点
+
+- 完善腾讯云 EdgeOne 缓存、访问控制、安全策略、IPv6、响应头、URL 鉴权和统计能力。
+- 增加腾讯云 EdgeOne 创建中断恢复、默认回源跟随重定向和缓存规则回显修复。
+- 增加自建 CDN 节点、节点组、线路、域名、健康检查、故障调度、统计、缓存刷新/预热和 TCP/UDP 端口转发。
+- 工单支持图片与文件附件，并补充详情和附件权限校验。
+- 支持系统 Logo 链接并修复后台主题白屏、退出登录重复点击等问题。
+- 修复阿里云、火山引擎等无独立 `domainId` 域名不参与统计的问题，并采用十进制单位展示云厂商流量。
+- 保持开源边界：不引入商业授权、在线支付、代理分销、流量包、EdgeOne 付费额度或厂商多账号绑定。
+
 ## 中文说明
 
 ### 项目定位
@@ -38,7 +50,10 @@ KuocaiCDN Open Source Edition is a Spring Boot based CDN management platform for
 - 缓存规则配置
 - 访问控制配置
 - 流量与带宽统计
-- 用户与管理员后台
+- 腾讯云 EdgeOne 高级配置
+- 自建 CDN 节点、线路与端口转发
+- 工单及附件管理
+- 普通用户后台与单个管理员账号
 - 余额账户管理
 - 按量流量账单
 - 系统基础配置
@@ -50,10 +65,11 @@ KuocaiCDN Open Source Edition is a Spring Boot based CDN management platform for
 开源版默认包含：
 
 - 去除授权校验
-- 保留 CDN 厂商对接能力
-- 保留普通用户和管理员后台
+- 保留全部现有 CDN 厂商对接能力
+- 保留普通用户体系，并限制系统只能存在一个管理员账号
 - 保留余额账户与按量流量账单
 - 保留域名、证书、源站、缓存、统计等核心 CDN 管理能力
+- 保留管理员人工增加或扣减用户余额的能力
 
 开源版默认不包含：
 
@@ -63,6 +79,8 @@ KuocaiCDN Open Source Edition is a Spring Boot based CDN management platform for
 - 流量包在线购买
 - 流量赠送/捐赠功能
 - 每月福利领取功能
+- EdgeOne 根域名付费额度
+- 厂商账号多账号绑定
 - 商业版授权控制能力
 
 如需商业运营、代理分销、在线支付、套餐售卖、授权控制等功能，请使用商业授权版。
@@ -174,7 +192,7 @@ SMS_SIGN=
 2. 配置 MySQL、Redis、MongoDB、RabbitMQ、对象存储。
 3. 启动 jar 服务。
 4. 登录后台，完成网站基础信息、管理员账号、CDN 厂商密钥、短信和对象存储配置。
-5. 添加 CDN 厂商账号后，再添加域名进行测试。
+5. 配置需要使用的 CDN 厂商密钥后，再添加域名进行测试。
 6. 使用测试域名验证 CNAME、源站、证书、缓存和统计是否正常。
 
 ### 适用场景
@@ -206,7 +224,10 @@ KuocaiCDN Open Source Edition is designed for customers and teams that want to d
 - Cache rule configuration
 - Access control settings
 - Traffic and bandwidth statistics
-- User and administrator dashboards
+- Tencent EdgeOne advanced settings
+- Self-hosted CDN nodes, routes, and port forwarding
+- Work orders with attachments
+- User dashboard with a single administrator account
 - Balance account management
 - Metered traffic billing
 - Basic system configuration
@@ -216,10 +237,11 @@ KuocaiCDN Open Source Edition is designed for customers and teams that want to d
 Included by default:
 
 - No commercial license verification
-- CDN vendor integration capabilities
-- User and administrator dashboards
+- All existing CDN vendor integrations
+- Regular user accounts with a single administrator account limit
 - Balance accounts and metered traffic bills
 - Core CDN management features for domains, certificates, origins, cache rules, and statistics
+- Manual balance adjustments by the administrator
 
 Not included by default:
 
@@ -229,6 +251,8 @@ Not included by default:
 - Online traffic package purchase
 - Traffic gift/donation features
 - Monthly benefit package features
+- Paid EdgeOne root-domain quota
+- Multi-account vendor binding
 - Commercial license control features
 
 For commercial operation, agency distribution, online payment, package sales, or license management, please use the commercial licensed edition.
@@ -340,7 +364,7 @@ Configuration keys may vary between versions. Please refer to the actual `applic
 2. Configure MySQL, Redis, MongoDB, RabbitMQ, and object storage.
 3. Start the jar service.
 4. Log in to the admin dashboard and configure website settings, administrator account, CDN vendor credentials, SMS, and object storage.
-5. Add CDN vendor accounts before adding test domains.
+5. Configure the CDN vendor credentials you need before adding test domains.
 6. Verify CNAME, origin, certificate, cache, and statistics with a test domain.
 
 ### Use Cases

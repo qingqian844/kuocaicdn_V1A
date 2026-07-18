@@ -47,16 +47,21 @@ import com.tencentcloudapi.teo.v20220901.models.AuthenticationParameters;
 import com.tencentcloudapi.teo.v20220901.models.AscriptionInfo;
 import com.tencentcloudapi.teo.v20220901.models.CreateAccelerationDomainRequest;
 import com.tencentcloudapi.teo.v20220901.models.CreateAccelerationDomainResponse;
+import com.tencentcloudapi.teo.v20220901.models.CreateL7AccRulesRequest;
+import com.tencentcloudapi.teo.v20220901.models.CreateL7AccRulesResponse;
 import com.tencentcloudapi.teo.v20220901.models.CreateOriginGroupRequest;
 import com.tencentcloudapi.teo.v20220901.models.CreateOriginGroupResponse;
 import com.tencentcloudapi.teo.v20220901.models.DeleteAccelerationDomainsRequest;
 import com.tencentcloudapi.teo.v20220901.models.DeleteAccelerationDomainsResponse;
+import com.tencentcloudapi.teo.v20220901.models.DeleteL7AccRulesRequest;
 import com.tencentcloudapi.teo.v20220901.models.CustomRule;
 import com.tencentcloudapi.teo.v20220901.models.CustomRules;
 import com.tencentcloudapi.teo.v20220901.models.DescribeAccelerationDomainsRequest;
 import com.tencentcloudapi.teo.v20220901.models.DescribeAccelerationDomainsResponse;
 import com.tencentcloudapi.teo.v20220901.models.DescribeIdentificationsRequest;
 import com.tencentcloudapi.teo.v20220901.models.DescribeIdentificationsResponse;
+import com.tencentcloudapi.teo.v20220901.models.DescribeL7AccRulesRequest;
+import com.tencentcloudapi.teo.v20220901.models.DescribeL7AccRulesResponse;
 import com.tencentcloudapi.teo.v20220901.models.DescribeOriginGroupRequest;
 import com.tencentcloudapi.teo.v20220901.models.DescribeOriginGroupResponse;
 import com.tencentcloudapi.teo.v20220901.models.DescribeSecurityPolicyRequest;
@@ -75,6 +80,8 @@ import com.tencentcloudapi.teo.v20220901.models.ModifyAccelerationDomainStatuses
 import com.tencentcloudapi.teo.v20220901.models.ModifyHostsCertificateRequest;
 import com.tencentcloudapi.teo.v20220901.models.ModifyHostsCertificateResponse;
 import com.tencentcloudapi.teo.v20220901.models.ModifyL7AccSettingRequest;
+import com.tencentcloudapi.teo.v20220901.models.ModifyL7AccRuleRequest;
+import com.tencentcloudapi.teo.v20220901.models.ModifyResponseHeaderParameters;
 import com.tencentcloudapi.teo.v20220901.models.ModifyOriginGroupRequest;
 import com.tencentcloudapi.teo.v20220901.models.ModifySecurityPolicyRequest;
 import com.tencentcloudapi.teo.v20220901.models.ModifySecurityPolicyResponse;
@@ -107,6 +114,7 @@ import com.tencentcloudapi.teo.v20220901.models.CAPTCHAPageChallenge;
 import com.tencentcloudapi.teo.v20220901.models.ChallengeActionParameters;
 import com.tencentcloudapi.teo.v20220901.models.ClientFiltering;
 import com.tencentcloudapi.teo.v20220901.models.CompressionParameters;
+import com.tencentcloudapi.teo.v20220901.models.CustomTime;
 import com.tencentcloudapi.teo.v20220901.models.DescribeL7AccSettingRequest;
 import com.tencentcloudapi.teo.v20220901.models.DescribeL7AccSettingResponse;
 import com.tencentcloudapi.teo.v20220901.models.ExceptConfig;
@@ -138,6 +146,7 @@ import com.tencentcloudapi.teo.v20220901.models.WafConfig;
 import com.tencentcloudapi.teo.v20220901.models.Zone;
 import com.tencentcloudapi.ssl.v20191205.models.UploadCertificateRequest;
 import com.tencentcloudapi.ssl.v20191205.models.UploadCertificateResponse;
+import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.springframework.stereotype.Service;
@@ -490,13 +499,25 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
     }
 
     private CreateAccelerationDomainResponse createAccelerationDomain(String domainName, String originType, String ipOrDomain, String zoneId,
-                                                                      String originProtocol, Integer httpPort, Integer httpsPort) throws TencentCloudSDKException, BusinessException {
+                                                                       String originProtocol, Integer httpPort, Integer httpsPort) throws TencentCloudSDKException, BusinessException {
         CreateAccelerationDomainRequest request = new CreateAccelerationDomainRequest();
         request.setZoneId(zoneId);
         request.setDomainName(domainName);
         request.setOriginInfo(buildOriginInfo(originType, ipOrDomain, null));
         applyOriginProtocolAndPorts(request, originProtocol, httpPort, httpsPort);
         return TencentEdgeOneClient.getClient().CreateAccelerationDomain(request);
+    }
+
+    private void tryEnableDefaultOriginFollowRedirect(CdnDomain cdnDomain) {
+        try {
+            DomainOriginSettingVo config = new DomainOriginSettingVo()
+                    .setStatus("on")
+                    .setMaxTimes(3);
+            saveEdgeOneOriginFollowRedirectRule(cdnDomain, config);
+        } catch (Exception e) {
+            log.warn("Enable default EdgeOne origin follow redirect failed for {}, skip auto setup: {}",
+                    cdnDomain == null ? null : cdnDomain.getDomainName(), e.getMessage());
+        }
     }
 
     private String resolveZoneIdForCreate(Long userId, String domainName, String serviceArea) throws BusinessException {
@@ -1051,14 +1072,16 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
                 .origin_receive_timeout("30")
                 .origin_range_status("off")
                 .slice_etag_status("off")
+                .upstream_follow_redirect_status(getOriginFollowRedirectStatus(domainName))
+                .upstream_follow_redirect_max_times(getOriginFollowRedirectMaxTimes(domainName))
                 .origin_request_url_rewrite(new ArrayList<>())
                 .flexible_origin(new ArrayList<>())
                 .origin_request_header(new ArrayList<>())
                 .build();
         DomainHttpsInfo domainHttpsInfo = buildHttpsInfo(edgeOneConfig, domain);
-        DomainCacheInfo domainCacheInfo = buildCacheInfo(edgeOneConfig);
+        DomainCacheInfo domainCacheInfo = buildCacheInfo(domainName, edgeOneConfig);
         DomainVisitInfo domainVisitInfo = buildVisitInfo(domainName);
-        DomainAdvancedInfo domainAdvancedInfo = buildAdvancedInfo(edgeOneConfig);
+        DomainAdvancedInfo domainAdvancedInfo = buildAdvancedInfo(domainName, edgeOneConfig);
         return DomainConfig.builder()
                 .domainBasicInfo(basicInfo)
                 .domainBackSourceInfo(backSourceInfo)
@@ -2243,7 +2266,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         return null;
     }
 
-    private DomainCacheInfo buildCacheInfo(ZoneConfig config) {
+    private DomainCacheInfo buildCacheInfo(String domainName, ZoneConfig config) {
         List<DomainCacheInfo.CacheRule> cacheRules = new ArrayList<>();
         CacheConfigParameters cache = config.getCache();
         DomainCacheInfo.CacheRule rule = DomainCacheInfo.CacheRule.builder()
@@ -2266,6 +2289,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
             }
         }
         cacheRules.add(rule);
+        cacheRules.addAll(queryEdgeOneCacheRules(domainName));
         return DomainCacheInfo.builder()
                 .cache_rules(cacheRules)
                 .error_code_cache(queryEdgeOneStatusCodeCache(domainName))
@@ -3060,20 +3084,6 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         return result;
     }
 
-    private List<String> splitRuleValues(String value) {
-        if (Assert.isEmpty(value)) {
-            return Collections.emptyList();
-        }
-        List<String> result = new ArrayList<>();
-        for (String item : value.split("[,;，；]")) {
-            String normalized = normalize(item);
-            if (Assert.notEmpty(normalized)) {
-                result.add(normalized);
-            }
-        }
-        return result;
-    }
-
     private CacheRuleDTO normalizeEdgeOneCacheRuleForDescription(CacheRuleDTO rule) {
         if (rule == null || !"file_extension".equals(normalize(rule.getMatch_type()))) {
             return rule;
@@ -3268,7 +3278,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         return visitInfo;
     }
 
-    private DomainAdvancedInfo buildAdvancedInfo(ZoneConfig config) {
+    private DomainAdvancedInfo buildAdvancedInfo(String domainName, ZoneConfig config) {
         DomainAdvancedInfo.Compress compress = DomainAdvancedInfo.Compress.builder()
                 .status("off")
                 .type("")
@@ -3280,7 +3290,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
             compress.setType(String.join(",", emptyIfNull(compression.getAlgorithms())).replace("brotli", "br"));
         }
         return DomainAdvancedInfo.builder()
-                .http_response_header(new ArrayList<>())
+                .http_response_header(queryEdgeOneResponseHeaders(domainName))
                 .error_code_redirect_rules(new ArrayList<>())
                 .error_pages(new ArrayList<>())
                 .compress(compress)

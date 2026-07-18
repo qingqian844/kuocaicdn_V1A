@@ -11,16 +11,13 @@ import com.kuocai.cdn.entity.LoginDevice;
 import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.service.CdnDomainStatisticsService;
 import com.kuocai.cdn.util.Assert;
-import com.kuocai.cdn.util.RecommendCodeUtils;
 import com.kuocai.cdn.vo.CertificateVo;
-import com.kuocai.cdn.vo.PurchasedFlowVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
-import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -44,35 +41,27 @@ public class DashboardPageController extends BaseController {
      * 后台管理 主页
      */
     @GetMapping("/dashboard")
-    public String dashboard(Map<String, Object> map, HttpServletRequest request) throws BusinessException {
+    public String dashboard(Map<String, Object> map) throws BusinessException {
         if (isAdmin()) {
             return adminDashboard(map);
         }
-        return userDashboard(map, request);
+        return userDashboard(map);
     }
 
     /**
      * 普通用户控制台
      */
-    public String userDashboard(Map<String, Object> map, HttpServletRequest request) throws BusinessException {
+    public String userDashboard(Map<String, Object> map) throws BusinessException {
         // 数量统计
         Map<String, Long> countStatistics = statisticsService.queryCountStatistics(loginUserId);
         // 最新登录记录
         List<LoginDevice> loginDevices = loginDeviceService.queryUserLastLoginDevice(loginUserId, 1);
-        // 查询用户流量包
-        List<PurchasedFlowVo> purchasedFlows = purchasedFlowService.queryUserOnUsedPurchasedFlow(loginUserId, 3);
         // 获取最新公告
         Announcement announcement = announcementService.getPublished();
 
         map.put("announcement", announcement);
         map.put("countStatistics", countStatistics);
         map.put("loginDevice", loginDevices.get(0));
-        map.put("purchasedFlows", purchasedFlows);
-        // 存放推荐码
-        String requestURL = request.getRequestURL().toString();
-        requestURL = requestURL.replace("http://", "");
-        String recommendCodeUrl = requestURL.replace("dashboard", "register?code=" + RecommendCodeUtils.toSerialCode(loginUserId));
-        map.put("recommendCode", recommendCodeUrl);
         return "user/dashboard";
     }
 

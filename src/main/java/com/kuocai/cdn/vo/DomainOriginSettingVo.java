@@ -71,4 +71,9 @@ public class DomainOriginSettingVo {
      */
     private Integer httpsPort;
 
+    /**
+     * 回源跟随重定向最大次数
+     */
+    private Integer maxTimes;
+
 }

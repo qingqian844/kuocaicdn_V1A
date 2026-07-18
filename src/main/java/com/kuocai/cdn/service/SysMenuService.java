@@ -50,15 +50,4 @@ public class SysMenuService extends BaseService<SysMenu> {
     }
 
 
-    /**
-     * 获取代理一级菜单
-     */
-    public List<SysMenu> queryProxyLevel1Menus() {
-        QueryWrapper<SysMenu> queryWrapper = new QueryWrapper<SysMenu>()
-                .eq("level", "1")
-                .in("type", "only-proxy", "both")
-                .orderByDesc("priority");
-        return queryByWrapper(queryWrapper);
-    }
-
 }

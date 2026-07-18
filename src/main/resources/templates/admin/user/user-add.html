@@ -429,26 +429,6 @@
 
                                     <!-- End Form -->
                                     <div class="row mb-4">
-                                        <label class="col-sm-3 col-form-label form-label">代理等级</label>
-
-                                        <div class="col-sm-9">
-                                            <!-- Select -->
-                                            <div class="tom-select-custom">
-                                                <select class="js-select form-select" autocomplete="off" id="agentLevel"
-                                                        data-hs-tom-select-options='{
-                                                          "placeholder": "选择代理等级",
-                                                        }'>
-                                                    <option value="">无代理权限</option>
-                                                    <option th:each="a: ${agentLevelList}" th:value="${a.id}"
-                                                            th:text="${a.name}"></option>
-                                                </select>
-                                            </div>
-                                            <!-- End Select -->
-                                        </div>
-                                    </div>
-
-                                    <!-- End Form -->
-                                    <div class="row mb-4">
                                         <label class="col-sm-3 col-form-label form-label">自动结算</label>
 
                                         <div class="col-sm-9">
@@ -612,7 +592,6 @@
                     let idCardNum = $("#idCardNum").val()
                     let flowPrice = $("#flowPrice").val()
                     let role = $("#roleSelect option:checked").val()
-                    let agentLevel = $("#agentLevel option:checked").val()
                     let autoBalance = $("#autoBalance option:checked").val()
                     if (!userName) {
                         layerWarn("请输入用户名")
@@ -650,7 +629,6 @@
                     formData.append("roleId", role);
                     formData.append("flowPrice", flowPrice);
                     formData.append("idCardNum", idCardNum);
-                    formData.append("agentLevelId", agentLevel)
                     formData.append("autoBalance", autoBalance)
                     let data = await sendFileUploadRequest(
                         "SysUser/addUser",

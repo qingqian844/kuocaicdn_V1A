@@ -2,10 +2,8 @@ package com.kuocai.cdn.controller.system;
 
 import com.kuocai.cdn.annotation.AuthorLimiter;
 import com.kuocai.cdn.controller.base.BaseController;
-import com.kuocai.cdn.entity.AgentLevel;
 import com.kuocai.cdn.entity.SysRole;
 import com.kuocai.cdn.entity.SysUser;
-import com.kuocai.cdn.service.EdgeOneDomainQuotaService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
@@ -26,19 +24,12 @@ import java.util.Map;
 @Scope(value = "session")
 public class UserManagePageController extends BaseController {
 
-    @Resource
-    private EdgeOneDomainQuotaService edgeOneDomainQuotaService;
-
     /**
      * 用户列表
      */
     @AuthorLimiter
     @GetMapping("/user-list")
     public String userList(Map<String, Object> map) {
-        List<SysUser> agents = sysUserService.queryAllAgents();
-        List<SysUser> referrers = sysUserService.queryAllReferrer();
-        map.put("agents", agents);
-        map.put("referrers", referrers);
         return "admin/user/user-list";
     }
 
@@ -49,9 +40,7 @@ public class UserManagePageController extends BaseController {
     @GetMapping("/user-add")
     public String userAdd(Map<String, Object> map) {
         List<SysRole> roles = sysRoleService.queryAll();
-        List<AgentLevel> agentLevels = agentLevelService.queryAll();
         map.put("roles", roles);
-        map.put("agentLevelList", agentLevels);
         return "admin/user/user-add";
     }
 
@@ -80,15 +69,8 @@ public class UserManagePageController extends BaseController {
     @GetMapping("/user-update")
     public String editUser(Map<String, Object> map, Long id) {
         List<SysRole> roles = sysRoleService.queryAll();
-        List<AgentLevel> agentLevels = agentLevelService.queryAll();
-        List<SysUser> agents = sysUserService.queryAllAgents();
-
-        map.put("agents", agents);
         map.put("roles", roles);
         map.put("consumer", sysUserService.queryById(id));
-        map.put("agentLevelList", agentLevels);
-        map.put("edgeOneQuotaSummary", edgeOneDomainQuotaService.summary(id));
-        map.put("edgeOneRootDomainRecords", edgeOneDomainQuotaService.listRootDomainRecords(id));
         return "admin/user/user-update";
     }
 

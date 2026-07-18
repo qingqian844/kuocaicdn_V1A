@@ -50,21 +50,6 @@ public class SystemSettingsPageController extends BaseController {
     }
 
     /**
-     * 支付配置
-     */
-    @AuthorLimiter
-    @GetMapping("pay-setting")
-    public String paySetting(Map<String, Object> map) {
-        AliPayConfigVo aliPayConfig = sysConfigService.getConfigContentVo(AliPayConfigVo.class, ConfigBizTypeConstants.ALIPAY_CONFIG);
-        WeChatConfigVo configContentVo = sysConfigService.getConfigContentVo(WeChatConfigVo.class, ConfigBizTypeConstants.WECHAT_CONFIG);
-        AliWithdrawConfigVo aliWithdrawConfigVo = sysConfigService.getConfigContentVo(AliWithdrawConfigVo.class, ConfigBizTypeConstants.ALI_WITHDRAW_CONFIG);
-        map.put("wechatPayConfig", configContentVo);
-        map.put("aliPayConfig", aliPayConfig);
-        map.put("aliWithdrawConfig", aliWithdrawConfigVo);
-        return "admin/settings/pay-setting";
-    }
-
-    /**
      * 实名配置
      */
     @AuthorLimiter

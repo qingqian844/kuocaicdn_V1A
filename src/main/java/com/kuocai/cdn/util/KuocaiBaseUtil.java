@@ -284,6 +284,34 @@ public class KuocaiBaseUtil {
     }
 
     /**
+     * 统计展示用流量单位换算。云厂商控制台的用量页面通常按 1000 进位展示 GB/TB。
+     */
+    public static String autoReducedFlowUnitDecimal(double size) {
+        BigDecimal newSize;
+        if (size >= Math.pow(1000, 5)) {
+            newSize = BigDecimal.valueOf(size).divide(BigDecimal.valueOf(Math.pow(1000, 5)), 2, RoundingMode.HALF_UP);
+            return newSize + "PB";
+        }
+        if (size >= Math.pow(1000, 4)) {
+            newSize = BigDecimal.valueOf(size).divide(BigDecimal.valueOf(Math.pow(1000, 4)), 2, RoundingMode.HALF_UP);
+            return newSize + "TB";
+        }
+        if (size >= Math.pow(1000, 3)) {
+            newSize = BigDecimal.valueOf(size).divide(BigDecimal.valueOf(Math.pow(1000, 3)), 2, RoundingMode.HALF_UP);
+            return newSize + "GB";
+        }
+        if (size >= Math.pow(1000, 2)) {
+            newSize = BigDecimal.valueOf(size).divide(BigDecimal.valueOf(Math.pow(1000, 2)), 2, RoundingMode.HALF_UP);
+            return newSize + "MB";
+        }
+        if (size >= Math.pow(1000, 1)) {
+            newSize = BigDecimal.valueOf(size).divide(BigDecimal.valueOf(Math.pow(1000, 1)), 2, RoundingMode.HALF_UP);
+            return newSize + "KB";
+        }
+        return size + "B";
+    }
+
+    /**
      * 自动换算带宽单位 基础单位bit/s
      *
      * @param size 流量
@@ -334,6 +362,25 @@ public class KuocaiBaseUtil {
         return "B";
     }
 
+    public static String getSuitableFlowUnitDecimal(Long size) {
+        if (size >= Math.pow(1000, 5)) {
+            return "PB";
+        }
+        if (size >= Math.pow(1000, 4)) {
+            return "TB";
+        }
+        if (size >= Math.pow(1000, 3)) {
+            return "GB";
+        }
+        if (size >= Math.pow(1000, 2)) {
+            return "MB";
+        }
+        if (size >= Math.pow(1000, 1)) {
+            return "KB";
+        }
+        return "B";
+    }
+
     /**
      * 获取最合适的单位
      *
@@ -366,6 +413,19 @@ public class KuocaiBaseUtil {
         BigDecimal big = data.stream().max(BigDecimal::compareTo).get();
         String suitableUnit = getSuitableFlowUnit(big.longValue());
         List<BigDecimal> newData = convertFlowUnit(data, suitableUnit);
+        result.put("unit", suitableUnit);
+        result.put("data", newData);
+        return result;
+    }
+
+    public static Map<String, Object> convertFlowUnitDecimal(List<BigDecimal> data) {
+        HashMap<String, Object> result = new HashMap<>();
+        if (Assert.isEmpty(data)) {
+            return result;
+        }
+        BigDecimal big = data.stream().max(BigDecimal::compareTo).get();
+        String suitableUnit = getSuitableFlowUnitDecimal(big.longValue());
+        List<BigDecimal> newData = convertFlowUnitDecimal(data, suitableUnit);
         result.put("unit", suitableUnit);
         result.put("data", newData);
         return result;
@@ -407,6 +467,31 @@ public class KuocaiBaseUtil {
                 break;
             case "PB":
                 rate = Math.pow(1024, 5);
+                break;
+        }
+        double finalRate = rate;
+        return data.stream()
+                .map(d -> d.divide(BigDecimal.valueOf(finalRate)).setScale(2, RoundingMode.UP))
+                .collect(Collectors.toList());
+    }
+
+    public static List<BigDecimal> convertFlowUnitDecimal(List<BigDecimal> data, String unit) {
+        double rate = 1;
+        switch (unit) {
+            case "KB":
+                rate = Math.pow(1000, 1);
+                break;
+            case "MB":
+                rate = Math.pow(1000, 2);
+                break;
+            case "GB":
+                rate = Math.pow(1000, 3);
+                break;
+            case "TB":
+                rate = Math.pow(1000, 4);
+                break;
+            case "PB":
+                rate = Math.pow(1000, 5);
                 break;
         }
         double finalRate = rate;

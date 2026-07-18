@@ -2,7 +2,6 @@ package com.kuocai.cdn.controller.redirect;
 
 import com.alibaba.fastjson.JSONObject;
 import com.kuocai.cdn.controller.base.BaseController;
-import com.kuocai.cdn.entity.AgentConfig;
 import com.kuocai.cdn.entity.SysUser;
 import com.kuocai.cdn.enumeration.UserStatus;
 import com.kuocai.cdn.exception.BusinessException;
@@ -52,20 +51,9 @@ public class AlipayAuthenticationRedirect extends BaseController {
             map.put("msg", "实名认证超时，请在系统中重试");
             return "error/fail";
         }
-        String url = "";
         // 解析取出用户信息
         JSONObject userObj = JSONObject.parseObject(userJson);
-        // 获取代理用户信息
         SysUser sysUser = sysUserService.queryById(userObj.getLong("userId"));
-        Long agentUserId = sysUser.getAgentUserId();
-        if (Assert.notEmpty(agentUserId)) {
-            SysUser agentUser = sysUserService.queryCacheUserById(agentUserId);
-            if (Assert.notEmpty(agentUser.getAgentLevelId())) {
-                AgentConfig agentConfig = agentConfigService.queryByUserId(agentUserId);
-                String domain = agentConfig.getDomain();
-                url = "http://" + domain;
-            }
-        }
         // 开始认证
         Boolean certificationResult = null;
         try {

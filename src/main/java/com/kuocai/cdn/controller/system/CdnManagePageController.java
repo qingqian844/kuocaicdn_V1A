@@ -14,7 +14,6 @@ import com.kuocai.cdn.enumeration.domainmerage.cachesetting.PreheatingCount;
 import com.kuocai.cdn.enumeration.domainmerage.cachesetting.RefreshFolderCount;
 import com.kuocai.cdn.enumeration.domainmerage.cachesetting.RefreshUrlCount;
 import com.kuocai.cdn.service.CacheTaskService;
-import com.kuocai.cdn.service.EdgeOneDomainQuotaService;
 import com.kuocai.cdn.service.SelfHostedCdnService;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.util.JedisUtil;
@@ -50,9 +49,6 @@ public class CdnManagePageController extends BaseController {
     private CacheTaskService cacheTaskService;
 
     @Resource
-    private EdgeOneDomainQuotaService edgeOneDomainQuotaService;
-
-    @Resource
     private SelfHostedCdnService selfHostedCdnService;
 
     /**
@@ -70,15 +66,6 @@ public class CdnManagePageController extends BaseController {
     public String selfHostedPortForward(Map<String, Object> map) {
         map.put("isAdmin", isAdmin());
         return "admin/domain/self-hosted-port-forward";
-    }
-
-    @GetMapping("/agent-domain")
-    public String agentDomain(Map<String, Object> map) {
-        List<SysUser> sysUsers = sysUserService.queryUserByAgentId(loginUserId);
-        List<CdnDomainVo> cdnDomainVos = cdnDomainService.queryVoByUserIds(sysUsers.stream().map(SysUser::getId).collect(Collectors.toList()));
-        map.put("sysUsers", sysUsers);
-        map.put("cdnDomainVos", cdnDomainVos);
-        return "user/agent/agent-domain";
     }
 
     /**
@@ -199,10 +186,6 @@ public class CdnManagePageController extends BaseController {
         map.put("verifyCode", verifyCode);
         String createRoute = resolveDomainCreateRoute(route);
         map.put("route", createRoute);
-        if ("tencent_edgeone".equals(route)) {
-            map.put("edgeOneQuotaSummary", edgeOneDomainQuotaService.summary(loginUserId));
-        }
-        map.put("routeAuthorized", true);
         SysUser loginUser = getLoginUser();
         map.put("enableOverseas", loginUser.getEnableOverseas());
         map.put("enableGlobal", loginUser.getEnableGlobal());

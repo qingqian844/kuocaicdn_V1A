@@ -343,8 +343,6 @@ $(function () {
     }
 });
 
-const api_origin = 'https://api.kuocaicdn.com';
-
 /**
  * 发送请求
  * @param method 请求方法

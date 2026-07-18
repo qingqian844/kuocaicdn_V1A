@@ -19,20 +19,4 @@ public class ProductManagePageController extends BaseController {
     public String userPriceList(Map<String, Object> map) {
         return "admin/product/user-price-list";
     }
-
-    @GetMapping({
-            "/flow-donate",
-            "/flow-package-list",
-            "/buy-flow-packages",
-            "/buy-flow-packages-customize",
-            "/flow-package-detail",
-            "/purchased-flow-list",
-            "/bought-flow-list",
-            "/bought-flow-detail",
-            "/gift",
-            "/hidden-sales"
-    })
-    public String removedProductPages() {
-        return "redirect:/product_price";
-    }
 }

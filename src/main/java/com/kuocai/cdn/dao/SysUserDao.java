@@ -55,7 +55,7 @@ public interface SysUserDao extends BaseMapper<SysUser> {
      * @author bo
      * @date 2023/6/5 21:04
      */
-    @Update("UPDATE sys_user SET agent_level_id = NULL WHERE id = #{id}")
+    @Update("UPDATE sys_user SET agent_level_id = NULL, agent_user_id = NULL WHERE id = #{id}")
     void updateAgentLevelToNull(Long id);
 
     /**

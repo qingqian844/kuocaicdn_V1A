@@ -225,9 +225,8 @@ public class CdnDomainStatisticsService {
             String route = cdnDomainEntry.getKey();
             List<CdnDomain> cdnDomainListForRoute = cdnDomainEntry.getValue()
                     .stream()
-                    // 平台级严谨过滤：必须有该平台的 route，且 domainId 非空
-                    .filter(d -> Assert.notEmpty(d.getRoute()) && route.equals(d.getRoute()))
-                    .filter(d -> Assert.notEmpty(d.getDomainId()))
+                    // 统计接口按域名查询，火山/阿里等线路可能没有独立 domainId。
+                    .filter(d -> shouldIncludeStatisticsDomain(d, route))
                     .collect(Collectors.toList());
             if (Assert.isEmpty(cdnDomainListForRoute)) {
                 continue;
@@ -368,6 +367,13 @@ public class CdnDomainStatisticsService {
                 break;
         }
         return result;
+    }
+
+    static boolean shouldIncludeStatisticsDomain(CdnDomain domain, String route) {
+        return domain != null
+                && Assert.notEmpty(domain.getRoute())
+                && route.equals(domain.getRoute())
+                && Assert.notEmpty(domain.getDomainName());
     }
 
     public List<String> getLabels(DateTime start, DateTime end) {

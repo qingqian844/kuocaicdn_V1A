@@ -505,7 +505,7 @@
 
     <!-- JS Plugins Init. -->
     <script th:inline="javascript">
-        const licenseVendorNameMap = /*[[${licenseVendorNameMap}]]*/ {};
+        const vendorNameMap = /*[[${vendorNameMap}]]*/ {};
         const authorizedVendorCodes = /*[[${authorizedVendorCodes}]]*/ [];
         function escapeHtml(value) {
             return String(value == null ? '' : value).replace(/[&<>"']/g, function(ch) {
@@ -647,9 +647,9 @@
                         // console.log(row);confirmDelete(function () {alert(1)})
                         // console.log(meta);
                         let r = row.user.route;
-                        let name = licenseVendorNameMap[r] || r || '无';
+                        let name = vendorNameMap[r] || r || '无';
                         if (authorizedVendorCodes.indexOf(r) === -1) {
-                            return '<span class="badge bg-soft-danger text-danger">' + escapeHtml(name) + ' 未授权</span>';
+                            return '<span class="badge bg-soft-danger text-danger">' + escapeHtml(name) + ' 不可用</span>';
                         }
                         return '<span class="badge bg-soft-primary text-primary">' + escapeHtml(name) + '</span>';
                     }

@@ -39,6 +39,10 @@ public class DomainBackSourceInfo {
      */
     private String slice_etag_status;
 
+    private String upstream_follow_redirect_status;
+
+    private Integer upstream_follow_redirect_max_times;
+
     /**
      * 回源URL改写
      */

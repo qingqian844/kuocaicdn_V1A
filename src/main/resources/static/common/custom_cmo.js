@@ -77,79 +77,6 @@ async function updatePassword() {
     }
 }
 
-/** 用户充值*/
-async function userRecharge() {
-    let rechargeAmount = $('#rechargeAmount').val();
-    let payType = $('input[name="payType"]:radio:checked').val();
-    let id = $('#id').val();
-    let hText = "请使用" + (payType === '2' ? "微信" : "支付宝") + "支付";
-    if (!numberReg(rechargeAmount)) {
-        layerWarn("请输入正确的金额");
-        return;
-    }
-    if (rechargeAmount > 1000000) {
-        layerWarn("最多一次性支付100万！");
-        return;
-    }
-    let data = await sendRequest(
-        "POST",
-        "TransactionOrder/useBalance2PayTransactionOrder", {
-            total_amount: rechargeAmount
-        });
-    if (data['code'] === 'SUCCESS') {
-        $("#exampleModalCenteredScrollableTitle").html(hText);
-        $('#qrCode').qrcode({
-            render: "canvas",
-            text: data['message'],
-            width: "150", // 二维码的宽度
-            height: "150", // 二维码的高度
-            background: "#ffffff", // 二维码的后景色
-            foreground: "#000000" // 二维码的前景色
-        })
-        setTimeout($('#testButton').click(), 1000);
-        toTrackStatusOrder(data['data']['id'].toString())
-    } else {
-        autoLayer(data);
-        setTimeout(reload, 2000);
-    }
-}
-
-/** 支付宝提现*/
-async function withdrawal() {
-    let withdrawAccount = $('#withdrawAccount').val();
-    let withdrawName = $('#withdrawName').val();
-    let amount = $('#amount').val();
-    let bonus = $('#bonus').val();
-    let withdrawType = $('#withdrawType').val();
-    let limitMoney = $('#limitMoney').val();
-    if (!withdrawAccount || !withdrawName) {
-        layerWarn("提现支付宝账号，真实姓名都不为空！");
-        return;
-    }
-    if (bonus < amount) {
-        layerWarn("提现金额不能高于分润金额");
-        return;
-    }
-    if (limitMoney > amount) {
-        layerWarn("提现金额不能低于最低限制金额:" + limitMoney);
-        return;
-    }
-    if (!numberReg(amount)) {
-        layerWarn("请输入正确的金额");
-        return;
-    }
-    let data = await sendRequest(
-        "POST",
-        "RemovedFeature/disabled", {
-            withdrawAccount: withdrawAccount,
-            withdrawName: withdrawName,
-            amount: amount,
-            withdrawType: withdrawType
-        });
-    autoLayer(data);
-    setTimeout(reload, 1000);
-}
-
 /** 人工充值或扣款*/
 async function manualRecharge() {
     let rechargeAmount = $('#rechargeAmount').val();
@@ -184,172 +111,6 @@ async function manualRecharge() {
     setTimeout(reload, 1000);
 }
 
-/** 查询订单状态*/
-async function toTrackStatusOrder(orderId) {
-    let timer = null;
-    let x = 1;
-    let data = await sendRequest(
-        "POST",
-        "alipay/queryTransactions", {
-            orderId: orderId.toString(),
-        },
-        'application/x-www-form-urlencoded; charset=UTF-8', loading = false);
-    if (data['code'] !== 'SUCCESS') {
-        timer = setTimeout(() => {
-            toTrackStatusOrder(orderId);
-        }, 2000)
-    } else {
-        clearTimeout(timer);
-        if (data['message'] === 'success') {
-            layerSuccess("充值成功！");
-        } else {
-            layerFail(data['message']);
-        }
-        setTimeout(reload, 1000);
-    }
-}
-
-/** 关闭支付二维码刷新页面*/
-function closeQrcode() {
-    setTimeout(function() {
-        layerFail("已取消支付！");
-        // let id = $('#id').val();
-        setTimeout(reload, 500);
-    }, 2000);
-}
-
-/** 去支付*/
-async function toPay(orderId, payType) {
-    let hText = "请使用" + (payType === 'alipay' ? "支付宝" : "微信") + "支付";
-    let data = await sendRequest(
-        "POST",
-        "TransactionOrder/toPayOrder", {
-            orderId: orderId,
-        });
-    if (data['code'] === 'SUCCESS') {
-        $("#exampleModalCenteredScrollableTitle").html(hText);
-        $('#qrCode').qrcode({
-            render: "canvas",
-            text: data['message'],
-            width: "150", // 二维码的宽度
-            height: "150", // 二维码的高度
-            background: "#ffffff", // 二维码的后景色
-            foreground: "#000000" // 二维码的前景色
-        })
-        setTimeout($('#testButton').click(), 1000);
-        toTrackStatusOrder(data['data'].toString())
-    } else {
-        layerFail(data['message'])
-        setTimeout(reload, 1000);
-    }
-}
-
-/** 保存或更新微信支付配置*/
-async function saveWechatConfig() {
-    let wechatStatus = $("#wechatStatus").is(':checked');
-    let privateKeyPathWechat = $('#privateKeyPathWechat').val();
-    let notifyUrlWechat = $('#notifyUrlWechat').val();
-    let merchantSerialNumberWechat = $('#merchantSerialNumberWechat').val();
-    let wechatKeyWechat = $('#wechatKeyWechat').val();
-    let merchantIdWechat = $('#merchantIdWechat').val();
-    let appIdWechat = $('#appIdWechat').val();
-    if (!privateKeyPathWechat || !notifyUrlWechat || !merchantIdWechat || !merchantSerialNumberWechat || !wechatKeyWechat || !appIdWechat) {
-        layerWarn("所有选项都不能为空")
-        return;
-    }
-    if (!urlReg(notifyUrlWechat)) {
-        layerWarn("请输入正确的回调地址")
-        return;
-    }
-    let data = await sendRequest(
-        "POST",
-        "SysConfig/saveWechatConfig", {
-            appIdWechat: appIdWechat,
-            merchantIdWechat: merchantIdWechat,
-            wechatKeyWechat: wechatKeyWechat,
-            merchantSerialNumberWechat: merchantSerialNumberWechat,
-            notifyUrlWechat: notifyUrlWechat,
-            privateKeyPathWechat: privateKeyPathWechat,
-            wechatStatus: wechatStatus ? 1 : 0
-        });
-    autoLayer(data);
-    setTimeout(reload, 1000);
-}
-
-/** 保存或更新支付宝支付配置*/
-async function saveAlipayConfig() {
-    let alipayStatus = $("#alipayStatus").is(':checked');
-    let publicKeyAlipay = $('#publicKeyAlipay').val();
-    let notifyUrlAlipay = $('#notifyUrlAlipay').val();
-    let privateKeyAlipay = $('#privateKeyAlipay').val();
-    let gatewayUrlAlipay = $('#gatewayUrlAlipay').val();
-    let signTypeAlipay = $('#signTypeAlipay').val();
-    let charsetAlipay = $('#charsetAlipay').val();
-    let appIdAlipay = $('#appIdAlipay').val();
-    if (!publicKeyAlipay || !notifyUrlAlipay || !privateKeyAlipay || !gatewayUrlAlipay || !signTypeAlipay || !appIdAlipay || !charsetAlipay) {
-        layerWarn("所有选项都不能为空")
-        return;
-    }
-    if (!urlReg(notifyUrlAlipay)) {
-        layerWarn("请输入正确的回调地址")
-        return;
-    }
-    if (!urlReg(gatewayUrlAlipay)) {
-        layerWarn("请输入正确的网关地址")
-        return;
-    }
-    let data = await sendRequest(
-        "POST",
-        "SysConfig/saveAliPayConfig", {
-            appIdAlipay: appIdAlipay,
-            privateKeyAlipay: privateKeyAlipay,
-            publicKeyAlipay: publicKeyAlipay,
-            gatewayUrlAlipay: gatewayUrlAlipay,
-            charsetAlipay: charsetAlipay,
-            signTypeAlipay: signTypeAlipay,
-            notifyUrlAlipay: notifyUrlAlipay,
-            alipayStatus: alipayStatus ? 1 : 0
-        });
-    autoLayer(data);
-    setTimeout(reload, 1000);
-}
-
-/** 保存或更新支付宝提现配置*/
-async function saveWithdrawConfig() {
-    let aliWithdrawStatus = $("#aliWithdrawStatus").is(':checked');
-    let privateKeyAliWithdraw = $('#privateKeyAliWithdraw').val();
-    let alipayCertPublicKeyPath = $('#alipayCertPublicKeyPath').val();
-    let appCertPublicKeyPath = $('#appCertPublicKeyPath').val();
-    let alipayRootCertPath = $('#alipayRootCertPath').val();
-    let gatewayUrlAliWithdraw = $('#gatewayUrlAliWithdraw').val();
-    let signTypeAliWithdraw = $('#signTypeAliWithdraw').val();
-    let charsetAliWithdraw = $('#charsetAliWithdraw').val();
-    let appIdAliWithdraw = $('#appIdAliWithdraw').val();
-    if (!alipayRootCertPath || !privateKeyAliWithdraw || !alipayCertPublicKeyPath || !appCertPublicKeyPath || !gatewayUrlAliWithdraw || !signTypeAliWithdraw || !appIdAliWithdraw || !charsetAliWithdraw) {
-        layerWarn("所有选项都不能为空")
-        return;
-    }
-    if (!urlReg(gatewayUrlAliWithdraw)) {
-        layerWarn("请输入正确的网关地址")
-        return;
-    }
-    let data = await sendRequest(
-        "POST",
-        "SysConfig/saveAliWithdrawConfig", {
-            appIdAliWithdraw: appIdAliWithdraw,
-            appCertPublicKeyPath: appCertPublicKeyPath,
-            privateKeyAliWithdraw: privateKeyAliWithdraw,
-            gatewayUrlAliWithdraw: gatewayUrlAliWithdraw,
-            alipayRootCertPath: alipayRootCertPath,
-            charsetAliWithdraw: charsetAliWithdraw,
-            signTypeAliWithdraw: signTypeAliWithdraw,
-            alipayCertPublicKeyPath: alipayCertPublicKeyPath,
-            aliWithdrawStatus: aliWithdrawStatus ? 1 : 0
-        });
-    autoLayer(data);
-    setTimeout(reload, 1000);
-}
-
 /** 保存或更新网站基本设置*/
 async function saveWebsiteBaseConfig() {
     let formdata = new FormData();
@@ -363,15 +124,15 @@ async function saveWebsiteBaseConfig() {
     formdata.append("websiteAnnouncement", $('#websiteAnnouncement').val())
     formdata.append("defaultFlowPrice", $('#defaultFlowPrice').val())
     formdata.append("maxDomainCount", $('#maxDomainCount').val())
-    formdata.append("inviteRewardGb", $('#inviteRewardGb').val())
-    formdata.append("invitedRewardGb", $('#invitedRewardGb').val())
-    formdata.append("monthGiftGb", $('#monthGiftGb').val())
-    formdata.append("maxDomainCountProxy", $('#maxDomainCountProxy').val())
+    formdata.append("inviteRewardGb", 0)
+    formdata.append("invitedRewardGb", 0)
+    formdata.append("monthGiftGb", 0)
+    formdata.append("maxDomainCountProxy", 0)
     formdata.append("icpNumber", $('#icpNumber').val())
-    formdata.append("edgeoneDomainQuotaEnabled", $('#edgeoneDomainQuotaEnabled').is(':checked'))
-    formdata.append("edgeoneFreeDomainQuota", $('#edgeoneFreeDomainQuota').val() || 1)
-    formdata.append("edgeoneDomainQuotaPrice", $('#edgeoneDomainQuotaPrice').val() || 30)
-    formdata.append("edgeoneDomainQuotaValidDays", $('#edgeoneDomainQuotaValidDays').val() || 30)
+    formdata.append("edgeoneDomainQuotaEnabled", false)
+    formdata.append("edgeoneFreeDomainQuota", 0)
+    formdata.append("edgeoneDomainQuotaPrice", 0)
+    formdata.append("edgeoneDomainQuotaValidDays", 0)
     let expireTime = $('#expireTime').val();
     if (!integerReg(expireTime)) {
         layerWarn("请输入正整数")
@@ -1189,38 +950,6 @@ async function wechatUnBinding() {
     let data = await sendRequest(
         "POST",
         "wechatUnBinding", {});
-    autoLayer(data);
-    setTimeout(reload, 2000);
-}
-
-/** 审核分润明细*/
-async function checkBonus(id, isConfirm) {
-    let timer = null;
-    let data = await sendRequest(
-        "POST",
-        "RemovedFeature/disabled", {
-            id: id,
-            isConfirm: isConfirm
-        });
-    autoLayer(data);
-    setTimeout(reload, 2000);
-}
-
-/** 审核提现*/
-async function checkWithdrawRecord(id, status) {
-    let timer = null;
-    let banedReason = "";
-    if (status === 'reject') {
-        id = $("#withdrawModalInputHidden").val()
-        banedReason = $("#rejectReason").val()
-    }
-    let data = await sendRequest(
-        "POST",
-        "RemovedFeature/disabled", {
-            id: id,
-            status: status,
-            rejectReason: banedReason
-        });
     autoLayer(data);
     setTimeout(reload, 2000);
 }

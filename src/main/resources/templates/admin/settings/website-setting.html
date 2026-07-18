@@ -494,21 +494,6 @@
 
                                 <!-- Form -->
                                 <div class="row mb-4">
-                                    <label for="maxDomainCountProxy" class="col-sm-3 col-form-label form-label">默认域名数量（代理）
-                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
-                                           title="代理用户的默认可创建域名数量"></i>
-                                    </label>
-
-                                    <div class="col-sm-9">
-                                        <input th:value="${websiteBaseConfig} eq null ? '' : ${websiteBaseConfig.maxDomainCountProxy}"
-                                               type="number" class="form-control" id="maxDomainCountProxy"
-                                               placeholder="请输入域名数量">
-                                    </div>
-                                </div>
-                                <!-- End Form -->
-
-                                <!-- Form -->
-                                <div class="row mb-4">
                                     <label for="expireTime" class="col-sm-3 col-form-label form-label">订单过期时长（分）
                                         <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
                                            title="订单过期时长"></i>
@@ -596,43 +581,6 @@
                                 </div>
                                 <!-- End Form -->
 
-                                <!-- Form -->
-                                <div class="row mb-4">
-                                    <label for="edgeoneDomainQuotaEnabled" class="col-sm-3 col-form-label form-label">EdgeOne根域名收费</label>
-                                    <div class="col-sm-9">
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" id="edgeoneDomainQuotaEnabled"
-                                                   th:checked="${websiteBaseConfig == null or websiteBaseConfig.edgeoneDomainQuotaEnabled == null or websiteBaseConfig.edgeoneDomainQuotaEnabled}">
-                                            <label class="form-check-label" for="edgeoneDomainQuotaEnabled">启用EdgeOne根域名额度收费</label>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="row mb-4">
-                                    <label for="edgeoneFreeDomainQuota" class="col-sm-3 col-form-label form-label">免费根域名数量</label>
-                                    <div class="col-sm-9">
-                                        <input th:value="${websiteBaseConfig == null or websiteBaseConfig.edgeoneFreeDomainQuota == null ? 1 : websiteBaseConfig.edgeoneFreeDomainQuota}"
-                                               type="number" class="form-control" id="edgeoneFreeDomainQuota" min="0">
-                                    </div>
-                                </div>
-
-                                <div class="row mb-4">
-                                    <label for="edgeoneDomainQuotaPrice" class="col-sm-3 col-form-label form-label">单个额度价格（元）</label>
-                                    <div class="col-sm-9">
-                                        <input th:value="${websiteBaseConfig == null or websiteBaseConfig.edgeoneDomainQuotaPrice == null ? 30 : websiteBaseConfig.edgeoneDomainQuotaPrice}"
-                                               type="number" class="form-control" id="edgeoneDomainQuotaPrice" min="0" step="0.01">
-                                    </div>
-                                </div>
-
-                                <div class="row mb-4">
-                                    <label for="edgeoneDomainQuotaValidDays" class="col-sm-3 col-form-label form-label">付费额度有效期（天）</label>
-                                    <div class="col-sm-9">
-                                        <input th:value="${websiteBaseConfig == null or websiteBaseConfig.edgeoneDomainQuotaValidDays == null ? 30 : websiteBaseConfig.edgeoneDomainQuotaValidDays}"
-                                               type="number" class="form-control" id="edgeoneDomainQuotaValidDays" min="1">
-                                    </div>
-                                </div>
-
-                                <!-- End Form -->
 
                             </form>
                             <div class="d-flex justify-content-end">

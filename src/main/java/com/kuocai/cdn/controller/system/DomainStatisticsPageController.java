@@ -4,12 +4,9 @@ import com.kuocai.cdn.controller.base.BaseController;
 import com.kuocai.cdn.entity.CdnDomain;
 import com.kuocai.cdn.entity.SysUser;
 import com.kuocai.cdn.exception.CdnHuaweiException;
-import com.kuocai.cdn.service.AgentConfigService;
-import com.kuocai.cdn.service.SysConfigService;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.vo.CdnDomainVo;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,12 +24,6 @@ import java.util.Map;
 @Controller
 @Scope(value = "session")
 public class DomainStatisticsPageController extends BaseController {
-
-    @Autowired
-    private SysConfigService sysConfigService;
-
-    @Autowired
-    private AgentConfigService agentConfigService;
 
     /**
      * 数据统计
@@ -119,12 +110,6 @@ public class DomainStatisticsPageController extends BaseController {
         if (Assert.isEmpty(cdnDomain)) {
             return "redirect:/404";
         }
-
-        // 【核心修复】为公共模板(common-dashboard)提供必要的模型属性
-        map.put("websiteBaseConfig", sysConfigService.queryAll().get(0));
-        map.put("agentConfig", agentConfigService.queryAll().get(0));
-        // 【临时修复】AgentConfig实体没有状态字段，暂定为true以修复页面渲染。
-        map.put("openAgent", true);
 
         map.put("cdnDomain", cdnDomain);
         // 返回新创建的模板页面

@@ -171,7 +171,7 @@ public class BaseController {
         map.put("loginUserRoleCode", loginUserRoleCode);
         map.put("authorizedVendors", SupportedVendorUtils.allVendorOptions());
         map.put("authorizedVendorCodes", SupportedVendorUtils.allVendorCodes());
-        map.put("licenseVendorNameMap", SupportedVendorUtils.vendorNameMap());
+        map.put("vendorNameMap", SupportedVendorUtils.vendorNameMap());
         map.put("defaultAuthorizedVendor", SupportedVendorUtils.defaultVendor());
         // accessTrack.add(request, loginUser);
         if (isPostAndNotSign(request)) {
@@ -210,42 +210,11 @@ public class BaseController {
             map.put("countWaitingWorkOrder", workOrderService.countWaiting());
             map.put("countWaitingAuthentication", realNameAuthenticationService.countWaiting());
         }
-        // 代理
         boolean openAgent = false;
-        // 通过代理用户访问
         if (Assert.notEmpty(loginUser)) {
-            if (false && Assert.notEmpty(loginUser.getAgentLevelId())) {
-                agentConfig = agentConfigService.queryByUserId(loginUser.getId());
-                map.put("agentConfig", agentConfig);
-                agentId = loginUser.getId();
-                openAgent = true;
-            } else {
-                Long agentUserId = loginUser.getAgentUserId();
-                if (Assert.notEmpty(agentUserId)) {
-                    SysUser agentUser = sysUserService.queryCacheUserById(agentUserId);
-                    if (Assert.notEmpty(agentUser.getAgentLevelId())) {
-                        agentConfig = agentConfigService.queryByUserId(agentUserId);
-                        map.put("agentConfig", agentConfig);
-                        agentId = agentUser.getId();
-                        openAgent = true;
-                    }
-                }
-            }
             // 未绑定手机号
             if ("GET".equals(request.getMethod()) && Assert.isEmpty(loginUser.getPhone()) && !isPhoneBindingRequest(request.getRequestURI())) {
                 response.sendRedirect("/user-info");
-            }
-        }
-        // 通过代理域名访问
-        if (false && !openAgent) {
-            String domain = extractString(request.getRequestURL().toString());
-            if (Assert.notEmpty(domain) && !domain.contains("kuocaicdn.com")) {
-                agentConfig = agentConfigService.queryByDomain(domain);
-                if (Assert.notEmpty(agentConfig)) {
-                    map.put("agentConfig", agentConfig);
-                    agentId = agentConfig.getUserId();
-                    openAgent = true;
-                }
             }
         }
         map.put("openAgent", openAgent);

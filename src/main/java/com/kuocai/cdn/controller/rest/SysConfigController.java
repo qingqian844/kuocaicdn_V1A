@@ -72,14 +72,14 @@ public class SysConfigController extends BaseController {
         // 这里所有参数都不做非null校验
         WebsiteBaseConfigVo websiteBaseConfigVo = null;
         try {
-            websiteBaseConfigVo = WebsiteBaseConfigVo.builder().websiteName(websiteName).websiteAnnouncement(websiteAnnouncement).maxDomainCountProxy(maxDomainCountProxy)
-                    .inviteRewardGb(inviteRewardGb)
-                    .invitedRewardGb(invitedRewardGb)
-                    .monthGiftGb(monthGiftGb)
-                    .edgeoneDomainQuotaEnabled(edgeoneDomainQuotaEnabled == null || edgeoneDomainQuotaEnabled)
-                    .edgeoneFreeDomainQuota(edgeoneFreeDomainQuota == null ? 1 : edgeoneFreeDomainQuota)
-                    .edgeoneDomainQuotaPrice(edgeoneDomainQuotaPrice == null ? new BigDecimal("30") : edgeoneDomainQuotaPrice)
-                    .edgeoneDomainQuotaValidDays(edgeoneDomainQuotaValidDays == null ? 30 : edgeoneDomainQuotaValidDays)
+            websiteBaseConfigVo = WebsiteBaseConfigVo.builder().websiteName(websiteName).websiteAnnouncement(websiteAnnouncement).maxDomainCountProxy(0)
+                    .inviteRewardGb(0)
+                    .invitedRewardGb(0)
+                    .monthGiftGb(0)
+                    .edgeoneDomainQuotaEnabled(false)
+                    .edgeoneFreeDomainQuota(0)
+                    .edgeoneDomainQuotaPrice(BigDecimal.ZERO)
+                    .edgeoneDomainQuotaValidDays(0)
                     .maxDomainCount(maxDomainCount)
                     .defaultFlowPrice(BigDecimal.valueOf(defaultFlowPrice)).icpNumber(icpNumber)
                     // 判断文件是否已经存在且没被修改，是直接保存路径，否则进行转换
@@ -255,65 +255,6 @@ public class SysConfigController extends BaseController {
     @SysLog(module = "系统设置管理", describe = "保存或更新站点访问根目录配置")
     public RespResult saveWebsiteAccessRootConfig(WebsiteAccessRootConfigVo websiteAccessRootConfigVo) {
         service.saveConfig(websiteAccessRootConfigVo, ConfigBizTypeConstants.WEBSITE_ACCESS_CONFIG, loginUserId);
-        return RespResult.success("更新成功");
-    }
-
-
-    /**
-     * description: 保存或更新微信配置
-     *
-     * @param weChatConfigVo 微信配置类
-     * @return com.kuocai.cdn.resp.RespResult
-     * @author bo
-     * @date 2023/3/24 16:48
-     */
-    @AuthorLimiter
-    @RateLimiter
-    @PostMapping("saveWechatConfig")
-    @SysLog(module = "系统设置管理", describe = "保存或更新微信配置")
-    public RespResult saveWechatConfig(WeChatConfigVo weChatConfigVo) {
-        service.saveConfig(weChatConfigVo, ConfigBizTypeConstants.WECHAT_CONFIG, loginUserId);
-        preloadComponent.loadPayConfig();
-        return RespResult.success("更新成功");
-    }
-
-    /**
-     * description: 保存或更新支付宝配置
-     *
-     * @param aliPayConfigVo 支付宝配置类
-     * @return com.kuocai.cdn.resp.RespResult
-     * @author bo
-     * @date 2023/3/24 16:47
-     */
-    @AuthorLimiter
-    @RateLimiter
-    @PostMapping("saveAliPayConfig")
-    @SysLog(module = "系统设置管理", describe = "保存或更新支付宝配置")
-    public RespResult saveAliPayConfig(AliPayConfigVo aliPayConfigVo) {
-        try {
-            service.saveConfig(aliPayConfigVo, ConfigBizTypeConstants.ALIPAY_CONFIG, loginUserId);
-            preloadComponent.loadPayConfig();
-            return RespResult.success("更新成功");
-        } catch (RuntimeException e) {
-            return RespResult.fail("保存支付宝配置失败：" + e.getMessage());
-        }
-    }
-
-    /**
-     * description: 保存或更新支付宝提现配置
-     *
-     * @param aliWithdrawConfigVo 支付宝提现配置类
-     * @return com.kuocai.cdn.resp.RespResult
-     * @author bo
-     * @date 2023/3/24 16:47
-     */
-    @AuthorLimiter
-    @RateLimiter
-    @PostMapping("saveAliWithdrawConfig")
-    @SysLog(module = "系统设置管理", describe = "保存或更新支付宝提现配置")
-    public RespResult saveAliWithdrawConfig(AliWithdrawConfigVo aliWithdrawConfigVo) {
-        service.saveConfig(aliWithdrawConfigVo, ConfigBizTypeConstants.ALI_WITHDRAW_CONFIG, loginUserId);
-        preloadComponent.loadPayConfig();
         return RespResult.success("更新成功");
     }
 

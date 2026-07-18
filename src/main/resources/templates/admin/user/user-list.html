@@ -244,62 +244,6 @@
                             <div class="col-sm-auto">
                                 <div class="row align-items-center gx-0">
                                     <div class="col">
-                                        <span class="text-secondary me-2" style="font-weight: bold">推荐人：</span>
-                                    </div>
-                                    <!-- End Col -->
-
-                                    <div class="col-auto">
-                                        <!-- Select -->
-                                        <div class="tom-select-custom tom-select-custom-end">
-                                            <select class="js-select js-datatable-filter form-select form-select-sm form-select-borderless"
-                                                    data-target-column-index="0" data-target-table="datatable"
-                                                    autocomplete="off" data-hs-tom-select-options='{
-                                  "dropdownWidth": "20rem"
-                                }'>
-                                                <option value="all" selected>全部</option>
-                                                <option th:value="${u.id}" th:each="u: ${referrers}">
-                                                    [[${u.userName}]] [[${u.phone}]] [[${u.email}]]
-                                                </option>
-                                            </select>
-                                        </div>
-                                        <!-- End Select -->
-                                    </div>
-                                    <!-- End Col -->
-                                </div>
-                                <!-- End Row -->
-                            </div>
-
-                            <div class="col-sm-auto">
-                                <div class="row align-items-center gx-0">
-                                    <div class="col">
-                                        <span class="text-secondary me-2" style="font-weight: bold">上级代理：</span>
-                                    </div>
-                                    <!-- End Col -->
-
-                                    <div class="col-auto">
-                                        <!-- Select -->
-                                        <div class="tom-select-custom tom-select-custom-end">
-                                            <select class="js-select js-datatable-filter form-select form-select-sm form-select-borderless"
-                                                    data-target-column-index="1" data-target-table="datatable"
-                                                    autocomplete="off" data-hs-tom-select-options='{
-                                  "dropdownWidth": "20rem"
-                                }'>
-                                                <option value="all" selected>全部</option>
-                                                <option th:value="${u.id}" th:each="u: ${agents}">
-                                                    [[${u.userName}]] [[${u.phone}]] [[${u.email}]]
-                                                </option>
-                                            </select>
-                                        </div>
-                                        <!-- End Select -->
-                                    </div>
-                                    <!-- End Col -->
-                                </div>
-                                <!-- End Row -->
-                            </div>
-
-                            <div class="col-sm-auto">
-                                <div class="row align-items-center gx-0">
-                                    <div class="col">
                                         <span class="text-secondary me-2" style="font-weight: bold">用户状态：</span>
                                     </div>
                                     <!-- End Col -->
@@ -308,7 +252,7 @@
                                         <!-- Select -->
                                         <div class="tom-select-custom tom-select-custom-end">
                                             <select class="js-select js-datatable-filter form-select form-select-sm form-select-borderless"
-                                                    data-target-column-index="2" data-target-table="datatable"
+                                                    data-target-column-index="3" data-target-table="datatable"
                                                     autocomplete="off" data-hs-tom-select-options='{
                                   "searchInDropdown": false,
                                   "hideSearch": true,
@@ -347,7 +291,7 @@
                       "targets": [0],
                       "orderable": false
                     }],
-                   "order": [[8, "desc"]],
+                   "order": [[7, "desc"]],
                    "info": {
                      "totalQty": "#datatableWithPaginationInfoTotalQty"
                    },
@@ -364,7 +308,6 @@
                     <thead class="thead-light">
                     <tr>
                         <th>用户名</th>
-                        <th>上级代理</th>
                         <th>真实姓名</th>
                         <th>联系方式</th>
                         <th>当前状态</th>
@@ -518,8 +461,7 @@
                 }
             },
             columns: [
-                {width: '10%', data: 'referrer_id'},
-                {width: '10%', data: 'agent_user_id'},
+                {width: '10%', data: 'user.userName'},
                 {width: '10%', data: 'user.realName'},
                 {width: '10%', data: null},
                 {width: '10%', data: 'user.status'},
@@ -544,16 +486,7 @@
                     }
                 },
                 {
-                    targets: 1,
-                    render: function (data, type, row, meta) {
-                        if (row.agentUser && row.agentUser.userName) {
-                            return row.agentUser.userName;
-                        }
-                        return '';
-                    }
-                },
-                {
-                    targets: 3,
+                    targets: 2,
                     render: function (data, type, row, meta) {
                         let email = '-';
                         let phone = '-';
@@ -570,7 +503,7 @@
                     }
                 },
                 {
-                    targets: 4,
+                    targets: 3,
                     render: function (data, type, row, meta) {
                         if (data === 'banned') {
                             return '禁用';
@@ -584,7 +517,7 @@
                     }
                 },
                 {
-                    targets: 9,
+                    targets: 8,
                     render: function (data, type, row, meta) {
                         // console.log(data);
                         // console.log(type);
@@ -600,7 +533,7 @@
                         return str;
                     }
                 },
-                {"orderable": false, "targets": [0, 2, 3, 4, 5, 6, 7, 9]},
+                {"orderable": false, "targets": [0, 1, 2, 3, 4, 5, 6, 8]},
             ],
         });
 

@@ -12,8 +12,6 @@ import com.kuocai.cdn.dto.datatable.DataTableQuery;
 import com.kuocai.cdn.dto.resp.RespResult;
 import com.kuocai.cdn.entity.SysUserAccount;
 import com.kuocai.cdn.entity.TransactionOrder;
-import com.kuocai.cdn.exception.BusinessException;
-import com.kuocai.cdn.service.EdgeOneDomainQuotaService;
 import com.kuocai.cdn.service.SysUserAccountService;
 import com.kuocai.cdn.service.TransactionOrderService;
 import com.kuocai.cdn.util.Assert;
@@ -41,9 +39,6 @@ public class TransactionOrderController extends BaseController {
     @Resource
     private SysUserAccountService userAccountService;
 
-    @Resource
-    private EdgeOneDomainQuotaService edgeOneDomainQuotaService;
-
     @RateLimiter
     @PostMapping("getCollectOrder")
     public RespResult getCollectOrder(Long userId) {
@@ -66,36 +61,6 @@ public class TransactionOrderController extends BaseController {
     }
 
     @RateLimiter
-    @PostMapping("queryEdgeOneDomainQuota")
-    public RespResult queryEdgeOneDomainQuota() {
-        return RespResult.success("success", edgeOneDomainQuotaService.summary(loginUserId));
-    }
-
-    @RateLimiter
-    @PostMapping("queryEdgeOneDomainQuotaPayOptions")
-    public RespResult queryEdgeOneDomainQuotaPayOptions() {
-        JSONObject data = new JSONObject();
-        data.put("alipayEnabled", false);
-        data.put("wechatEnabled", false);
-        return RespResult.success("success", data);
-    }
-
-    @RateLimiter
-    @PostMapping("createEdgeOneDomainQuotaBalanceOrder")
-    public RespResult createEdgeOneDomainQuotaBalanceOrder() {
-        try {
-            SysUserAccount sysUserAccount = userAccountService.queryByUserId(loginUserId);
-            edgeOneDomainQuotaService.createBalanceQuotaOrder(loginUser, sysUserAccount);
-            return RespResult.success("购买成功", edgeOneDomainQuotaService.summary(loginUserId));
-        } catch (BusinessException e) {
-            return RespResult.fail(e.getMessage(), edgeOneDomainQuotaService.summary(loginUserId));
-        } catch (Exception e) {
-            log.error("Create EdgeOne quota balance order failed", e);
-            return RespResult.fail("购买失败，请稍后再试");
-        }
-    }
-
-    @RateLimiter
     @PostMapping("useBalance2PayTransactionOrder")
     @SysLog(module = "财务管理", describe = "使用余额支付订单")
     public RespResult useBalance2PayTransactionOrder(Long transactionId) {
@@ -110,8 +75,7 @@ public class TransactionOrderController extends BaseController {
         if (!TransactionOrderStatus.WAIT_BUYER_PAY.equals(transactionOrder.getStatus())) {
             return RespResult.fail("order status invalid");
         }
-        if (!TransactionOrderType.FLOW_DEDUCTION.equals(transactionOrder.getOrderType())
-                && !TransactionOrderType.EDGEONE_DOMAIN_QUOTA.equals(transactionOrder.getOrderType())) {
+        if (!TransactionOrderType.FLOW_DEDUCTION.equals(transactionOrder.getOrderType())) {
             return RespResult.fail("order type invalid");
         }
         SysUserAccount sysUserAccount = userAccountService.queryByUserId(loginUserId);

@@ -685,22 +685,6 @@
                     <!-- End 折叠 -->
 
                     <!-- 折叠 -->
-                    <div class="nav-item" th:if="${false}"><a href="#navbarVerticalMenuPagesAgentLevelMenu"
-                           role="button" data-bs-toggle="collapse"
-                           data-bs-target="#navbarVerticalMenuPagesAgentLevelMenu" aria-expanded="false"
-                           aria-controls="navbarVerticalMenuPagesAgentLevelMenu">
-                            <i class="bi-person nav-icon"></i>
-                            <span class="nav-link-title">代理管理</span>
-                        </a>
-
-                        <div id="navbarVerticalMenuPagesAgentLevelMenu"
-                             th:class="${false? 'nav-collapse collapse show':'nav-collapse collapse'}"
-                             data-bs-parent="#navbarVerticalMenuPagesMenu">
-                        </div>
-                    </div>
-                    <!-- End 折叠 -->
-
-                    <!-- 折叠 -->
                     <div class="nav-item">
                         <a th:class="${curPage == 'order-list' or curPage == 'order-detail' or curPage == 'order-type-list' ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
                            href="#navbarVerticalMenuPagesWorkOrder"
@@ -729,7 +713,7 @@
 
                     <!-- 折叠 -->
                     <div class="nav-item">
-                        <a th:class="${curPage == 'website-setting' or curPage == 'pay-setting' or curPage == 'real-name-setting' or curPage == 'email-setting'or curPage == 'sms-setting' or curPage == 'quick-login-setting' or curPage == 'api-setting' or curPage == 'self-hosted-node' or curPage == 'self-hosted-port-forward' or curPage == 'wechat-code-config' or curPage == 'api-config' or curPage == 'menu'? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
+                        <a th:class="${curPage == 'website-setting' or curPage == 'real-name-setting' or curPage == 'email-setting'or curPage == 'sms-setting' or curPage == 'quick-login-setting' or curPage == 'api-setting' or curPage == 'self-hosted-node' or curPage == 'self-hosted-port-forward' or curPage == 'wechat-code-config' or curPage == 'api-config' or curPage == 'menu'? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
                            href="#navbarVerticalMenuPagesSystem"
                            role="button" data-bs-toggle="collapse"
                            data-bs-target="#navbarVerticalMenuPagesSystem" aria-expanded="false"
@@ -739,12 +723,10 @@
                         </a>
 
                         <div id="navbarVerticalMenuPagesSystem"
-                             th:class="${curPage == 'website-setting' or curPage == 'pay-setting' or curPage == 'real-name-setting' or curPage == 'email-setting'or curPage == 'sms-setting' or curPage == 'quick-login-setting' or curPage == 'api-setting' or curPage == 'self-hosted-node' or curPage == 'self-hosted-port-forward' or curPage == 'wechat-code-config' or curPage == 'api-config' or curPage == 'menu'? 'nav-collapse collapse show':'nav-collapse collapse'}"
+                             th:class="${curPage == 'website-setting' or curPage == 'real-name-setting' or curPage == 'email-setting'or curPage == 'sms-setting' or curPage == 'quick-login-setting' or curPage == 'api-setting' or curPage == 'self-hosted-node' or curPage == 'self-hosted-port-forward' or curPage == 'wechat-code-config' or curPage == 'api-config' or curPage == 'menu'? 'nav-collapse collapse show':'nav-collapse collapse'}"
                              data-bs-parent="#navbarVerticalMenuPagesMenu">
                             <a th:class="${curPage == 'website-setting' ? 'nav-link active':'nav-link'} "
                                href="website-setting">网站配置</a>
-                            <a th:class="${curPage == 'pay-setting' ? 'nav-link active':'nav-link'} "
-                               href="pay-setting">支付配置</a>
                             <a th:class="${curPage == 'real-name-setting' ? 'nav-link active':'nav-link'} "
                                href="real-name-setting">实名配置</a>
                             <a th:class="${curPage == 'email-setting' ? 'nav-link active':'nav-link'} "
@@ -856,42 +838,6 @@
                     <!-- End 折叠 -->
 
                     <!-- 折叠 -->
-                    <div class="nav-item" th:if="${false}">
-                        <a th:class="${false ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
-                           href="#navbarVerticalMenuPagesAgentLevelMenu"
-                           role="button" data-bs-toggle="collapse"
-                           data-bs-target="#navbarVerticalMenuPagesAgentLevelMenu" aria-expanded="false"
-                           aria-controls="navbarVerticalMenuPagesAgentLevelMenu">
-                            <i class="bi-person nav-icon"></i>
-                            <span class="nav-link-title">代理管理</span>
-                        </a>
-
-                        <div id="navbarVerticalMenuPagesAgentLevelMenu"
-                             th:class="${false ? 'nav-collapse collapse show':'nav-collapse collapse'}"
-                             data-bs-parent="#navbarVerticalMenuPagesAgentLevelMenu">
-                        </div>
-                    </div>
-                    <!-- End 折叠 -->
-
-                    <!-- 折叠 -->
-                    <div class="nav-item">
-                        <a th:class="${false ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
-                           href="#navbarVerticalMenuPagesProduct"
-                           role="button" data-bs-toggle="collapse"
-                           data-bs-target="#navbarVerticalMenuPagesProduct" aria-expanded="false"
-                           aria-controls="navbarVerticalMenuPagesMenu">
-                            <i class="bi-bag-heart nav-icon"></i>
-                            <span class="nav-link-title">套餐管理</span>
-                        </a>
-
-                        <div id="navbarVerticalMenuPagesProduct"
-                             th:class="${false ? 'nav-collapse collapse show':'nav-collapse collapse'}"
-                             data-bs-parent="#navbarVerticalMenuPagesMenu">
-                        </div>
-                    </div>
-                    <!-- End 折叠 -->
-
-                    <!-- 折叠 -->
                     <div class="nav-item">
                         <a th:class="${curPage == 'domain-list' or curPage == 'certification-list' or curPage == 'cache-preheating' or curPage == 'self-hosted-port-forward' ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
                            href="#navbarVerticalMenuPagesSite"
@@ -929,7 +875,7 @@
                     <!-- End 折叠 -->
                     <!-- 折叠 -->
                     <div class="nav-item">
-                        <a th:class="${curPage == 'transaction-order-list' or curPage == 'recharge' ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
+                        <a th:class="${curPage == 'transaction-order-list' ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
                            href="#navbarVerticalMenuPagesFinance"
                            role="button" data-bs-toggle="collapse"
                            data-bs-target="#navbarVerticalMenuPagesFinance" aria-expanded="false"
@@ -939,12 +885,10 @@
                         </a>
 
                         <div id="navbarVerticalMenuPagesFinance"
-                             th:class="${curPage == 'transaction-order-list' or curPage == 'recharge' ? 'nav-collapse collapse show':'nav-collapse collapse'}"
+                             th:class="${curPage == 'transaction-order-list' ? 'nav-collapse collapse show':'nav-collapse collapse'}"
                              data-bs-parent="#navbarVerticalMenuPagesMenu">
                             <a th:class="${curPage == 'transaction-order-list' ? 'nav-link active':'nav-link'}"
                                href="transaction-order-list">我的订单</a>
-                            <a th:class="${curPage == 'recharge' ? 'nav-link active':'nav-link'}"
-                               href="recharge">账户充值</a>
                         </div>
                     </div>
                     <!-- End 折叠 -->
@@ -996,51 +940,6 @@
                     </div>
                     <!-- End 折叠 -->
 
-                    <!-- 折叠 -->
-                    <div class="nav-item">
-                        <a class="nav-link" data-bs-toggle="modal" data-bs-target="#exampleModalTopCover"
-                           href="#"
-                           data-placement="left">
-                            <i class="bi-gift nav-icon"></i>
-                            <span class="nav-link-title">礼品兑换
-                            </span>
-                        </a>
-                    </div>
-                    <!-- End 折叠 -->
-
-                    <!-- 折叠 -->
-                    <div class="nav-item">
-                        <a class="nav-link" data-placement="left" href="javascript:void(0);" onclick="claimMonthlyFreePackage()" title="领取每月福利">
-                            <i class="bi-gift nav-icon"></i>
-                            <span class="nav-link-title">每月福利</span>
-                        </a>
-                    </div>
-                    <script>
-                        function claimMonthlyFreePackage() {
-                            const n = Date.now();
-                            const w = navigator.language;
-                            loadingShow();
-                            $.ajax({
-                                type: 'POST',
-                                url: '/RemovedFeature/disabled',
-                                data: {t: n, a: w},
-                                complete: function () {
-                                    loadingRemove();
-                                },
-                                success: function (data) {
-                                    layerInfo(data.message || '领取成功');
-                                },
-                                error: function (xhr) {
-                                    if ('responseJSON' in xhr && xhr.responseJSON && 'message' in xhr.responseJSON) {
-                                        layerFail(xhr.responseJSON.message);
-                                    } else {
-                                        layerFail('请求失败，请检查网络情况或稍后再试！');
-                                    }
-                                }
-                            });
-                        }
-                    </script>
-                    <!-- End 折叠 -->
                 </div>
 
             </div>
@@ -1177,32 +1076,6 @@
     <!--        </div>-->
     <!--        &lt;!&ndash; End Col &ndash;&gt;-->
     <!--    </div>-->
-    <!-- Modal -->
-    <div id="exampleModalTopCover" class="modal fade" tabindex="-1" role="dialog"
-         aria-labelledby="exampleModalTopCoverTitle" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" role="document">
-            <div class="modal-content">
-                <!-- Header -->
-                <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalCenterTitle">礼品兑换</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <!-- End Header -->
-
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label" for="giftCode">兑换码</label>
-                        <input type="text" id="giftCode" maxlength="20" class="form-control" placeholder="请输入兑换码">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-white" data-bs-dismiss="modal">关闭</button>
-                    
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- End Modal -->
 </div>
 
 <div id="agent">

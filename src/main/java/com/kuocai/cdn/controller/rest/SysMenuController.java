@@ -47,9 +47,7 @@ public class SysMenuController extends BaseController {
         if (!url.startsWith("/") && !url.startsWith("http")) {
             menu.setUrl("http://" + url);
         }
-        if ("2".equals(menu.getLevel())) {
-            menu.setType("only-main");
-        }
+        menu.setType("only-main");
         Integer priority = menu.getPriority();
         menu.setPriority(Assert.isEmpty(priority) ? 0 : priority);
         service.save(menu);

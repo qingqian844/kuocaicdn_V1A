@@ -3,7 +3,6 @@ package com.kuocai.cdn.controller.system;
 import com.alibaba.fastjson.JSONObject;
 import com.kuocai.cdn.controller.base.BaseController;
 import com.kuocai.cdn.dto.resp.RespResult;
-import com.kuocai.cdn.entity.AgentLevel;
 import com.kuocai.cdn.entity.LoginDevice;
 import com.kuocai.cdn.entity.RealNameAuthentication;
 import com.kuocai.cdn.entity.SysUser;
@@ -42,11 +41,6 @@ public class PersonCenterPageController extends BaseController {
     public String userInfo(Map<String, Object> map) {
         List<LoginDevice> loginDevices = loginDeviceService.queryUserLastLoginDevice(loginUserId, 10);
         map.put("loginDevices", loginDevices);
-        Long agentLevelId = loginUser.getAgentLevelId();
-        if (Assert.notEmpty(agentLevelId)) {
-            AgentLevel agentLevel = agentLevelService.queryById(agentLevelId);
-            map.put("agentLevel", agentLevel);
-        }
         return "admin/user/user-info";
     }
 

@@ -1,30 +1,22 @@
 package com.kuocai.cdn.controller.rest;
 
 import com.kuocai.cdn.annotation.RateLimiter;
-import com.kuocai.cdn.common.mongo.entity.InviteReward;
-import com.kuocai.cdn.config.SystemConfig;
 import com.kuocai.cdn.controller.base.BaseController;
 import com.kuocai.cdn.dto.resp.RespResult;
 import com.kuocai.cdn.entity.FaceCertifyVerify;
 import com.kuocai.cdn.entity.SysUser;
 import com.kuocai.cdn.enumeration.UserStatus;
 import com.kuocai.cdn.exception.BusinessException;
-import com.kuocai.cdn.service.FlowDonateService;
 import com.kuocai.cdn.service.SysUserService;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.util.ValidatorUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Scope;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.Executor;
 
 @Slf4j
 @RestController
@@ -33,16 +25,9 @@ import java.util.concurrent.Executor;
 public class FaceCertifyVerifyController extends BaseController {
 
     private final SysUserService userService;
-    private final FlowDonateService flowDonateService;
-    private final MongoTemplate mongoTemplate;
-    private final Executor executorService;
 
-    FaceCertifyVerifyController(SysUserService userService, FlowDonateService flowDonateService, MongoTemplate mongoTemplate,
-                                @Qualifier("cdnDomainExecutor") Executor executorService) {
+    FaceCertifyVerifyController(SysUserService userService) {
         this.userService = userService;
-        this.flowDonateService = flowDonateService;
-        this.mongoTemplate = mongoTemplate;
-        this.executorService = executorService;
     }
 
     @RateLimiter
@@ -75,17 +60,6 @@ public class FaceCertifyVerifyController extends BaseController {
                 sysUser.setRealName(verify.getName());
                 SysUser saveUser = userService.save(sysUser);
                 session.setAttribute("loginUser", saveUser);
-                // 邀请奖励
-                executorService.execute(() -> {
-                    // query one where userId = loginUserId
-                    Query query = Query.query(Criteria.where("userId").is(saveUser.getId()));
-                    InviteReward one = mongoTemplate.findOne(query, InviteReward.class);
-                    if (Assert.notEmpty(one) && !one.isUserReceived()) {
-                        flowDonateService.sendFlowGift("受邀注册奖励", sysUser.getId(), SystemConfig.websiteBaseConfig.getInvitedRewardGb(), 365);
-                        one.setUserReceived();
-                        mongoTemplate.save(one);
-                    }
-                });
                 return RespResult.success("实名认证成功");
             }
             return RespResult.fail(verify.getRemark());

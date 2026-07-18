@@ -10,8 +10,6 @@ import com.kuocai.cdn.api.tencent.dns.TencentApi;
 import com.kuocai.cdn.api.tencent.dns.dto.DeleteRecordDTO;
 import com.kuocai.cdn.api.tencent.dns.properties.TencentDns;
 import com.kuocai.cdn.api.tencent.edgeone.TencentEdgeOneClient;
-import com.kuocai.cdn.common.mongo.entity.InviteReward;
-import com.kuocai.cdn.config.SystemConfig;
 import com.kuocai.cdn.constant.CdnBusinessTypeMap;
 import com.kuocai.cdn.constant.CdnOriginTypeMap;
 import com.kuocai.cdn.constant.CdnServiceAreaMap;
@@ -35,11 +33,10 @@ import com.kuocai.cdn.util.ThreadMdcUtils;
 import com.kuocai.cdn.vo.CdnDomainVo;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Scope;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -64,21 +61,25 @@ import java.util.concurrent.Executor;
 public class CdnDomainController extends BaseController {
 
     private final CdnDomainService service;
-    private final FlowDonateService flowDonateService;
     private final EdgeOneDomainQuotaService edgeOneDomainQuotaService;
-    private final MongoTemplate mongoTemplate;
     private final Executor executorService;
 
+    @Autowired
     CdnDomainController(CdnDomainService service,
-                        FlowDonateService flowDonateService,
                         EdgeOneDomainQuotaService edgeOneDomainQuotaService,
-                        MongoTemplate mongoTemplate,
                         @Qualifier("cdnDomainExecutor") Executor executorService) {
         this.service = service;
-        this.flowDonateService = flowDonateService;
         this.edgeOneDomainQuotaService = edgeOneDomainQuotaService;
-        this.mongoTemplate = mongoTemplate;
         this.executorService = executorService;
+    }
+
+    /**
+     * Compatibility constructor for integrations compiled against the pre-open-source signature.
+     */
+    CdnDomainController(CdnDomainService service, FlowDonateService ignoredFlowDonateService,
+                        EdgeOneDomainQuotaService edgeOneDomainQuotaService, MongoTemplate ignoredMongoTemplate,
+                        Executor executorService) {
+        this(service, edgeOneDomainQuotaService, executorService);
     }
 
     /**
@@ -270,19 +271,6 @@ public class CdnDomainController extends BaseController {
 //                route = CdnOperationRoute.ALIYUN.getRoute();
 //            } */
 //        }
-        if ("user".equals(loginUserRoleCode) && edgeOneRoute && !edgeOneResume) {
-            try {
-                edgeOneDomainQuotaService.checkCreateQuota(loginUserId, domainName);
-            } catch (BusinessException e) {
-                if ("EDGEONE_DOMAIN_QUOTA_REQUIRED".equals(e.getMessage())) {
-                    JSONObject data = new JSONObject();
-                    data.put("action", "EDGEONE_QUOTA_REQUIRED");
-                    data.put("summary", edgeOneDomainQuotaService.summary(loginUserId));
-                    return RespResult.fail("EdgeOne根域名额度不足，请先购买额度后再添加", data);
-                }
-                return RespResult.fail(e.getMessage());
-            }
-        }
         try {
             ICdnPlatformService iCdnPlatformService = CdnPlatformFactory.getCdnPlatform(route);
             CdnDomain domain = iCdnPlatformService.create(loginUserId, domainName, businessType, serviceArea, originType, originAddr,
@@ -299,14 +287,6 @@ public class CdnDomainController extends BaseController {
                     iCdnPlatformService.configDNS(finalDomain);
                 } catch (Exception e) {
                     log.error("配置域名（{}）失败：{}", finalDomain.getDomainName(), e.getMessage());
-                }
-                // query one where userId = loginUserId
-                Query query = Query.query(Criteria.where("userId").is(loginUserId));
-                InviteReward one = mongoTemplate.findOne(query, InviteReward.class);
-                if (Assert.notEmpty(one) && !one.isInviteUserReceived()) {
-                     flowDonateService.sendFlowGift("推荐注册奖励", one.getInviteUserId(), SystemConfig.websiteBaseConfig.getInviteRewardGb(), 365);
-                    one.setInviteUserReceived();
-                    mongoTemplate.save(one);
                 }
             }, MDC.getCopyOfContextMap()));
             return RespResult.success("创建成功，配置过程大约5分钟", domain);

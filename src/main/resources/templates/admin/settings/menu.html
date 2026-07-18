@@ -235,9 +235,7 @@
                                       "placeholder": "选择菜单策略",
                                       "hideSearch": true
                                     }'>
-                                    <option value="only-main">仅主站开放</option>
-                                    <option value="only-proxy">仅代理开放</option>
-                                    <option value="both">主站代理均开放</option>
+                                    <option value="only-main">主站开放</option>
                                 </select>
                             </div>
                             <!-- End Select -->
@@ -304,9 +302,7 @@
                         <td th:if="${m.level == '1'}"><span class="badge bg-primary">一级菜单</span></td>
                         <td th:if="${m.level == '2'}"><span class="badge bg-secondary">二级菜单</span></td>
                         <td th:text="${m.priority}"></td>
-                        <td th:if="${m.type == 'only-main'}"><span class="badge bg-danger">仅主站开放</span></td>
-                        <td th:if="${m.type == 'only-proxy'}"><span class="badge bg-warning">仅代理开放</span></td>
-                        <td th:if="${m.type == 'both'}"><span class="badge bg-success">主站代理均开放</span></td>
+                        <td><span class="badge bg-danger">主站开放</span></td>
                         <td th:text="${m.name}"></td>
                         <td th:text="${m.url}"></td>
                         <td th:text="${#dates.format(m.createTime, 'yyyy-MM-dd HH:mm:ss')}"></td>

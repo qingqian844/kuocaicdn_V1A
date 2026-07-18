@@ -58,6 +58,10 @@ public interface ICdnPlatformService {
     //修改回源超时时间
     void saveRangeTimeOut(CdnDomain cdnDomain, DomainOriginSettingVo domainOriginSettingVo) throws BusinessException;
 
+    default void saveOriginFollowRedirect(CdnDomain cdnDomain, DomainOriginSettingVo domainOriginSettingVo) throws BusinessException {
+        throw new BusinessException("当前厂商暂不支持回源跟随重定向配置");
+    }
+
     //修改回源请求头
     void saveOriginRequestHeader(CdnDomain cdnDomain, DomainOriginSettingVo domainOriginSettingVo) throws BusinessException;
 

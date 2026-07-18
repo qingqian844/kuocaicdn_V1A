@@ -356,21 +356,6 @@
     })()
 </script>
 
-<script>
-    'use strict';
-
-    function checkSession() {
-        $.ajax({
-            type: 'GET',
-            url: 'https://api.kuocaicdn.com/auth/session',
-        }).done(function () {
-            layerSuccess('已登录，正在跳转...');
-            window.open('/dashboard', '_self');
-        });
-    }
-
-    window.addEventListener('DOMContentLoaded', checkSession, false);
-</script>
 </body>
 </html>
 
