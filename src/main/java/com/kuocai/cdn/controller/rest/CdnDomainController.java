@@ -529,10 +529,14 @@ public class CdnDomainController extends BaseController {
         try {
             ICdnPlatformService iCdnPlatformService = CdnPlatformFactory.getCdnPlatform(cdnDomain.getRoute());
             iCdnPlatformService.disable(cdnDomain);
-            service.updateConfiguring(id);
+            if (!CdnRoute.isSelfHosted(cdnDomain.getRoute())) {
+                service.updateConfiguring(id);
+            }
             return RespResult.success("停用成功，配置过程大约5分钟", cdnDomain);
         } catch (Exception e) {
-            service.updateConfiguring(id);
+            if (!CdnRoute.isSelfHosted(cdnDomain.getRoute())) {
+                service.updateConfiguring(id);
+            }
             return RespResult.fail(e.getMessage());
         }
     }
@@ -567,10 +571,14 @@ public class CdnDomainController extends BaseController {
         try {
             ICdnPlatformService iCdnPlatformService = CdnPlatformFactory.getCdnPlatform(cdnDomain.getRoute());
             iCdnPlatformService.enable(cdnDomain);
-            service.updateConfiguring(id);
+            if (!CdnRoute.isSelfHosted(cdnDomain.getRoute())) {
+                service.updateConfiguring(id);
+            }
             return RespResult.success("启用成功，配置过程大约5分钟", cdnDomain);
         } catch (Exception e) {
-            service.updateConfiguring(id);
+            if (!CdnRoute.isSelfHosted(cdnDomain.getRoute())) {
+                service.updateConfiguring(id);
+            }
             return RespResult.fail(e.getMessage());
         }
     }

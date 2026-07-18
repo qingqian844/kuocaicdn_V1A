@@ -632,10 +632,23 @@ def write_port_forward_config(release_dir, rule):
 
 def install_base_config():
     os.makedirs(CACHE_DIR, exist_ok=True)
+    # 节点没有匹配到已下发域名时，禁止落到系统默认欢迎页，避免暴露操作系统信息。
+    for default_path in ("/etc/nginx/conf.d/default.conf", "/etc/nginx/sites-enabled/default"):
+        try:
+            if os.path.lexists(default_path):
+                os.unlink(default_path)
+        except OSError:
+            pass
     path = "/etc/nginx/conf.d/kuocai-edge-base.conf"
     content = """proxy_cache_path /var/cache/kuocai-cdn levels=1:2 keys_zone=kuocai_edge_cache:100m max_size=50g inactive=7d use_temp_path=off;
 log_format kuocai_edge '$msec $host $status $body_bytes_sent $upstream_cache_status $request_time';
 include /etc/nginx/kuocai-edge/*.conf;
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    return 444;
+}
 """
     if not os.path.exists(path) or open(path, "r", encoding="utf-8").read() != content:
         with open(path, "w", encoding="utf-8") as stream:

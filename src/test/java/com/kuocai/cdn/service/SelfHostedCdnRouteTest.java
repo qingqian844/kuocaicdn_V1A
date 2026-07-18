@@ -247,6 +247,8 @@ class SelfHostedCdnRouteTest {
         assertTrue(source.indexOf("applied = apply_config(config, desired)")
                 < source.indexOf("process_cache_jobs(config, response.get(\"cacheJobs\"))"));
         assertTrue(source.contains("\"agentVersion\": \"1.2.0\""));
+        assertTrue(source.contains("listen 80 default_server"));
+        assertTrue(source.contains("return 444"));
     }
 
     @Test

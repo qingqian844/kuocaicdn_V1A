@@ -59,6 +59,9 @@ public class CdnDomainService extends BaseService<CdnDomain> implements VoData<C
     @Resource
     private TransactionOrderService transactionOrderService;
 
+    @Resource
+    private SelfHostedCdnService selfHostedCdnService;
+
     /**
      * 重写Datatable查询接口
      *
@@ -372,7 +375,9 @@ public class CdnDomainService extends BaseService<CdnDomain> implements VoData<C
         String jsonString = JSONObject.toJSONString(domain);
         CdnDomainVo cdnDomainVo = JSONObject.parseObject(jsonString, CdnDomainVo.class);
         cdnDomainVo.setBusinessTypeName(CdnBusinessTypeMap.huawei.get(domain.getBusinessType()));
-        cdnDomainVo.setServiceAreaName(CdnServiceAreaMap.huawei.get(domain.getServiceArea()));
+        String serviceArea = resolveServiceArea(domain);
+        cdnDomainVo.setServiceArea(serviceArea);
+        cdnDomainVo.setServiceAreaName(CdnServiceAreaMap.huawei.get(serviceArea));
         cdnDomainVo.setUserImg(sysUser.getImg());
         cdnDomainVo.setUserName(sysUser.getUserName());
         return cdnDomainVo;
@@ -399,7 +404,9 @@ public class CdnDomainService extends BaseService<CdnDomain> implements VoData<C
             String jsonString = JSONObject.toJSONString(domain);
             CdnDomainVo cdnDomainVo = JSONObject.parseObject(jsonString, CdnDomainVo.class);
             cdnDomainVo.setBusinessTypeName(CdnBusinessTypeMap.huawei.get(domain.getBusinessType()));
-            cdnDomainVo.setServiceAreaName(CdnServiceAreaMap.huawei.get(domain.getServiceArea()));
+            String serviceArea = resolveServiceArea(domain);
+            cdnDomainVo.setServiceArea(serviceArea);
+            cdnDomainVo.setServiceAreaName(CdnServiceAreaMap.huawei.get(serviceArea));
             // 过滤出用户信息
             SysUser sysUser = sysUserMap.get(domain.getUserId());
             cdnDomainVo.setUserName(sysUser.getUserName());
@@ -410,6 +417,31 @@ public class CdnDomainService extends BaseService<CdnDomain> implements VoData<C
         return cdnDomainVos;
     }
 
+    /**
+     * 旧版 self_hosted 域名没有把线路拆成三种 route，展示区域必须以实际绑定的节点组为准。
+     */
+    private String resolveServiceArea(CdnDomain domain) {
+        if (domain == null || !CdnRoute.SELF_HOSTED.getCode().equals(domain.getRoute())) {
+            return domain == null ? null : domain.getServiceArea();
+        }
+        try {
+            com.kuocai.cdn.entity.SelfHostedDomainConfig config =
+                    selfHostedCdnService.getDomainConfig(domain.getId());
+            com.kuocai.cdn.entity.SelfHostedNodeGroup group = selfHostedCdnService.listGroups().stream()
+                    .filter(item -> item.getId().equals(config.getNodeGroupId()))
+                    .findFirst().orElse(null);
+            if (group != null) {
+                String route = CdnRoute.selfHostedRouteForCoverage(group.getCoverage());
+                String actualServiceArea = CdnRoute.selfHostedServiceArea(route);
+                if (actualServiceArea != null) {
+                    return actualServiceArea;
+                }
+            }
+        } catch (Exception e) {
+            log.debug("解析旧版自建 CDN 域名服务区域失败，domainId={}", domain.getId(), e);
+        }
+        return domain.getServiceArea();
+    }
     /**
      * 判断当前用户是否需要停止域名
      * 余额不足零, 有没有支付的订单
