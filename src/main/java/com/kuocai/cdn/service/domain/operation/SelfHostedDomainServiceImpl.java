@@ -59,8 +59,7 @@ public class SelfHostedDomainServiceImpl extends BaseService<CdnDomain> implemen
         }
         SysUser owner = sysUserService.queryById(userId);
         String userRoute = owner == null ? null : owner.getRoute();
-        String targetRoute = CdnRoute.isSelfHosted(userRoute)
-                ? userRoute : CdnRoute.selfHostedRouteForServiceArea(serviceArea);
+        String targetRoute = CdnRoute.resolveSelfHostedCreateRoute(userRoute, serviceArea);
         String fixedServiceArea = CdnRoute.selfHostedServiceArea(targetRoute);
         if (fixedServiceArea != null) {
             serviceArea = fixedServiceArea;

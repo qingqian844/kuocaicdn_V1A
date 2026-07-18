@@ -15,6 +15,7 @@ import com.kuocai.cdn.enumeration.domainmerage.cachesetting.RefreshFolderCount;
 import com.kuocai.cdn.enumeration.domainmerage.cachesetting.RefreshUrlCount;
 import com.kuocai.cdn.service.CacheTaskService;
 import com.kuocai.cdn.service.EdgeOneDomainQuotaService;
+import com.kuocai.cdn.service.SelfHostedCdnService;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.util.JedisUtil;
 import com.kuocai.cdn.vo.CdnDomainVo;
@@ -50,6 +51,9 @@ public class CdnManagePageController extends BaseController {
 
     @Resource
     private EdgeOneDomainQuotaService edgeOneDomainQuotaService;
+
+    @Resource
+    private SelfHostedCdnService selfHostedCdnService;
 
     /**
      * 站点管理 域名管理
@@ -187,7 +191,8 @@ public class CdnManagePageController extends BaseController {
         JedisUtil.setStr("SubmitVerifyCode:" + verifyCode, "1", 300);
         map.put("availableCount", maxDomainSize - usedSize);
         map.put("verifyCode", verifyCode);
-        map.put("route", route);
+        String createRoute = resolveDomainCreateRoute(route);
+        map.put("route", createRoute);
         if ("tencent_edgeone".equals(route)) {
             map.put("edgeOneQuotaSummary", edgeOneDomainQuotaService.summary(loginUserId));
         }
@@ -196,6 +201,19 @@ public class CdnManagePageController extends BaseController {
         map.put("enableOverseas", loginUser.getEnableOverseas());
         map.put("enableGlobal", loginUser.getEnableGlobal());
         return "admin/domain/domain-create";
+    }
+
+    String resolveDomainCreateRoute(String userRoute) {
+        if (!CdnRoute.SELF_HOSTED.getCode().equals(userRoute)) {
+            return userRoute;
+        }
+        try {
+            return CdnRoute.selfHostedRouteForCoverage(
+                    selfHostedCdnService.defaultGroup(userRoute).getCoverage());
+        } catch (Exception e) {
+            log.warn("无法按默认节点组解析旧版自建 CDN 线路：{}", e.getMessage());
+            return userRoute;
+        }
     }
 
     /**

@@ -114,4 +114,26 @@ public enum CdnRoute {
         }
         return SELF_HOSTED.getCode();
     }
+
+    public static String selfHostedRouteForCoverage(String coverage) {
+        if ("mainland".equals(coverage)) {
+            return SELF_HOSTED_MAINLAND.getCode();
+        }
+        if ("overseas".equals(coverage)) {
+            return SELF_HOSTED_OVERSEAS.getCode();
+        }
+        if ("global".equals(coverage)) {
+            return SELF_HOSTED_GLOBAL.getCode();
+        }
+        return SELF_HOSTED.getCode();
+    }
+
+    public static String resolveSelfHostedCreateRoute(String userRoute, String serviceArea) {
+        if (SELF_HOSTED_MAINLAND.getCode().equals(userRoute)
+                || SELF_HOSTED_OVERSEAS.getCode().equals(userRoute)
+                || SELF_HOSTED_GLOBAL.getCode().equals(userRoute)) {
+            return userRoute;
+        }
+        return selfHostedRouteForServiceArea(serviceArea);
+    }
 }

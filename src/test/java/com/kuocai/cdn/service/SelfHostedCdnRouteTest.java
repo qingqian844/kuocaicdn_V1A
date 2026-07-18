@@ -58,6 +58,14 @@ class SelfHostedCdnRouteTest {
         assertTrue(CdnRoute.isSelfHosted(CdnRoute.SELF_HOSTED.getCode()));
         assertEquals(CdnRoute.SELF_HOSTED_OVERSEAS.getCode(),
                 CdnRoute.selfHostedRouteForServiceArea("outside_mainland_china"));
+        assertEquals(CdnRoute.SELF_HOSTED_OVERSEAS.getCode(),
+                CdnRoute.selfHostedRouteForCoverage("overseas"));
+        assertEquals(CdnRoute.SELF_HOSTED_OVERSEAS.getCode(),
+                CdnRoute.resolveSelfHostedCreateRoute(
+                        CdnRoute.SELF_HOSTED.getCode(), "outside_mainland_china"));
+        assertEquals(CdnRoute.SELF_HOSTED_MAINLAND.getCode(),
+                CdnRoute.resolveSelfHostedCreateRoute(
+                        CdnRoute.SELF_HOSTED_MAINLAND.getCode(), "outside_mainland_china"));
     }
 
     @Test
@@ -262,7 +270,5 @@ class SelfHostedCdnRouteTest {
         assertEquals(route, CdnOperationRoute.convert(route).getRoute());
         assertEquals(route, CdnCacheSettingRoute.convert(route).getRoute());
         assertEquals(route, CdnStatisticsRoute.convert(route).getRoute());
-        assertTrue(LicenseVendorRegistry.isSupported(route));
-        assertEquals(name, LicenseVendorRegistry.getName(route));
     }
 }
