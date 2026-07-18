@@ -574,7 +574,7 @@ class TencentEdgeOneDomainServiceImplTest {
     }
 
     @Test
-    void edgeOneCatalogCacheRuleUsesLikeExpression() {
+    void edgeOneCatalogCacheRuleUsesSiteAccelerationMatchesExpression() {
         RuleEngineItem item = ReflectionTestUtils.invokeMethod(
                 service,
                 "buildCacheRuleEngineItem",
@@ -590,10 +590,29 @@ class TencentEdgeOneDomainServiceImplTest {
 
         assertNotNull(item);
         String json = RuleEngineItem.toJsonString(item);
-        assertTrue(json.contains("${http.request.uri.path} in"));
-        assertTrue(json.contains("${http.request.uri.path} like"));
+        assertTrue(json.contains("${http.request.uri.path} matches '^/download(/.*)?$'"));
         assertTrue(json.contains("/download"));
-        assertFalse(json.contains("matches"));
+        assertFalse(json.contains(" like "));
+    }
+
+    @Test
+    void edgeOneFullPathWildcardCacheRuleUsesMatchesExpression() {
+        RuleEngineItem item = ReflectionTestUtils.invokeMethod(
+                service,
+                "buildCacheRuleEngineItem",
+                "static.example.com",
+                Arrays.asList(CacheRuleDTO.builder()
+                        .match_type("full_path")
+                        .match_value("/download/*.zip")
+                        .ttl(1)
+                        .ttl_unit("h")
+                        .follow_origin("off")
+                        .build())
+        );
+
+        String condition = item.getBranches()[0].getSubRules()[0].getBranches()[0].getCondition();
+        assertEquals("${http.request.uri.path} matches '^/download/.*\\\\.zip$'", condition);
+        assertFalse(condition.contains(" like "));
     }
 
     @Test

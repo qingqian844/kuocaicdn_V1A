@@ -2359,9 +2359,9 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
                 }
                 path = trimTrailingSlash(path);
                 if ("/".equals(path)) {
-                    expressions.add("${http.request.uri.path} like ['/*']");
+                    expressions.add(buildPathMatchesCondition("^/.*$"));
                 } else {
-                    expressions.add("(${http.request.uri.path} in ['" + escapeConditionValue(path) + "'] or ${http.request.uri.path} like ['" + escapeConditionValue(path + "/*") + "'])");
+                    expressions.add(buildPathMatchesCondition("^" + regexQuotePath(path) + "(/.*)?$"));
                 }
             }
             return "(" + String.join(" or ", expressions) + ")";
@@ -2384,11 +2384,17 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
                 expressions.add("${http.request.uri.path} in " + toConditionList(exactValues));
             }
             if (!wildcardValues.isEmpty()) {
-                expressions.add("${http.request.uri.path} like " + toConditionList(wildcardValues));
+                for (String wildcardValue : wildcardValues) {
+                    expressions.add(buildPathMatchesCondition(wildcardToRegex(wildcardValue)));
+                }
             }
             return expressions.size() == 1 ? expressions.get(0) : "(" + String.join(" or ", expressions) + ")";
         }
         throw new BusinessException("腾讯云 EdgeOne 暂不支持该缓存规则类型：" + matchType);
+    }
+
+    private String buildPathMatchesCondition(String regex) {
+        return "${http.request.uri.path} matches '" + escapeConditionValue(regex) + "'";
     }
 
     private CacheParameters buildRuleCacheParameters(CacheRuleDTO rule) {
@@ -2960,9 +2966,9 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         if (condition.contains("file_extension")) {
             return "file_extension";
         }
-        if (condition.contains(" like ")) {
+        if (condition.contains(" like ") || condition.contains(" matches ")) {
             List<String> values = parseConditionValues(condition);
-            boolean allCatalog = !values.isEmpty() && values.stream().allMatch(value -> value.endsWith("*") && !value.substring(0, value.length() - 1).contains("*"));
+            boolean allCatalog = !values.isEmpty() && values.stream().allMatch(this::isCatalogPathRegex);
             return allCatalog ? "catalog" : "full_path";
         }
         return "full_path";
@@ -2982,7 +2988,10 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
                     result.add(extension);
                 }
             } else if ("catalog".equals(matchType)) {
-                result.add(normalized.endsWith("*") ? normalized.substring(0, normalized.length() - 1) : normalized);
+                String regexPath = parseCatalogPathRegex(normalized);
+                result.add(regexPath == null
+                        ? (normalized.endsWith("*") ? normalized.substring(0, normalized.length() - 1) : normalized)
+                        : regexPath);
             } else {
                 result.add(normalized);
             }
@@ -3101,7 +3110,14 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
     }
 
     private String regexQuotePath(String path) {
-        return Pattern.quote(path);
+        StringBuilder escaped = new StringBuilder();
+        for (char c : normalize(path).toCharArray()) {
+            if ("\\.^$|()[]{}+*?".indexOf(c) >= 0) {
+                escaped.append('\\');
+            }
+            escaped.append(c);
+        }
+        return escaped.toString();
     }
 
     private String wildcardToRegex(String value) {
@@ -3112,11 +3128,49 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
             } else if (c == '?') {
                 regex.append('.');
             } else {
-                regex.append(Pattern.quote(String.valueOf(c)));
+                regex.append(regexQuotePath(String.valueOf(c)));
             }
         }
         regex.append('$');
         return regex.toString();
+    }
+
+    private boolean isCatalogPathRegex(String value) {
+        String normalized = normalize(value);
+        return parseCatalogPathRegex(normalized) != null
+                || (normalized.endsWith("*") && !normalized.substring(0, normalized.length() - 1).contains("*"));
+    }
+
+    private String parseCatalogPathRegex(String value) {
+        String normalized = normalize(value);
+        if ("^/.*$".equals(normalized)) {
+            return "/";
+        }
+        String suffix = "(/.*)?$";
+        if (!normalized.startsWith("^") || !normalized.endsWith(suffix)) {
+            return null;
+        }
+        String escapedPath = normalized.substring(1, normalized.length() - suffix.length());
+        return escapedPath.startsWith("/") ? unescapeRegexLiteral(escapedPath) : null;
+    }
+
+    private String unescapeRegexLiteral(String value) {
+        StringBuilder result = new StringBuilder();
+        boolean escaped = false;
+        for (char c : value.toCharArray()) {
+            if (escaped) {
+                result.append(c);
+                escaped = false;
+            } else if (c == '\\') {
+                escaped = true;
+            } else {
+                result.append(c);
+            }
+        }
+        if (escaped) {
+            result.append('\\');
+        }
+        return result.toString();
     }
 
     private boolean isFollowOrigin(CacheParameters cache) {
