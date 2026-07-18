@@ -2364,7 +2364,9 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
                     expressions.add(buildPathMatchesCondition("^" + regexQuotePath(path) + "(/.*)?$"));
                 }
             }
-            return "(" + String.join(" or ", expressions) + ")";
+            return expressions.size() == 1
+                    ? expressions.get(0)
+                    : "(" + String.join(" or ", expressions) + ")";
         }
         if ("full_path".equals(matchType)) {
             if (values.isEmpty()) {

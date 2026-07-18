@@ -589,10 +589,9 @@ class TencentEdgeOneDomainServiceImplTest {
         );
 
         assertNotNull(item);
-        String json = RuleEngineItem.toJsonString(item);
-        assertTrue(json.contains("${http.request.uri.path} matches '^/download(/.*)?$'"));
-        assertTrue(json.contains("/download"));
-        assertFalse(json.contains(" like "));
+        String condition = item.getBranches()[0].getSubRules()[0].getBranches()[0].getCondition();
+        assertEquals("${http.request.uri.path} matches '^/download(/.*)?$'", condition);
+        assertFalse(condition.contains(" like "));
     }
 
     @Test
