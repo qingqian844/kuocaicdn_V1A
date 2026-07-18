@@ -7,6 +7,7 @@ import com.kuocai.cdn.dto.resp.RespResult;
 import com.kuocai.cdn.entity.SysUser;
 import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.service.SysUserService;
+import com.kuocai.cdn.service.InstallationStateService;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.util.GeetestUtils;
 import com.kuocai.cdn.util.ValidatorUtils;
@@ -33,14 +34,17 @@ import java.util.Map;
 @Scope(value = "session")
 public class LoginController extends BaseController {
 
-    LoginController(SysUserService userService, SmsAsync sendSmsCode) {
+    LoginController(SysUserService userService, SmsAsync sendSmsCode,
+                    InstallationStateService installationStateService) {
         this.userService = userService;
         this.sendSmsCode = sendSmsCode;
+        this.installationStateService = installationStateService;
     }
 
     private final SysUserService userService;
 
     private final SmsAsync sendSmsCode;
+    private final InstallationStateService installationStateService;
 
     /**
      * 管理员登录
@@ -61,7 +65,7 @@ public class LoginController extends BaseController {
         try {
             String token = userService.loginUser(userVo, request);
             addAuthCookie(token, Boolean.TRUE.equals(userVo.getRemember()), request);
-            return RespResult.success("登录成功");
+            return RespResult.success("登录成功", installationStateService.isPending() ? "/setup" : "/dashboard");
         } catch (BusinessException e) {
             return RespResult.fail(e.getMessage());
         }

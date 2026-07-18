@@ -155,7 +155,7 @@ async function loginAdmin() {
     } else {
         layerSuccess('登录成功，正在跳转...');
         setTimeout(function() {
-            window.location.href = 'dashboard'
+            window.location.href = data['data'] || '/dashboard'
         }, 1000);
     }
 }

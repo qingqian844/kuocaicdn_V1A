@@ -1,0 +1,12 @@
+{
+    admin 0.0.0.0:2019
+}
+
+:80 {
+    handle /{$MINIO_BUCKET}/* {
+        reverse_proxy {$MINIO_ENDPOINT}
+    }
+    handle {
+        reverse_proxy app:8000
+    }
+}

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>系统首次初始化</title>
+    <link rel="stylesheet" href="/dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --ink: #17202a;
+            --muted: #68717d;
+            --line: #dfe3e8;
+            --surface: #ffffff;
+            --wash: #f4f6f8;
+            --primary: #176b5b;
+            --primary-dark: #0d5145;
+            --accent: #e9b949;
+            --danger: #b42318;
+            --success: #067647;
+        }
+        * { box-sizing: border-box; letter-spacing: 0; }
+        body { margin: 0; min-height: 100vh; background: var(--wash); color: var(--ink); font-family: Arial, "Microsoft YaHei", sans-serif; }
+        button, input, select, textarea { font: inherit; }
+        .shell { min-height: 100vh; display: grid; grid-template-columns: 280px minmax(0, 1fr); }
+        .sidebar { background: #132a26; color: #fff; padding: 28px 22px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+        .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+        .brand-mark { width: 38px; height: 38px; display: grid; place-items: center; background: var(--accent); color: #17202a; border-radius: 6px; font-size: 20px; }
+        .brand strong { display: block; font-size: 17px; }
+        .brand span { display: block; margin-top: 3px; color: #a9beb9; font-size: 12px; }
+        .steps { display: grid; gap: 5px; }
+        .step-link { width: 100%; min-height: 50px; border: 0; background: transparent; color: #b9cbc7; display: grid; grid-template-columns: 30px 1fr 18px; align-items: center; gap: 9px; text-align: left; padding: 8px 10px; border-radius: 6px; cursor: pointer; }
+        .step-link:hover, .step-link.active { background: #1d4039; color: #fff; }
+        .step-index { width: 26px; height: 26px; border: 1px solid #53716b; border-radius: 50%; display: grid; place-items: center; font-size: 12px; }
+        .step-link.done .step-index { border-color: var(--accent); background: var(--accent); color: #17202a; }
+        .step-name { font-size: 14px; line-height: 1.25; }
+        .main { min-width: 0; }
+        .topbar { height: 66px; background: var(--surface); border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: 0 36px; }
+        .topbar strong { font-size: 15px; }
+        .top-status { color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 8px; }
+        .content { width: min(960px, calc(100% - 48px)); margin: 36px auto 64px; }
+        .section { display: none; }
+        .section.active { display: block; }
+        .section-head { margin-bottom: 24px; }
+        .section-head h1 { margin: 0 0 8px; font-size: 27px; line-height: 1.25; }
+        .section-head p { margin: 0; color: var(--muted); line-height: 1.6; font-size: 14px; }
+        .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 24px; margin-bottom: 18px; }
+        .panel-title { margin: 0 0 18px; font-size: 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+        .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .field { min-width: 0; }
+        .field.full { grid-column: 1 / -1; }
+        .field label { display: block; margin-bottom: 7px; font-size: 13px; font-weight: 600; }
+        .field input, .field select, .field textarea { width: 100%; min-height: 42px; border: 1px solid #cbd1d8; border-radius: 5px; padding: 9px 11px; color: var(--ink); background: #fff; outline: none; }
+        .field textarea { min-height: 108px; resize: vertical; }
+        .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(23,107,91,.12); }
+        .hint { color: var(--muted); font-size: 12px; margin-top: 6px; line-height: 1.5; }
+        .actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 24px; }
+        .actions.right { justify-content: flex-end; }
+        .btn { min-height: 42px; border-radius: 5px; border: 1px solid transparent; padding: 9px 16px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn:disabled { opacity: .55; cursor: not-allowed; }
+        .btn-primary { color: #fff; background: var(--primary); }
+        .btn-primary:hover:not(:disabled) { background: var(--primary-dark); }
+        .btn-secondary { background: #fff; border-color: #bdc5ce; color: var(--ink); }
+        .btn-danger { background: #fff; border-color: #e1aaa5; color: var(--danger); }
+        .status-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+        .status-item { border: 1px solid var(--line); padding: 14px; min-height: 72px; display: flex; gap: 11px; align-items: flex-start; border-radius: 6px; }
+        .status-icon { font-size: 18px; line-height: 1; margin-top: 1px; }
+        .status-item.ok .status-icon { color: var(--success); }
+        .status-item.fail .status-icon { color: var(--danger); }
+        .status-item strong { display: block; font-size: 13px; }
+        .status-item small { display: block; color: var(--muted); font-size: 11px; margin-top: 5px; overflow-wrap: anywhere; }
+        .badge { display: inline-flex; align-items: center; min-height: 26px; padding: 4px 9px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        .badge.ok { background: #e7f6ef; color: var(--success); }
+        .badge.warn { background: #fff4d6; color: #805b10; }
+        .badge.fail { background: #fcebea; color: var(--danger); }
+        .domain-result { display: none; margin-top: 16px; border-left: 3px solid var(--success); padding: 10px 13px; background: #f0faf5; font-size: 13px; }
+        .module-row { border-top: 1px solid var(--line); padding: 18px 0; }
+        .module-row:first-of-type { border-top: 0; padding-top: 0; }
+        .module-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+        .module-head strong { font-size: 14px; }
+        .module-body { display: none; padding-top: 18px; }
+        .module-row.enabled .module-body { display: block; }
+        .switch { position: relative; width: 42px; height: 24px; flex: 0 0 auto; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .switch span { position: absolute; inset: 0; background: #aeb6bf; border-radius: 20px; cursor: pointer; }
+        .switch span:before { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform .18s ease; }
+        .switch input:checked + span { background: var(--primary); }
+        .switch input:checked + span:before { transform: translateX(18px); }
+        .review { display: grid; gap: 10px; }
+        .review-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 13px 0; border-bottom: 1px solid var(--line); }
+        .review-row:last-child { border-bottom: 0; }
+        .notice { border: 1px solid #edcf82; background: #fff9e9; color: #684d12; padding: 13px 15px; border-radius: 6px; font-size: 13px; line-height: 1.55; }
+        .toast { position: fixed; right: 24px; bottom: 24px; z-index: 20; min-width: 280px; max-width: 460px; padding: 14px 16px; border-radius: 6px; color: #fff; background: #27323d; box-shadow: 0 12px 32px rgba(0,0,0,.2); display: none; }
+        .toast.error { background: var(--danger); }
+        .busy { position: fixed; inset: 0; z-index: 30; background: rgba(244,246,248,.78); display: none; place-items: center; }
+        .busy.visible { display: grid; }
+        .busy-box { background: #fff; border: 1px solid var(--line); border-radius: 7px; padding: 20px 24px; display: flex; align-items: center; gap: 13px; box-shadow: 0 16px 44px rgba(0,0,0,.12); }
+        .spinner { width: 22px; height: 22px; border: 3px solid #d5ddd9; border-top-color: var(--primary); border-radius: 50%; animation: spin .7s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 850px) {
+            .shell { grid-template-columns: 1fr; }
+            .sidebar { height: auto; position: static; padding: 18px; }
+            .brand { margin-bottom: 15px; }
+            .steps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            .step-link { grid-template-columns: 26px 1fr; padding: 7px; }
+            .step-link > i { display: none; }
+            .topbar { padding: 0 20px; }
+            .content { width: min(100% - 28px, 960px); margin-top: 24px; }
+        }
+        @media (max-width: 620px) {
+            .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .grid, .grid.three, .status-list { grid-template-columns: 1fr; }
+            .panel { padding: 18px; }
+            .top-status span { display: none; }
+            .actions { align-items: stretch; flex-direction: column-reverse; }
+            .actions .btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+<div class="shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-mark"><i class="bi bi-hdd-stack"></i></div>
+            <div><strong>KuocaiCDN</strong><span>首次初始化</span></div>
+        </div>
+        <nav id="steps" class="steps"></nav>
+    </aside>
+    <main class="main">
+        <header class="topbar">
+            <strong id="topTitle">环境诊断</strong>
+            <div class="top-status"><i class="bi bi-shield-check"></i><span>仅管理员可访问</span><span id="progressText">1 / 8</span></div>
+        </header>
+        <div class="content">
+            <section class="section" data-step="1">
+                <div class="section-head"><h1>环境与授权</h1><p>确认运行依赖和授权文件均可用。</p></div>
+                <div class="panel">
+                    <h2 class="panel-title">基础服务 <button class="btn btn-secondary" onclick="loadStatus(true)"><i class="bi bi-arrow-clockwise"></i>重新检测</button></h2>
+                    <div id="diagnostics" class="status-list"></div>
+                </div>
+                <div class="panel">
+                    <h2 class="panel-title">授权状态 <span id="licenseBadge" class="badge warn">检测中</span></h2>
+                    <div id="licenseMessage" class="hint"></div>
+                    <div id="licenseDomains" class="hint"></div>
+                </div>
+                <div class="actions right"><button class="btn btn-primary" onclick="goStep(2)">下一步 <i class="bi bi-arrow-right"></i></button></div>
+            </section>
+
+            <section class="section" data-step="2">
+                <div class="section-head"><h1>管理员账号</h1><p>将临时密码替换为长期管理员凭证。</p></div>
+                <div class="panel grid">
+                    <div class="field"><label>当前临时密码</label><input id="adminCurrentPassword" type="password" autocomplete="current-password"></div>
+                    <div class="field"><label>管理员账号</label><input id="adminUserName" value="admin" maxlength="30"></div>
+                    <div class="field"><label>管理员邮箱</label><input id="adminEmail" type="email" maxlength="120"></div>
+                    <div class="field"><label>新密码</label><input id="adminNewPassword" type="password" autocomplete="new-password" minlength="10"><div class="hint">至少 10 位，包含字母和数字</div></div>
+                    <div class="field"><label>确认新密码</label><input id="adminConfirmPassword" type="password" autocomplete="new-password"></div>
+                </div>
+                <div class="actions"><button class="btn btn-secondary" onclick="goStep(1)"><i class="bi bi-arrow-left"></i>上一步</button><button class="btn btn-primary" onclick="saveAdmin()">保存并继续</button></div>
+            </section>
+
+            <section class="section" data-step="3">
+                <div class="section-head"><h1>网站域名</h1><p>域名必须属于授权范围并已解析到当前服务器。</p></div>
+                <div class="panel">
+                    <div class="field"><label>访问域名</label><input id="setupDomain" placeholder="cdn.example.com" autocomplete="off"><div class="hint" id="domainHint"></div></div>
+                    <div id="domainResult" class="domain-result"></div>
+                </div>
+                <div class="actions"><button class="btn btn-secondary" onclick="goStep(2)"><i class="bi bi-arrow-left"></i>上一步</button><button class="btn btn-primary" onclick="verifyDomain()"><i class="bi bi-globe2"></i>验证 DNS 与端口</button></div>
+            </section>
+
+            <section class="section" data-step="4">
+                <div class="section-head"><h1>反向代理与 HTTPS</h1><p>Caddy 将绑定已验证域名并自动申请证书。</p></div>
+                <div class="panel">
+                    <div class="notice">证书签发通常需要几十秒。执行期间请不要刷新页面，失败后可检查安全组和 DNS 再重试。</div>
+                    <div class="review" style="margin-top:16px"><div class="review-row"><span>待配置域名</span><strong id="httpsDomain">-</strong></div><div class="review-row"><span>上游服务</span><strong>KuocaiCDN : 8000</strong></div></div>
+                    <div id="httpsContinue" class="domain-result"></div>
+                </div>
+                <div class="actions"><button class="btn btn-secondary" onclick="goStep(3)"><i class="bi bi-arrow-left"></i>上一步</button><button class="btn btn-primary" onclick="applyDomain()"><i class="bi bi-lock"></i>配置并验证 HTTPS</button></div>
+            </section>
+
+            <section class="section" data-step="5">
+                <div class="section-head"><h1>网站基础信息</h1><p>设置客户将看到的品牌和新用户默认参数。</p></div>
+                <div class="panel grid">
+                    <div class="field"><label>网站名称</label><input id="websiteName" maxlength="60"></div>
+                    <div class="field"><label>备案号</label><input id="icpNumber" maxlength="80"></div>
+                    <div class="field full"><label>Logo 链接</label><input id="websiteLogoImg" type="url" placeholder="https://..."></div>
+                    <div class="field full"><label>网站图标链接</label><input id="websiteIconImg" type="url" placeholder="https://..."></div>
+                    <div class="field"><label>默认流量单价</label><input id="defaultFlowPrice" type="number" min="0" step="0.000001" value="0"></div>
+                    <div class="field"><label>默认厂商</label><select id="defaultUserRoute"></select></div>
+                    <div class="field"><label>普通用户域名上限</label><input id="maxDomainCount" type="number" min="1" value="10"></div>
+                    <div class="field"><label>代理用户域名上限</label><input id="maxDomainCountProxy" type="number" min="1" value="100"></div>
+                </div>
+                <div class="actions"><button class="btn btn-secondary" onclick="goStep(4)"><i class="bi bi-arrow-left"></i>上一步</button><button class="btn btn-primary" onclick="saveWebsite()">保存并继续</button></div>
+            </section>
+
+            <section class="section" data-step="6">
+                <div class="section-head"><h1>厂商与 DNS</h1><p>启用后必须先测试连接，再保存为系统默认配置。</p></div>
+                <div class="panel" id="coreModules"></div>
+                <div class="actions"><button class="btn btn-secondary" onclick="goStep(5)"><i class="bi bi-arrow-left"></i>上一步</button><button class="btn btn-primary" onclick="goStep(7)">下一步 <i class="bi bi-arrow-right"></i></button></div>
+            </section>
+
+            <section class="section" data-step="7">
+                <div class="section-head"><h1>可选服务</h1><p>只启用当前已经具备完整凭证的服务。</p></div>
+                <div class="panel" id="optionalModules"></div>
+                <div class="actions"><button class="btn btn-secondary" onclick="goStep(6)"><i class="bi bi-arrow-left"></i>上一步</button><button class="btn btn-primary" onclick="goStep(8)">检查配置 <i class="bi bi-arrow-right"></i></button></div>
+            </section>
+
+            <section class="section" data-step="8">
+                <div class="section-head"><h1>完成初始化</h1><p>核心项目全部通过后才能开放系统。</p></div>
+                <div class="panel"><div id="review" class="review"></div></div>
+                <div class="notice">完成后将立即恢复授权域名校验，并开放用户登录、注册和业务接口。</div>
+                <div class="actions"><button class="btn btn-secondary" onclick="goStep(7)"><i class="bi bi-arrow-left"></i>上一步</button><button id="completeBtn" class="btn btn-primary" onclick="completeSetup()"><i class="bi bi-check2-circle"></i>完成并进入系统</button></div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<div id="toast" class="toast"></div>
+<div id="busy" class="busy"><div class="busy-box"><div class="spinner"></div><strong id="busyText">处理中</strong></div></div>
+
+<script>
+    const stepNames = ['环境诊断', '管理员账号', '网站域名', 'HTTPS 配置', '网站信息', '厂商与 DNS', '可选服务', '完成初始化'];
+    const moduleNames = {vendor: 'CDN 厂商账号', dns: '腾讯云 DNSPod', alipay: '支付宝支付', wechat: '微信支付', email: '邮件服务', sms: '短信服务', realname: '支付宝实名认证'};
+    const schemas = {
+        dns: [['primaryDomain','主域名'],['domainTtl','DNS TTL'],['selectDns','DNS 类型'],['secretId','SecretId','password'],['secretKey','SecretKey','password']],
+        alipay: [['appIdAlipay','支付宝 APPID'],['privateKeyAlipay','应用私钥','textarea'],['publicKeyAlipay','支付宝公钥','textarea'],['notifyUrlAlipay','支付回调地址'],['gatewayUrlAlipay','网关地址']],
+        wechat: [['appIdWechat','应用 ID'],['merchantIdWechat','商户号'],['wechatKeyWechat','APIv3 密钥','password'],['merchantSerialNumberWechat','证书序列号'],['notifyUrlWechat','支付回调地址'],['privateKeyWechat','商户私钥 PEM','textarea']],
+        email: [['smtpServer','SMTP 服务器'],['serverPort','SMTP 端口','number'],['senderMailbox','发件邮箱'],['senderTitle','发件人名称'],['authorizationPassword','邮箱授权密码','password']],
+        sms: [['sdkAppId','腾讯云短信应用 ID','number'],['secretId','SecretId','password'],['secretKey','SecretKey','password'],['smsSign','短信签名']],
+        realname: [['appIdAlipay','支付宝 APPID'],['privateKeyAlipay','应用私钥','textarea'],['publicKeyAlipay','支付宝公钥','textarea'],['alipayCertificationUrl','认证完成跳转地址'],['gatewayUrlAlipay','网关地址']]
+    };
+    const vendorSchemas = {
+        tencent: [['tencentCloudProjectName','项目名称'],['tencentCloudSecretId','SecretId','password'],['tencentCloudSecretKey','SecretKey','password']],
+        tencent_edgeone: [['projectName','项目名称'],['tagValue','资源标签'],['secretId','SecretId','password'],['secretKey','SecretKey','password'],['planId','套餐 PlanId'],['zoneId','默认 ZoneId']],
+        aliyun: [['projectName','项目名称'],['accessKeyId','AccessKey ID','password'],['accessKeySecret','AccessKey Secret','password']],
+        volcengine: [['volcanicCloudProjectName','项目名称'],['volcanicCloudAk','Access Key','password'],['volcanicCloudSk','Secret Key','password']],
+        kingsoft: [['accessKey','Access Key','password'],['secretKey','Secret Key','password'],['endpoint','Endpoint'],['region','区域'],['serviceName','服务名'],['projectId','项目 ID']]
+    };
+    let statusData = null;
+    let activeStep = 1;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        renderSteps();
+        renderModule('vendor', 'coreModules');
+        renderModule('dns', 'coreModules');
+        ['alipay','wechat','email','sms','realname'].forEach(name => renderModule(name, 'optionalModules'));
+        await loadStatus(false);
+    });
+
+    function renderSteps() {
+        const root = document.getElementById('steps');
+        root.innerHTML = stepNames.map((name, index) => `<button class="step-link" data-nav="${index+1}" onclick="goStep(${index+1})"><span class="step-index">${index+1}</span><span class="step-name">${name}</span><i class="bi bi-chevron-right"></i></button>`).join('');
+        goStep(1);
+    }
+
+    function goStep(step) {
+        activeStep = Math.max(1, Math.min(8, step));
+        document.querySelectorAll('.section').forEach(el => el.classList.toggle('active', Number(el.dataset.step) === activeStep));
+        document.querySelectorAll('.step-link').forEach(el => el.classList.toggle('active', Number(el.dataset.nav) === activeStep));
+        document.getElementById('topTitle').textContent = stepNames[activeStep - 1];
+        document.getElementById('progressText').textContent = `${activeStep} / 8`;
+        if (activeStep === 8) renderReview();
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    async function loadStatus(withNotice) {
+        busy(true, '正在检测运行环境');
+        try {
+            const response = await api('/api/setup/status');
+            statusData = response.data;
+            renderStatus();
+            if (withNotice) toast('检测已完成');
+        } catch (error) {
+            toast(error.message, true);
+        } finally { busy(false); }
+    }
+
+    function renderStatus() {
+        const diagnostics = statusData.diagnostics || {};
+        const labels = {mysql:'MySQL',redis:'Redis',mongodb:'MongoDB',rabbitmq:'RabbitMQ',minio:'MinIO'};
+        document.getElementById('diagnostics').innerHTML = Object.keys(labels).map(key => {
+            const item = diagnostics[key] || {ok:false,message:'未检测'};
+            return `<div class="status-item ${item.ok?'ok':'fail'}"><i class="status-icon bi ${item.ok?'bi-check-circle-fill':'bi-x-circle-fill'}"></i><div><strong>${labels[key]}</strong><small>${escapeHtml(item.message)}</small></div></div>`;
+        }).join('');
+        const license = statusData.license || {};
+        const badge = document.getElementById('licenseBadge');
+        badge.className = `badge ${license.valid?'ok':'fail'}`;
+        badge.textContent = license.valid ? '授权有效' : '授权异常';
+        document.getElementById('licenseMessage').textContent = license.message || '';
+        const domains = Array.from(license.domains || []);
+        document.getElementById('licenseDomains').textContent = domains.length ? `授权域名：${domains.join('、')}` : '未读取到授权域名';
+        document.getElementById('domainHint').textContent = domains.length ? `可使用 ${domains.join('、')} 或其子域名` : '';
+        const state = statusData.installation || {};
+        if (state.domain) {
+            document.getElementById('setupDomain').value = state.domain;
+            document.getElementById('httpsDomain').textContent = state.domain;
+        }
+        hydrateWebsite(statusData.website || {});
+        hydrateVendors(license.vendors || [], license.accountVendors || []);
+        Object.entries(state.modules || {}).forEach(([name, enabled]) => {
+            const input = document.getElementById(`${name}Enabled`);
+            if (input) {
+                input.checked = Boolean(enabled);
+                document.getElementById(`module-${name}`).classList.toggle('enabled', Boolean(enabled));
+            }
+        });
+        document.querySelectorAll('.step-link').forEach(el => el.classList.toggle('done', Number(el.dataset.nav) < Number(state.currentStep || 1)));
+        renderReview();
+    }
+
+    function hydrateWebsite(value) {
+        const mapping = ['websiteName','websiteLogoImg','websiteIconImg','icpNumber','defaultFlowPrice','maxDomainCount','maxDomainCountProxy'];
+        mapping.forEach(key => { if (value[key] !== undefined && value[key] !== null) document.getElementById(key).value = value[key]; });
+    }
+
+    function hydrateVendors(vendors, accountVendors) {
+        const options = vendors.map(v => `<option value="${escapeHtml(v.code)}">${escapeHtml(v.name)}</option>`).join('');
+        document.getElementById('defaultUserRoute').innerHTML = options;
+        document.getElementById('vendorCode').innerHTML = accountVendors.map(v => `<option value="${escapeHtml(v.code)}">${escapeHtml(v.name)}</option>`).join('');
+        if (statusData.website && statusData.website.defaultUserRoute) document.getElementById('defaultUserRoute').value = statusData.website.defaultUserRoute;
+        renderVendorFields();
+    }
+
+    async function saveAdmin() {
+        const password = val('adminNewPassword');
+        if (password !== val('adminConfirmPassword')) return toast('两次输入的新密码不一致', true);
+        await runAction('/api/setup/admin', {currentPassword:val('adminCurrentPassword'),userName:val('adminUserName'),email:val('adminEmail'),newPassword:password}, '管理员账号已更新', 3);
+    }
+
+    async function verifyDomain() {
+        busy(true, '正在验证 DNS 和 80 端口');
+        try {
+            const result = await api('/api/setup/domain/verify', {domain:val('setupDomain')});
+            document.getElementById('domainResult').style.display = 'block';
+            document.getElementById('domainResult').textContent = `验证通过，当前解析：${Array.from(result.data.addresses || []).join('、')}`;
+            document.getElementById('httpsDomain').textContent = result.data.domain;
+            toast(result.message); await loadStatus(false); goStep(4);
+        } catch (error) { toast(error.message, true); } finally { busy(false); }
+    }
+
+    async function applyDomain() {
+        busy(true, '正在配置反向代理并签发 HTTPS 证书');
+        try {
+            const result = await api('/api/setup/domain/apply', {domain:val('setupDomain')});
+            const target = result.data.url.replace('/setup', '/kuocaiadmin?setup=1');
+            const box = document.getElementById('httpsContinue');
+            box.style.display = 'block';
+            box.innerHTML = `HTTPS 已生效。<a href="${escapeHtml(target)}">通过授权域名重新登录并继续</a>`;
+            toast(result.message); await loadStatus(false); goStep(5);
+        } catch (error) { toast(error.message, true); } finally { busy(false); }
+    }
+
+    async function saveWebsite() {
+        const payload = {websiteName:val('websiteName'),websiteLogoImg:val('websiteLogoImg'),websiteIconImg:val('websiteIconImg'),icpNumber:val('icpNumber'),defaultFlowPrice:Number(val('defaultFlowPrice')),maxDomainCount:Number(val('maxDomainCount')),maxDomainCountProxy:Number(val('maxDomainCountProxy')),defaultUserRoute:val('defaultUserRoute')};
+        await runAction('/api/setup/website', payload, '网站配置已保存', 6);
+    }
+
+    function renderModule(name, parentId) {
+        const parent = document.getElementById(parentId);
+        const row = document.createElement('div');
+        row.className = 'module-row'; row.id = `module-${name}`;
+        row.innerHTML = `<div class="module-head"><strong>${moduleNames[name]}</strong><label class="switch"><input id="${name}Enabled" type="checkbox" onchange="toggleModule('${name}')"><span></span></label></div><div class="module-body"><div class="grid" id="${name}Fields"></div><div class="actions right"><button class="btn btn-secondary" onclick="testModule('${name}')"><i class="bi bi-plug"></i>测试连接</button><button class="btn btn-primary" onclick="saveModule('${name}')">保存配置</button></div></div>`;
+        parent.appendChild(row);
+        if (name === 'vendor') renderVendorBase(); else renderFields(name, schemas[name]);
+    }
+
+    function renderVendorBase() {
+        document.getElementById('vendorFields').innerHTML = `<div class="field"><label>厂商</label><select id="vendorCode" onchange="renderVendorFields()"></select></div><div class="field"><label>账号名称</label><input id="vendorAccountName" value="默认账号"></div><div class="field full"><div class="grid" id="vendorCredentials"></div></div>`;
+    }
+
+    function renderVendorFields() { const root=document.getElementById('vendorCredentials'); if(root) renderFieldsInto(root, 'vendorCredential', vendorSchemas[val('vendorCode')] || []); }
+    function renderFields(name, schema) { renderFieldsInto(document.getElementById(`${name}Fields`), name, schema); }
+    function renderFieldsInto(root, prefix, schema) {
+        root.innerHTML = schema.map(item => { const [key,label,type='text']=item; const id=`${prefix}_${key}`; return `<div class="field ${type==='textarea'?'full':''}"><label>${label}</label>${type==='textarea'?`<textarea id="${id}"></textarea>`:`<input id="${id}" type="${type}">`}</div>`; }).join('');
+    }
+
+    function toggleModule(name) {
+        const enabled = document.getElementById(`${name}Enabled`).checked;
+        document.getElementById(`module-${name}`).classList.toggle('enabled', enabled);
+        if (!enabled) saveModule(name);
+    }
+    function modulePayload(name) {
+        const enabled = document.getElementById(`${name}Enabled`).checked;
+        if (!enabled) return {enabled:false,config:{}};
+        if (name === 'vendor') return {enabled:true,config:{vendorCode:val('vendorCode'),accountName:val('vendorAccountName'),credentials:readFields('vendorCredential', vendorSchemas[val('vendorCode')] || [])}};
+        return {enabled:true,config:readFields(name, schemas[name])};
+    }
+    function readFields(prefix, schema) { const data={}; schema.forEach(item => data[item[0]]=val(`${prefix}_${item[0]}`)); return data; }
+
+    async function testModule(name) { await runAction(`/api/setup/module/${name}/test`, modulePayload(name), `${moduleNames[name]}测试通过`); }
+    async function saveModule(name) { await runAction(`/api/setup/module/${name}/save`, modulePayload(name), `${moduleNames[name]}状态已保存`); }
+
+    async function runAction(url, payload, success, nextStep) {
+        busy(true, '正在保存配置');
+        try { const result=await api(url,payload); toast(result.message || success); await loadStatus(false); if(nextStep) goStep(nextStep); }
+        catch(error){ toast(error.message,true); } finally { busy(false); }
+    }
+
+    function renderReview() {
+        if (!statusData) return;
+        const state=statusData.installation || {}, diagnostics=statusData.diagnostics || {};
+        const allServices=Object.values(diagnostics).every(item=>item.ok), license=statusData.license && statusData.license.valid;
+        const rows=[['运行依赖',allServices],['授权文件',license],['管理员账号',state.adminConfigured],['域名解析',state.domainVerified],['HTTPS 访问',state.proxyConfigured],['网站基础配置',state.websiteConfigured]];
+        document.getElementById('review').innerHTML=rows.map(([name,ok])=>`<div class="review-row"><span>${name}</span><span class="badge ${ok?'ok':'fail'}">${ok?'已完成':'未完成'}</span></div>`).join('');
+        const complete=rows.every(row=>row[1]); document.getElementById('completeBtn').disabled=!complete;
+    }
+
+    async function completeSetup() {
+        busy(true,'正在完成初始化');
+        try { const result=await api('/api/setup/complete',{}); toast(result.message); window.location.href=result.data.redirect||'/dashboard'; }
+        catch(error){toast(error.message,true);} finally{busy(false);}
+    }
+
+    async function api(url, body) {
+        const options={method:body===undefined?'GET':'POST',headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}};
+        if(body!==undefined){options.headers['Content-Type']='application/json';options.body=JSON.stringify(body);}
+        const response=await fetch(url,options); let data; try{data=await response.json();}catch(e){throw new Error(`服务器返回异常（HTTP ${response.status}）`);}
+        if(!response.ok || data.code!=='SUCCESS') throw new Error(data.message || `请求失败（HTTP ${response.status}）`);
+        return data;
+    }
+    function val(id){const el=document.getElementById(id);return el?el.value.trim():'';}
+    function busy(show,text){document.getElementById('busy').classList.toggle('visible',show);if(text)document.getElementById('busyText').textContent=text;}
+    function toast(message,error){const el=document.getElementById('toast');el.textContent=message;el.className=`toast${error?' error':''}`;el.style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>el.style.display='none',4200);}
+    function escapeHtml(value){return String(value===undefined?'':value).replace(/[&<>'"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));}
+</script>
+</body>
+</html>

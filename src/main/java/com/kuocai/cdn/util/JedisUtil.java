@@ -43,6 +43,15 @@ public class JedisUtil {
         }
     }
 
+    public static String ping() {
+        Jedis jedis = getJedis();
+        try {
+            return jedis.ping();
+        } finally {
+            close(jedis);
+        }
+    }
+
     /**
      * 获取Json
      */

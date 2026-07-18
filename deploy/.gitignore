@@ -1,0 +1,12 @@
+/env/*.env
+/env/*.state
+/env/first-login.txt
+/env/schema-importing
+/packages/*.jar
+/packages/license.key
+/backups/
+/data/
+/secrets/*
+!/secrets/.gitkeep
+/.env
+/.install-complete

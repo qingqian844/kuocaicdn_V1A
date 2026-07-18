@@ -7,6 +7,11 @@ package com.kuocai.cdn.constant;
 public class ConfigBizTypeConstants {
 
     /**
+     * First-run installation state. This record is plain JSON and contains no secrets.
+     */
+    public static final String INSTALLATION_STATE = "installation_state";
+
+    /**
      * 网站基本配置
      */
     public static final String WEBSITE_BASE_CONFIG = "website_base_config";

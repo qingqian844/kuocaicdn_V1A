@@ -1,6 +1,7 @@
 package com.kuocai.cdn.config;
 
 import com.kuocai.cdn.component.DomainPermissionHandlerInterceptor;
+import com.kuocai.cdn.component.InstallationGuardInterceptor;
 import com.kuocai.cdn.component.LoginHandlerInterceptor;
 import org.springframework.boot.web.server.ErrorPage;
 import org.springframework.boot.web.server.ErrorPageRegistrar;
@@ -24,10 +25,14 @@ public class MvcConfig implements WebMvcConfigurer, ErrorPageRegistrar {
 
     private final LoginHandlerInterceptor loginHandlerInterceptor;
 
+    private final InstallationGuardInterceptor installationGuardInterceptor;
+
     public MvcConfig(DomainPermissionHandlerInterceptor domainPermissionHandlerInterceptor,
-                     LoginHandlerInterceptor loginHandlerInterceptor) {
+                     LoginHandlerInterceptor loginHandlerInterceptor,
+                     InstallationGuardInterceptor installationGuardInterceptor) {
         this.domainPermissionHandlerInterceptor = domainPermissionHandlerInterceptor;
         this.loginHandlerInterceptor = loginHandlerInterceptor;
+        this.installationGuardInterceptor = installationGuardInterceptor;
     }
 
     /**
@@ -63,12 +68,15 @@ public class MvcConfig implements WebMvcConfigurer, ErrorPageRegistrar {
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(installationGuardInterceptor)
+                .addPathPatterns("/**")
+                .order(-1);
         registry.addInterceptor(loginHandlerInterceptor)
                 // 拦截的请求
                 .addPathPatterns("/**")
                 // 不拦截的请求（放行）
                 .excludePathPatterns(
-                        "/", "/index", "/product_price", "/contact", "/alipay-authentication-redirect",
+                        "/", "/health", "/index", "/product_price", "/contact", "/alipay-authentication-redirect",
                         "/login/**", "/admin-login", "/user-login", "/register", "/register-email", "/forget", "/SysUser/registerUser", "/SysUser/registerUserByEmail", "/sign", "/MP_verify_uTqpCgnxTUMc708G.txt", "/robots.txt", "/getWechatQrCode", "/wechatBinding", "/wechatOpenIdLogin", "/kuocaiadmin",
                         "/FaceCertifyVerify/i/**", "/api/**", "/internal/scdn/**",
                         "/400", "/401", "/403", "/404", "/500", "/banned",
