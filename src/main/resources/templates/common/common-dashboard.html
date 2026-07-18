@@ -729,7 +729,7 @@
 
                     <!-- 折叠 -->
                     <div class="nav-item">
-                        <a th:class="${curPage == 'website-setting' or curPage == 'pay-setting' or curPage == 'real-name-setting' or curPage == 'email-setting'or curPage == 'sms-setting' or curPage == 'quick-login-setting' or curPage == 'api-setting' or curPage == 'self-hosted-node' or curPage == 'wechat-code-config' or curPage == 'api-config' or curPage == 'menu'? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
+                        <a th:class="${curPage == 'website-setting' or curPage == 'pay-setting' or curPage == 'real-name-setting' or curPage == 'email-setting'or curPage == 'sms-setting' or curPage == 'quick-login-setting' or curPage == 'api-setting' or curPage == 'self-hosted-node' or curPage == 'self-hosted-port-forward' or curPage == 'wechat-code-config' or curPage == 'api-config' or curPage == 'menu'? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
                            href="#navbarVerticalMenuPagesSystem"
                            role="button" data-bs-toggle="collapse"
                            data-bs-target="#navbarVerticalMenuPagesSystem" aria-expanded="false"
@@ -739,7 +739,7 @@
                         </a>
 
                         <div id="navbarVerticalMenuPagesSystem"
-                             th:class="${curPage == 'website-setting' or curPage == 'pay-setting' or curPage == 'real-name-setting' or curPage == 'email-setting'or curPage == 'sms-setting' or curPage == 'quick-login-setting' or curPage == 'api-setting' or curPage == 'self-hosted-node' or curPage == 'wechat-code-config' or curPage == 'api-config' or curPage == 'menu'? 'nav-collapse collapse show':'nav-collapse collapse'}"
+                             th:class="${curPage == 'website-setting' or curPage == 'pay-setting' or curPage == 'real-name-setting' or curPage == 'email-setting'or curPage == 'sms-setting' or curPage == 'quick-login-setting' or curPage == 'api-setting' or curPage == 'self-hosted-node' or curPage == 'self-hosted-port-forward' or curPage == 'wechat-code-config' or curPage == 'api-config' or curPage == 'menu'? 'nav-collapse collapse show':'nav-collapse collapse'}"
                              data-bs-parent="#navbarVerticalMenuPagesMenu">
                             <a th:class="${curPage == 'website-setting' ? 'nav-link active':'nav-link'} "
                                href="website-setting">网站配置</a>
@@ -757,6 +757,8 @@
                                href="api-setting">API 配置</a>
                             <a th:class="${curPage == 'self-hosted-node' ? 'nav-link active':'nav-link'} "
                                href="self-hosted-node">自建 CDN</a>
+                            <a th:class="${curPage == 'self-hosted-port-forward' ? 'nav-link active':'nav-link'}"
+                               href="self-hosted-port-forward">端口转发</a>
                             <a th:class="${curPage == 'menu' ? 'nav-link active':'nav-link'} "
                                href="menu">菜单配置</a>
                             <!--                            <a th:class="${curPage == 'wechat-code-config' ? 'nav-link active':'nav-link'} "-->
@@ -891,7 +893,7 @@
 
                     <!-- 折叠 -->
                     <div class="nav-item">
-                        <a th:class="${curPage == 'domain-list' or curPage == 'certification-list' or curPage == 'cache-preheating' ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
+                        <a th:class="${curPage == 'domain-list' or curPage == 'certification-list' or curPage == 'cache-preheating' or curPage == 'self-hosted-port-forward' ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
                            href="#navbarVerticalMenuPagesSite"
                            role="button" data-bs-toggle="collapse"
                            data-bs-target="#navbarVerticalMenuPagesSite" aria-expanded="false"
@@ -901,7 +903,7 @@
                         </a>
 
                         <div id="navbarVerticalMenuPagesSite"
-                             th:class="${curPage == 'domain-list' or curPage == 'certification-list' or curPage == 'cache-preheating' ? 'nav-collapse collapse show':'nav-collapse collapse'}"
+                             th:class="${curPage == 'domain-list' or curPage == 'certification-list' or curPage == 'cache-preheating' or curPage == 'self-hosted-port-forward' ? 'nav-collapse collapse show':'nav-collapse collapse'}"
                              data-bs-parent="#navbarVerticalMenuPagesMenu">
                             <a th:class="${curPage == 'domain-list' ? 'nav-link active':'nav-link'}"
                                href="domain-list">我的域名</a>
@@ -909,6 +911,9 @@
                             <!--                               href="certification-list">我的证书</a>-->
                             <a th:class="${curPage == 'cache-preheating' ? 'nav-link active':'nav-link'}"
                                href="cache-preheating">缓存配置</a>
+                            <a th:if="${session.loginUser != null and (session.loginUser.roleId == 1 or (session.loginUser.route != null and #strings.startsWith(session.loginUser.route, 'self_hosted')))}"
+                               th:class="${curPage == 'self-hosted-port-forward' ? 'nav-link active':'nav-link'}"
+                               href="self-hosted-port-forward">端口转发</a>
                         </div>
                     </div>
                     <!-- End 折叠 -->

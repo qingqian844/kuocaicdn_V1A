@@ -17,6 +17,7 @@ import com.kuocai.cdn.dao.SelfHostedCacheJobNodeDao;
 import com.kuocai.cdn.dao.SelfHostedGroupNodeDao;
 import com.kuocai.cdn.dao.SelfHostedNodeDao;
 import com.kuocai.cdn.dao.SelfHostedNodeGroupDao;
+import com.kuocai.cdn.dao.SelfHostedPortForwardDao;
 import com.kuocai.cdn.dto.SelfHostedApplyResultRequest;
 import com.kuocai.cdn.dto.SelfHostedCacheResultRequest;
 import com.kuocai.cdn.dto.SelfHostedGroupSaveRequest;
@@ -29,6 +30,7 @@ import com.kuocai.cdn.entity.SelfHostedDomainConfig;
 import com.kuocai.cdn.entity.SelfHostedGroupNode;
 import com.kuocai.cdn.entity.SelfHostedNode;
 import com.kuocai.cdn.entity.SelfHostedNodeGroup;
+import com.kuocai.cdn.entity.SelfHostedPortForward;
 import com.kuocai.cdn.enumeration.domainmerage.CdnRoute;
 import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.util.Assert;
@@ -77,6 +79,7 @@ public class SelfHostedCdnService {
     private final SelfHostedCacheJobDao cacheJobDao;
     private final SelfHostedCacheJobNodeDao cacheJobNodeDao;
     private final CdnDomainDao cdnDomainDao;
+    private final SelfHostedPortForwardDao portForwardDao;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public SelfHostedCdnService(SelfHostedNodeDao nodeDao,
@@ -85,7 +88,8 @@ public class SelfHostedCdnService {
                                 SelfHostedDomainConfigDao domainConfigDao,
                                 SelfHostedCacheJobDao cacheJobDao,
                                 SelfHostedCacheJobNodeDao cacheJobNodeDao,
-                                CdnDomainDao cdnDomainDao) {
+                                CdnDomainDao cdnDomainDao,
+                                SelfHostedPortForwardDao portForwardDao) {
         this.nodeDao = nodeDao;
         this.groupDao = groupDao;
         this.groupNodeDao = groupNodeDao;
@@ -93,6 +97,7 @@ public class SelfHostedCdnService {
         this.cacheJobDao = cacheJobDao;
         this.cacheJobNodeDao = cacheJobNodeDao;
         this.cdnDomainDao = cdnDomainDao;
+        this.portForwardDao = portForwardDao;
     }
 
     public List<SelfHostedNode> listNodes() {
@@ -477,6 +482,25 @@ public class SelfHostedCdnService {
             }
         }
         result.put("domains", domains);
+        JSONArray portForwards = new JSONArray();
+        Set<Long> processedPortForwardIds = new LinkedHashSet<>();
+        for (SelfHostedGroupNode relation : relations) {
+            List<SelfHostedPortForward> rules = portForwardDao.selectList(
+                    new QueryWrapper<SelfHostedPortForward>().eq("node_group_id", relation.getGroupId())
+                            .eq("status", "enabled"));
+            if (rules == null) {
+                continue;
+            }
+            for (SelfHostedPortForward rule : rules) {
+                if (!processedPortForwardIds.add(rule.getId())) {
+                    continue;
+                }
+                JSONObject item = (JSONObject) JSON.toJSON(rule);
+                item.put("ruleId", rule.getId());
+                portForwards.add(item);
+            }
+        }
+        result.put("portForwards", portForwards);
         return result;
     }
 
@@ -819,6 +843,12 @@ public class SelfHostedCdnService {
                 .set("status", "pending").set("ssh_password_cipher", null)
                 .set("last_error", null).set("update_time", new Date()));
         bumpNodeGroups(node.getId());
+    }
+
+    public void markGroupConfigurationChanged(Long groupId) {
+        if (groupId != null) {
+            bumpGroupVersion(groupId);
+        }
     }
 
     public void markInstallFailed(SelfHostedNode node, String error) {

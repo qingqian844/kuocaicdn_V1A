@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title th:if="${!openAgent}">[[${websiteBaseConfig.websiteName}]] 端口转发</title>
+    <title th:if="${openAgent}">[[${agentConfig.websiteName}]] 端口转发</title>
+    <link rel="shortcut icon" th:href="${dashboardIcon != null and !#strings.isEmpty(dashboardIcon)} ? ${dashboardIcon} : @{/image/4b05f2ef00458ac8323812f98a073a72.png}">
+    <link th:href="@{common/assets/css/css2.css}" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{dashboard/assets/vendor/bootstrap-icons/font/bootstrap-icons.css}">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme.min.css}" data-hs-appearance="default" as="style">
+    <link rel="preload" th:href="@{dashboard/assets/css/theme-dark.min.css}" data-hs-appearance="dark" as="style">
+    <style>
+        body { opacity: 0; }
+        .port-forward-table th { white-space: nowrap; }
+        .port-forward-table td { vertical-align: middle; }
+        .rule-endpoint { min-width: 190px; }
+        .port-forward-note { border-left: 3px solid #377dff; }
+    </style>
+</head>
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl footer-offset">
+<script th:src="@{dashboard/assets/js/hs.theme-appearance.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js}"></script>
+
+<div th:replace="common/common-dashboard::header(curPage='self-hosted-port-forward', dashboardLogo=${dashboardLogo}, dashboardIcon=${dashboardIcon})"></div>
+<div th:replace="common/common-dashboard::aside(curPage='self-hosted-port-forward', dashboardLogo=${dashboardLogo}, dashboardIcon=${dashboardIcon})"></div>
+
+<main id="content" role="main" class="main">
+    <div class="content container-fluid">
+        <div class="page-header" style="padding-bottom: 10px;margin-bottom: 10px">
+            <div class="row align-items-center">
+                <div class="col-sm mb-2 mb-sm-0">
+                    <h1 class="page-header-title">端口转发 <i class="bi-shuffle nav-icon"></i></h1>
+                    <p class="text-body-secondary mb-0">将节点端口转发到指定 TCP/UDP 源站。</p>
+                </div>
+                <div class="col-sm-auto">
+                    <button class="btn btn-primary" type="button" onclick="openRuleModal()"><i class="bi-plus-lg me-1"></i>新增规则</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-soft-primary port-forward-note mb-4">
+            <div class="d-flex gap-2"><i class="bi-info-circle mt-1"></i><div>监听端口不能使用 22、80、443。还需要在云服务器安全组和上游防火墙中放行对应端口；规则保存后由节点 Agent 自动校验并加载。</div></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h4 class="card-header-title mb-0">端口转发规则</h4></div>
+            <div class="table-responsive">
+                <table class="table table-thead-bordered table-nowrap card-table port-forward-table">
+                    <thead><tr><th>规则</th><th>协议</th><th>监听端口</th><th>源站</th><th>节点组</th><th>状态</th><th class="text-end">操作</th></tr></thead>
+                    <tbody id="ruleRows"><tr><td colspan="7" class="text-center text-muted py-5"><span class="spinner-border spinner-border-sm me-2"></span>正在加载</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div th:replace="common/common-dashboard::#footer(curPage='self-hosted-port-forward')"></div>
+</main>
+
+<div th:replace="common/common-dashboard::#offcanvasActivityStream(curPage='self-hosted-port-forward')"></div>
+<div th:replace="common/common-dashboard::#agent"></div>
+
+<div class="modal fade" id="ruleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><h3 class="modal-title" id="ruleModalTitle">新增端口转发规则</h3><button class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button></div>
+        <div class="modal-body">
+            <input type="hidden" id="ruleId">
+            <div class="row g-3">
+                <div class="col-md-8"><label class="form-label" for="ruleName">规则名称</label><input class="form-control" id="ruleName" maxlength="128" placeholder="例如：游戏服务器"></div>
+                <div class="col-md-4"><label class="form-label" for="ruleProtocol">协议</label><select class="form-select" id="ruleProtocol"><option value="tcp">TCP</option><option value="udp">UDP</option></select></div>
+                <div class="col-md-6"><label class="form-label" for="listenPort">监听端口</label><input class="form-control" id="listenPort" type="number" min="1" max="65535" placeholder="例如：10000"></div>
+                <div class="col-md-6"><label class="form-label" for="originPort">源站端口</label><input class="form-control" id="originPort" type="number" min="1" max="65535" placeholder="例如：25565"></div>
+                <div class="col-12"><label class="form-label" for="originHost">源站 IP / 主机名</label><input class="form-control" id="originHost" maxlength="255" placeholder="例如：192.0.2.10，不要填写 http:// 或路径"></div>
+                <div class="col-12" th:if="${isAdmin}"><label class="form-label" for="ruleUserId">用户 ID</label><input class="form-control" id="ruleUserId" type="number" min="1" placeholder="管理员新增规则时填写所属用户 ID"></div>
+                <div class="col-12"><label class="form-label" for="ruleGroup">节点组</label><select class="form-select" id="ruleGroup"></select><div class="form-text" id="ruleGroupHelp"></div></div>
+                <div class="col-12"><label class="form-label" for="ruleRemark">备注</label><textarea class="form-control" id="ruleRemark" rows="2" maxlength="512"></textarea></div>
+                <div class="col-12"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="ruleEnabled" checked><label class="form-check-label" for="ruleEnabled">保存后立即启用</label></div></div>
+            </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-white" data-bs-dismiss="modal">取消</button><button class="btn btn-primary" id="saveRuleButton" onclick="saveRule()"><i class="bi-check-lg me-1"></i>保存</button></div>
+    </div></div>
+</div>
+
+<script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
+<script th:src="@{dashboard/assets/js/theme.min.js}"></script>
+<script th:src="@{common/layer/layer.js}"></script>
+<script th:src="@{common/custom.js}"></script>
+<script th:inline="javascript">
+    const isAdmin = /*[[${isAdmin}]]*/ false;
+    let rules = [], groups = [], ruleModal;
+    document.addEventListener('DOMContentLoaded', function () {
+        ruleModal = new bootstrap.Modal(document.getElementById('ruleModal'));
+        if (window.HSSideNav) new HSSideNav('.js-navbar-vertical-aside').init();
+        loadData();
+    });
+    async function request(url, options) {
+        const response = await fetch(url, options || {});
+        const result = await response.json();
+        if (result.code !== 'SUCCESS') throw new Error(result.message || '操作失败');
+        return result;
+    }
+    async function loadData() {
+        try {
+            const result = await Promise.all([request('SelfHostedPortForward/list'), request('SelfHostedPortForward/groups')]);
+            rules = result[0].data || []; groups = result[1].data || [];
+            renderRules(); renderGroups();
+        } catch (error) { layer.msg(error.message, {icon: 2}); }
+    }
+    function renderRules() {
+        const body = document.getElementById('ruleRows');
+        if (!rules.length) { body.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-5">暂无端口转发规则</td></tr>'; return; }
+        body.innerHTML = rules.map(rule => '<tr><td class="rule-endpoint"><span class="d-block fw-semibold">' + esc(rule.ruleName) + '</span>' + (isAdmin ? '<span class="d-block text-muted">用户 ID：' + esc(rule.userId) + '</span>' : '') + (rule.remark ? '<span class="d-block text-muted text-wrap">' + esc(rule.remark) + '</span>' : '') + '</td>' +
+            '<td><span class="badge bg-soft-' + (rule.protocol === 'udp' ? 'warning text-warning' : 'primary text-primary') + '">' + esc(String(rule.protocol || '').toUpperCase()) + '</span></td>' +
+            '<td><code>:' + esc(rule.listenPort) + '</code></td><td><code>' + esc(rule.originHost) + ':' + esc(rule.originPort) + '</code></td>' +
+            '<td><span class="d-block">' + esc(rule.nodeGroupName || '-') + '</span><span class="text-muted">' + coverageName(rule.coverage) + '</span></td>' +
+            '<td>' + (rule.status === 'enabled' ? '<span class="badge bg-soft-success text-success">启用</span>' : '<span class="badge bg-soft-secondary text-secondary">停用</span>') + '</td>' +
+            '<td class="text-end"><button class="btn btn-white btn-icon btn-sm" title="编辑" onclick="editRule(\'' + rule.id + '\')"><i class="bi-pencil"></i></button> <button class="btn btn-white btn-icon btn-sm" title="' + (rule.status === 'enabled' ? '停用' : '启用') + '" onclick="setRuleStatus(\'' + rule.id + '\',' + (rule.status !== 'enabled') + ')"><i class="bi-power"></i></button> <button class="btn btn-white btn-icon btn-sm text-danger" title="删除" onclick="deleteRule(\'' + rule.id + '\')"><i class="bi-trash"></i></button></td></tr>').join('');
+    }
+    function renderGroups() {
+        const select = document.getElementById('ruleGroup');
+        select.innerHTML = groups.map(group => '<option value="' + esc(group.id) + '">[' + coverageName(group.coverage) + '] ' + esc(group.groupName) + (group.isDefault === 1 ? '（默认）' : '') + '</option>').join('');
+        document.getElementById('ruleGroupHelp').textContent = isAdmin ? '管理员可选择任意启用的节点组。' : '当前用户使用其自建 CDN 线路对应的默认节点组。';
+    }
+    function openRuleModal() {
+        document.getElementById('ruleModalTitle').textContent = '新增端口转发规则';
+        ['ruleId','ruleName','originHost','ruleRemark'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('ruleProtocol').value = 'tcp'; document.getElementById('listenPort').value = ''; document.getElementById('originPort').value = '';
+        document.getElementById('ruleEnabled').checked = true;
+        if (isAdmin) document.getElementById('ruleUserId').value = '';
+        if (groups.length) document.getElementById('ruleGroup').value = String(groups[0].id);
+        ruleModal.show();
+    }
+    function editRule(id) {
+        const rule = rules.find(item => String(item.id) === String(id)); if (!rule) return;
+        document.getElementById('ruleModalTitle').textContent = '编辑端口转发规则'; document.getElementById('ruleId').value = rule.id;
+        document.getElementById('ruleName').value = rule.ruleName || ''; document.getElementById('ruleProtocol').value = rule.protocol || 'tcp';
+        document.getElementById('listenPort').value = rule.listenPort || ''; document.getElementById('originHost').value = rule.originHost || ''; document.getElementById('originPort').value = rule.originPort || '';
+        document.getElementById('ruleRemark').value = rule.remark || ''; document.getElementById('ruleEnabled').checked = rule.status === 'enabled';
+        if (isAdmin) document.getElementById('ruleUserId').value = rule.userId || '';
+        document.getElementById('ruleGroup').value = String(rule.nodeGroupId || ''); ruleModal.show();
+    }
+    async function saveRule() {
+        const button = document.getElementById('saveRuleButton'); button.disabled = true;
+        const payload = {id: value('ruleId') || null, ruleName: value('ruleName'), protocol: value('ruleProtocol'), listenPort: numberValue('listenPort'), originHost: value('originHost'), originPort: numberValue('originPort'), nodeGroupId: value('ruleGroup') || null, status: document.getElementById('ruleEnabled').checked ? 'enabled' : 'disabled', remark: value('ruleRemark')};
+        if (isAdmin) payload.userId = numberValue('ruleUserId');
+        try { const result = await request('SelfHostedPortForward/save', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)}); layer.msg(result.message, {icon:1}); ruleModal.hide(); await loadData(); }
+        catch (error) { layer.msg(error.message, {icon:2, time:6000}); } finally { button.disabled = false; }
+    }
+    async function setRuleStatus(id, enabled) { try { const result = await post('SelfHostedPortForward/status', {id, enabled}); layer.msg(result.message, {icon:1}); await loadData(); } catch (error) { layer.msg(error.message, {icon:2, time:6000}); } }
+    function deleteRule(id) { layer.confirm('删除后该端口将停止转发，确定继续吗？', {title:'删除端口转发规则'}, async function (index) { layer.close(index); try { const result = await post('SelfHostedPortForward/delete', {id}); layer.msg(result.message, {icon:1}); await loadData(); } catch (error) { layer.msg(error.message, {icon:2, time:6000}); } }); }
+    async function post(url, values) { return request(url, {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:new URLSearchParams(values)}); }
+    function coverageName(coverage) { if (coverage === 'mainland') return '国内'; if (coverage === 'overseas') return '海外'; if (coverage === 'global') return '全球'; return '旧版'; }
+    function value(id) { return document.getElementById(id).value.trim(); }
+    function numberValue(id) { const value = Number(document.getElementById(id).value); return Number.isFinite(value) ? value : null; }
+    function esc(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+</script>
+</body>
+</html>

@@ -72,6 +72,17 @@ public class SelfHostedCdnSchemaInitializer {
                 "create_time DATETIME DEFAULT CURRENT_TIMESTAMP,update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
                 "UNIQUE KEY uk_self_hosted_cache_job_node (job_id,node_id),KEY idx_self_hosted_cache_node_status (node_id,status)" +
                 ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        execute("CREATE TABLE IF NOT EXISTS self_hosted_port_forward (" +
+                "id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,user_id BIGINT NOT NULL," +
+                "rule_name VARCHAR(128) NOT NULL,protocol VARCHAR(8) NOT NULL," +
+                "listen_port INT NOT NULL,origin_host VARCHAR(255) NOT NULL,origin_port INT NOT NULL," +
+                "node_group_id BIGINT NOT NULL,status VARCHAR(32) NOT NULL DEFAULT 'enabled'," +
+                "remark VARCHAR(512) NULL,create_time DATETIME DEFAULT CURRENT_TIMESTAMP," +
+                "update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
+                "UNIQUE KEY uk_self_hosted_port_forward_group_port (node_group_id,protocol,listen_port)," +
+                "KEY idx_self_hosted_port_forward_user (user_id,status)," +
+                "KEY idx_self_hosted_port_forward_group (node_group_id,status)" +
+                ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
         addColumnIfAbsent("self_hosted_node_group", "dns_record_ids",
                 "ALTER TABLE self_hosted_node_group ADD COLUMN dns_record_ids LONGTEXT NULL AFTER cname_label");
         addColumnIfAbsent("self_hosted_node_group", "coverage",

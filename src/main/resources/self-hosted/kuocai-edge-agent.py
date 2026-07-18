@@ -15,6 +15,7 @@ import urllib.parse
 CONFIG_FILE = "/etc/kuocai-edge/agent.json"
 RELEASE_ROOT = "/etc/kuocai-edge/releases"
 ACTIVE_LINK = "/etc/nginx/kuocai-edge"
+STREAM_ACTIVE_LINK = "/etc/nginx/kuocai-edge-stream"
 CACHE_DIR = "/var/cache/kuocai-cdn"
 
 
@@ -600,6 +601,35 @@ def write_domain_config(release_dir, domain):
         stream.write("\n".join(blocks) + "\n")
 
 
+def write_port_forward_config(release_dir, rule):
+    rule_id = int(rule.get("id") or rule.get("ruleId") or 0)
+    if rule_id <= 0:
+        raise ValueError("invalid port forward rule id")
+    protocol = str(rule.get("protocol") or "").lower()
+    if protocol not in ("tcp", "udp"):
+        raise ValueError("unsupported port forward protocol")
+    listen_port = int(rule.get("listenPort") or 0)
+    origin_port = int(rule.get("originPort") or 0)
+    if not 1 <= listen_port <= 65535 or not 1 <= origin_port <= 65535:
+        raise ValueError("invalid port forward port")
+    origin_host = origin_endpoint(rule.get("originHost"), origin_port)
+    upstream_name = "kuocai_port_forward_%d" % rule_id
+    lines = ["upstream %s {" % upstream_name,
+             "    server %s;" % origin_host,
+             "}", "", "server {"]
+    listen = "    listen %d" % listen_port
+    if protocol == "udp":
+        listen += " udp reuseport"
+    lines.extend([listen + ";",
+                  "    proxy_connect_timeout 10s;",
+                  "    proxy_timeout 1h;",
+                  "    proxy_pass %s;" % upstream_name,
+                  "    access_log /var/log/nginx/kuocai-edge-stream-access.log kuocai_edge_stream;",
+                  "}"])
+    with open(os.path.join(release_dir, "port-forward-%d.conf" % rule_id), "w", encoding="utf-8") as stream:
+        stream.write("\n".join(lines) + "\n")
+
+
 def install_base_config():
     os.makedirs(CACHE_DIR, exist_ok=True)
     path = "/etc/nginx/conf.d/kuocai-edge-base.conf"
@@ -612,21 +642,98 @@ include /etc/nginx/kuocai-edge/*.conf;
             stream.write(content)
 
 
+def ensure_stream_module():
+    probe = subprocess.run(["nginx", "-V"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                           universal_newlines=True)
+    output = probe.stdout or ""
+    if "--with-stream" not in output:
+        raise RuntimeError("当前 Nginx 未启用 stream 模块，无法配置 TCP/UDP 端口转发，请重新安装节点 Agent")
+    if "--with-stream=dynamic" not in output:
+        return
+    config_probe = subprocess.run(["nginx", "-T"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                  universal_newlines=True)
+    if "ngx_stream_module.so" in (config_probe.stdout or ""):
+        return
+    candidates = [
+        "/usr/lib/nginx/modules/ngx_stream_module.so",
+        "/usr/lib64/nginx/modules/ngx_stream_module.so",
+        "/usr/share/nginx/modules/ngx_stream_module.so",
+    ]
+    module_path = next((path for path in candidates if os.path.exists(path)), None)
+    if not module_path:
+        raise RuntimeError("当前 Nginx 的 stream 模块未加载，请安装 nginx-mod-stream 或 libnginx-mod-stream 后重试")
+    nginx_conf = "/etc/nginx/nginx.conf"
+    content = open(nginx_conf, "r", encoding="utf-8").read()
+    load_line = "load_module %s;" % module_path
+    if load_line not in content:
+        with open(nginx_conf, "w", encoding="utf-8") as stream:
+            stream.write(load_line + "\n" + content)
+
+
+def install_stream_base_config():
+    ensure_stream_module()
+    nginx_conf = "/etc/nginx/nginx.conf"
+    old_nginx_conf = open(nginx_conf, "r", encoding="utf-8").read()
+    include_line = "include /etc/nginx/kuocai-edge-stream-base.conf;"
+    if include_line not in old_nginx_conf:
+        match = re.search(r"(?m)^\s*events\s*\{", old_nginx_conf)
+        if not match:
+            raise RuntimeError("无法定位 Nginx events 配置块")
+        updated = old_nginx_conf[:match.start()] + include_line + "\n" + old_nginx_conf[match.start():]
+        with open(nginx_conf, "w", encoding="utf-8") as stream:
+            stream.write(updated)
+    base_path = "/etc/nginx/kuocai-edge-stream-base.conf"
+    base_content = """stream {
+    log_format kuocai_edge_stream '$msec $server_port $protocol $bytes_sent $bytes_received $status';
+    include /etc/nginx/kuocai-edge-stream/*.conf;
+}
+"""
+    if not os.path.exists(base_path) or open(base_path, "r", encoding="utf-8").read() != base_content:
+        with open(base_path, "w", encoding="utf-8") as stream:
+            stream.write(base_content)
+    return nginx_conf, old_nginx_conf
+
+
+def restore_stream_base_config(snapshot):
+    if not snapshot:
+        return
+    path, content = snapshot
+    with open(path, "w", encoding="utf-8") as stream:
+        stream.write(content)
+
+
 def apply_config(config, desired):
     version = int(desired.get("version") or 0)
     release_dir = os.path.join(RELEASE_ROOT, str(version))
     if os.path.exists(release_dir):
         shutil.rmtree(release_dir)
-    os.makedirs(release_dir, mode=0o700)
+    http_release_dir = os.path.join(release_dir, "http")
+    stream_release_dir = os.path.join(release_dir, "stream")
+    os.makedirs(http_release_dir, mode=0o700)
+    os.makedirs(stream_release_dir, mode=0o700)
     for domain in desired.get("domains") or []:
-        write_domain_config(release_dir, domain)
+        write_domain_config(http_release_dir, domain)
+    port_forwards = desired.get("portForwards") or []
+    for rule in port_forwards:
+        write_port_forward_config(stream_release_dir, rule)
     install_base_config()
+    needs_stream = bool(port_forwards) or os.path.lexists(STREAM_ACTIVE_LINK)
+    stream_snapshot = None
+    if needs_stream:
+        stream_snapshot = install_stream_base_config()
     old_target = os.path.realpath(ACTIVE_LINK) if os.path.islink(ACTIVE_LINK) else None
+    old_stream_target = os.path.realpath(STREAM_ACTIVE_LINK) if os.path.islink(STREAM_ACTIVE_LINK) else None
     temp_link = ACTIVE_LINK + ".new"
+    temp_stream_link = STREAM_ACTIVE_LINK + ".new"
     if os.path.lexists(temp_link):
         os.unlink(temp_link)
-    os.symlink(release_dir, temp_link)
+    if os.path.lexists(temp_stream_link):
+        os.unlink(temp_stream_link)
+    os.symlink(http_release_dir, temp_link)
     os.replace(temp_link, ACTIVE_LINK)
+    if needs_stream:
+        os.symlink(stream_release_dir, temp_stream_link)
+        os.replace(temp_stream_link, STREAM_ACTIVE_LINK)
     try:
         test = subprocess.run(["nginx", "-t"], stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE, universal_newlines=True)
@@ -640,6 +747,17 @@ def apply_config(config, desired):
                 os.unlink(rollback_link)
             os.symlink(old_target, rollback_link)
             os.replace(rollback_link, ACTIVE_LINK)
+        if needs_stream:
+            if old_stream_target:
+                rollback_stream_link = STREAM_ACTIVE_LINK + ".rollback"
+                if os.path.lexists(rollback_stream_link):
+                    os.unlink(rollback_stream_link)
+                os.symlink(old_stream_target, rollback_stream_link)
+                os.replace(rollback_stream_link, STREAM_ACTIVE_LINK)
+            elif os.path.lexists(STREAM_ACTIVE_LINK):
+                os.unlink(STREAM_ACTIVE_LINK)
+        restore_stream_base_config(stream_snapshot)
+        if stream_snapshot:
             subprocess.call(["nginx", "-s", "reload"])
         raise
     api_request(config, "POST", "/api/self-hosted/agent/apply-result", {
@@ -687,7 +805,7 @@ def network_bytes():
 def heartbeat(config, applied, last_error):
     rx, tx = network_bytes()
     return api_request(config, "POST", "/api/self-hosted/agent/heartbeat", {
-        "agentVersion": "1.1.0",
+        "agentVersion": "1.2.0",
         "appliedConfigVersion": applied,
         "cpuUsage": 0,
         "memoryUsage": memory_percent(),

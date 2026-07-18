@@ -11,6 +11,7 @@ import com.kuocai.cdn.dao.SelfHostedDomainConfigDao;
 import com.kuocai.cdn.dao.SelfHostedGroupNodeDao;
 import com.kuocai.cdn.dao.SelfHostedNodeDao;
 import com.kuocai.cdn.dao.SelfHostedNodeGroupDao;
+import com.kuocai.cdn.dao.SelfHostedPortForwardDao;
 import com.kuocai.cdn.entity.SelfHostedNode;
 import com.kuocai.cdn.entity.SelfHostedGroupNode;
 import com.kuocai.cdn.entity.SelfHostedDomainConfig;
@@ -109,7 +110,8 @@ class SelfHostedCdnRouteTest {
         SelfHostedCdnService service = new SelfHostedCdnService(nodeDao,
                 groupDao, groupNodeDao,
                 mock(SelfHostedDomainConfigDao.class), mock(SelfHostedCacheJobDao.class),
-                mock(SelfHostedCacheJobNodeDao.class), mock(CdnDomainDao.class));
+                mock(SelfHostedCacheJobNodeDao.class), mock(CdnDomainDao.class),
+                mock(SelfHostedPortForwardDao.class));
 
         String json = service.listNodeViews().get(0).toJSONString();
         assertFalse(json.contains("encrypted-password"));
@@ -136,7 +138,8 @@ class SelfHostedCdnRouteTest {
                 .route(CdnRoute.SELF_HOSTED_OVERSEAS.getCode()).domainStatus("online").build());
         SelfHostedCdnService service = new SelfHostedCdnService(mock(SelfHostedNodeDao.class),
                 mock(SelfHostedNodeGroupDao.class), groupNodeDao, domainConfigDao,
-                mock(SelfHostedCacheJobDao.class), mock(SelfHostedCacheJobNodeDao.class), domainDao);
+                mock(SelfHostedCacheJobDao.class), mock(SelfHostedCacheJobNodeDao.class), domainDao,
+                mock(SelfHostedPortForwardDao.class));
 
         String json = service.desiredConfig(SelfHostedNode.builder().id(1L).desiredConfigVersion(5L).build()).toJSONString();
         assertFalse(json.contains("certificate-ciphertext"));
@@ -155,7 +158,8 @@ class SelfHostedCdnRouteTest {
         when(groupNodeDao.selectList(any())).thenReturn(Collections.emptyList());
         SelfHostedCdnService service = new SelfHostedCdnService(mock(SelfHostedNodeDao.class),
                 mock(SelfHostedNodeGroupDao.class), groupNodeDao, domainConfigDao,
-                mock(SelfHostedCacheJobDao.class), mock(SelfHostedCacheJobNodeDao.class), mock(CdnDomainDao.class));
+                mock(SelfHostedCacheJobDao.class), mock(SelfHostedCacheJobNodeDao.class), mock(CdnDomainDao.class),
+                mock(SelfHostedPortForwardDao.class));
         SelfHostedDomainConfig config = SelfHostedDomainConfig.builder().id(3L).nodeGroupId(2L)
                 .certificateCipher("stored-certificate").privateKeyCipher("stored-private-key")
                 .httpsEnabled(1).desiredConfigVersion(1L).build();
@@ -172,7 +176,7 @@ class SelfHostedCdnRouteTest {
         SelfHostedCdnService service = new SelfHostedCdnService(mock(SelfHostedNodeDao.class),
                 mock(SelfHostedNodeGroupDao.class), mock(SelfHostedGroupNodeDao.class),
                 mock(SelfHostedDomainConfigDao.class), mock(SelfHostedCacheJobDao.class),
-                cacheJobNodeDao, mock(CdnDomainDao.class));
+                cacheJobNodeDao, mock(CdnDomainDao.class), mock(SelfHostedPortForwardDao.class));
         SelfHostedNode node = SelfHostedNode.builder().id(1L).desiredConfigVersion(8L)
                 .appliedConfigVersion(7L).enabled(1).build();
         SelfHostedHeartbeatRequest request = new SelfHostedHeartbeatRequest();
@@ -203,7 +207,7 @@ class SelfHostedCdnRouteTest {
         when(cacheJobNodeDao.selectList(any())).thenReturn(Collections.emptyList());
         SelfHostedCdnService service = new SelfHostedCdnService(nodeDao,
                 mock(SelfHostedNodeGroupDao.class), groupNodeDao, domainConfigDao,
-                mock(SelfHostedCacheJobDao.class), cacheJobNodeDao, domainDao);
+                mock(SelfHostedCacheJobDao.class), cacheJobNodeDao, domainDao, mock(SelfHostedPortForwardDao.class));
         SelfHostedNode node = SelfHostedNode.builder().id(1L).desiredConfigVersion(8L)
                 .appliedConfigVersion(7L).enabled(1).build();
         SelfHostedHeartbeatRequest request = new SelfHostedHeartbeatRequest();
@@ -230,7 +234,7 @@ class SelfHostedCdnRouteTest {
         SelfHostedCdnService service = new SelfHostedCdnService(nodeDao,
                 mock(SelfHostedNodeGroupDao.class), groupNodeDao, domainConfigDao,
                 mock(SelfHostedCacheJobDao.class), mock(SelfHostedCacheJobNodeDao.class),
-                mock(CdnDomainDao.class));
+                mock(CdnDomainDao.class), mock(SelfHostedPortForwardDao.class));
 
         assertTrue(service.isDomainConfigurationApplied(4L));
     }
@@ -242,7 +246,7 @@ class SelfHostedCdnRouteTest {
 
         assertTrue(source.indexOf("applied = apply_config(config, desired)")
                 < source.indexOf("process_cache_jobs(config, response.get(\"cacheJobs\"))"));
-        assertTrue(source.contains("\"agentVersion\": \"1.1.0\""));
+        assertTrue(source.contains("\"agentVersion\": \"1.2.0\""));
     }
 
     @Test
@@ -260,6 +264,9 @@ class SelfHostedCdnRouteTest {
         assertTrue(source.contains("listen [::]:80"));
         assertTrue(source.contains("backup;"));
         assertTrue(source.contains("followRedirectStatus"));
+        assertTrue(source.contains("def write_port_forward_config"));
+        assertTrue(source.contains("udp reuseport"));
+        assertTrue(source.contains("stream {"));
     }
 
     private void assertSelfHostedProductRoute(String route, String coverage,

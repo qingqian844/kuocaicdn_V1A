@@ -66,6 +66,12 @@ public class CdnManagePageController extends BaseController {
         return userDomainList(map);
     }
 
+    @GetMapping("/self-hosted-port-forward")
+    public String selfHostedPortForward(Map<String, Object> map) {
+        map.put("isAdmin", isAdmin());
+        return "admin/domain/self-hosted-port-forward";
+    }
+
     @GetMapping("/agent-domain")
     public String agentDomain(Map<String, Object> map) {
         List<SysUser> sysUsers = sysUserService.queryUserByAgentId(loginUserId);

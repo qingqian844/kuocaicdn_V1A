@@ -236,9 +236,9 @@ public class SelfHostedNodeInstallService {
                 "    yum -y --setopt=timeout=30 --setopt=retries=2 --setopt=skip_if_unavailable=True install python3 nginx ca-certificates curl\n" +
                 "  fi\n" +
                 "}\n" +
-                "if command -v apt-get >/dev/null 2>&1; then apt-get update -y && apt-get install -y python3 nginx ca-certificates curl; " +
-                "elif command -v dnf >/dev/null 2>&1; then dnf install -y python3 nginx ca-certificates curl; " +
-                "elif command -v yum >/dev/null 2>&1; then install_yum_packages; " +
+                "if command -v apt-get >/dev/null 2>&1; then apt-get update -y && (apt-get install -y python3 nginx ca-certificates curl libnginx-mod-stream || apt-get install -y python3 nginx ca-certificates curl); " +
+                "elif command -v dnf >/dev/null 2>&1; then (dnf install -y python3 nginx ca-certificates curl nginx-mod-stream || dnf install -y python3 nginx ca-certificates curl); " +
+                "elif command -v yum >/dev/null 2>&1; then install_yum_packages; yum -y --setopt=timeout=30 --setopt=retries=2 --setopt=skip_if_unavailable=True install nginx-mod-stream || true; " +
                 "else echo 'unsupported package manager' >&2; exit 12; fi\n" +
                 "command -v python3 >/dev/null 2>&1 || { echo 'python3 installation failed' >&2; exit 13; }\n" +
                 "command -v nginx >/dev/null 2>&1 || { echo 'nginx installation failed' >&2; exit 14; }\n" +
