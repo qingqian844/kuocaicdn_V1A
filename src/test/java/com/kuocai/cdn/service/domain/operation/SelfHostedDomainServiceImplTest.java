@@ -5,11 +5,13 @@ import com.alibaba.fastjson.JSONObject;
 import com.kuocai.cdn.api.DomainConfig;
 import com.kuocai.cdn.api.tencent.dns.dto.CreateRecordDTO;
 import com.kuocai.cdn.entity.CdnDomain;
+import com.kuocai.cdn.entity.CdnDomainSources;
 import com.kuocai.cdn.entity.SelfHostedDomainConfig;
 import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.service.SelfHostedCdnService;
 import com.kuocai.cdn.service.SysUserService;
 import com.kuocai.cdn.vo.DomainOriginSettingVo;
+import com.kuocai.cdn.vo.CdnDomainSourcesVo;
 import com.kuocai.cdn.vo.IgnoreQueryStringDTO;
 import org.junit.jupiter.api.Test;
 
@@ -17,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -83,6 +86,22 @@ class SelfHostedDomainServiceImplTest {
                 "self_hosted_overseas", 1L, "cdn.example.com", "web", "mainland_china",
                 "ipaddr", "192.0.2.10", "http", 80, 443,
                 "cdn.example.com", 100));
+    }
+
+    @Test
+    void sourceUpdateRejectsInvalidMainOriginBeforeSaving() {
+        SelfHostedCdnService cdnService = mock(SelfHostedCdnService.class);
+        SelfHostedDomainServiceImpl service = new SelfHostedDomainServiceImpl(
+                cdnService, mock(SysUserService.class));
+        CdnDomainSourcesVo sources = CdnDomainSourcesVo.builder()
+                .main(CdnDomainSources.builder().originType("ipaddr")
+                        .ipOrDomain("225.667.21").build())
+                .build();
+
+        assertThrows(BusinessException.class, () -> service.saveSourceStationConfig(
+                CdnDomain.builder().id(1L).domainName("cdn.example.com").build(), sources));
+
+        verify(cdnService, never()).updateDomainConfig(org.mockito.ArgumentMatchers.any());
     }
 
     @Test

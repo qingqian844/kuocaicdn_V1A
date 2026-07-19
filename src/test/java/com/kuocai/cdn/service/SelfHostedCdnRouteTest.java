@@ -131,6 +131,8 @@ class SelfHostedCdnRouteTest {
                 SelfHostedGroupNode.builder().groupId(2L).nodeId(1L).build()));
         when(domainConfigDao.selectList(any())).thenReturn(Collections.singletonList(
                 SelfHostedDomainConfig.builder().id(3L).cdnDomainId(4L).nodeGroupId(2L)
+                        .originType("ipaddr").originAddress("192.0.2.10")
+                        .originConfigJson("{}")
                         .certificateCipher("certificate-ciphertext")
                         .privateKeyCipher("private-key-ciphertext")
                         .accessConfigCipher("access-config-ciphertext").status("enabled").build()));
@@ -149,6 +151,34 @@ class SelfHostedCdnRouteTest {
         assertFalse(json.contains("access-config-ciphertext"));
         assertFalse(json.contains("accessConfigCipher"));
         assertTrue(json.contains("accessConfigJson"));
+    }
+
+    @Test
+    void invalidHistoricalOriginIsQuarantinedWithoutEnteringNodeConfig() {
+        SelfHostedGroupNodeDao groupNodeDao = mock(SelfHostedGroupNodeDao.class);
+        SelfHostedDomainConfigDao domainConfigDao = mock(SelfHostedDomainConfigDao.class);
+        CdnDomainDao domainDao = mock(CdnDomainDao.class);
+        SelfHostedDomainConfig invalid = SelfHostedDomainConfig.builder()
+                .id(3L).cdnDomainId(4L).nodeGroupId(2L).originType("ipaddr")
+                .originAddress("225.667.21").originConfigJson("{}").status("enabled").build();
+        when(groupNodeDao.selectList(any())).thenReturn(Collections.singletonList(
+                SelfHostedGroupNode.builder().groupId(2L).nodeId(1L).build()));
+        when(domainConfigDao.selectList(any())).thenReturn(Collections.singletonList(invalid));
+        CdnDomain domain = CdnDomain.builder().id(4L).domainName("cdn.example.com")
+                .route(CdnRoute.SELF_HOSTED_OVERSEAS.getCode()).domainStatus("online").build();
+        when(domainDao.selectById(4L)).thenReturn(domain);
+        SelfHostedCdnService service = new SelfHostedCdnService(mock(SelfHostedNodeDao.class),
+                mock(SelfHostedNodeGroupDao.class), groupNodeDao, domainConfigDao,
+                mock(SelfHostedCacheJobDao.class), mock(SelfHostedCacheJobNodeDao.class), domainDao,
+                mock(SelfHostedPortForwardDao.class));
+
+        String json = service.desiredConfig(
+                SelfHostedNode.builder().id(1L).desiredConfigVersion(5L).build()).toJSONString();
+
+        assertTrue(json.contains("\"domains\":[]"));
+        assertEquals("configure_failed", domain.getDomainStatus());
+        verify(domainConfigDao).update(any(), any());
+        verify(domainDao).updateById(domain);
     }
 
     @Test

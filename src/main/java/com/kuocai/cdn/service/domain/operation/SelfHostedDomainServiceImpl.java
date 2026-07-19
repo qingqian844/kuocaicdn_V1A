@@ -21,6 +21,7 @@ import com.kuocai.cdn.service.SysUserService;
 import com.kuocai.cdn.service.base.BaseService;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.util.DomainUtil;
+import com.kuocai.cdn.util.SelfHostedOriginValidator;
 import com.kuocai.cdn.vo.*;
 import com.tencentcloudapi.common.exception.TencentCloudSDKException;
 import org.springframework.stereotype.Service;
@@ -65,9 +66,8 @@ public class SelfHostedDomainServiceImpl extends BaseService<CdnDomain> implemen
                                     String serviceArea, String originType, String ipOrDomain,
                                     String originProtocol, Integer httpPort, Integer httpsPort,
                                     String originHost, Integer originWeight) throws BusinessException {
-        if (Assert.isEmpty(ipOrDomain)) {
-            throw new BusinessException("源站地址不能为空");
-        }
+        String normalizedOrigin = SelfHostedOriginValidator.validateAndNormalize(
+                originType, ipOrDomain, "主源站");
         if (!CdnRoute.isSelfHosted(targetRoute)) {
             throw new BusinessException("自建 CDN 线路不存在");
         }
@@ -85,7 +85,7 @@ public class SelfHostedDomainServiceImpl extends BaseService<CdnDomain> implemen
         if (failedDomain != null) {
             SelfHostedDomainConfig config = selfHostedCdnService.getDomainConfig(failedDomain.getId());
             config.setOriginType(originType);
-            config.setOriginAddress(ipOrDomain);
+            config.setOriginAddress(normalizedOrigin);
             config.setOriginProtocol(normalizeOriginProtocol(originProtocol));
             config.setHttpPort(httpPort == null ? 80 : httpPort);
             config.setHttpsPort(httpsPort == null ? 443 : httpsPort);
@@ -105,7 +105,7 @@ public class SelfHostedDomainServiceImpl extends BaseService<CdnDomain> implemen
                 .route(targetRoute).createTime(new Date()).updateTime(new Date()).build();
         domain = save(domain);
         try {
-            selfHostedCdnService.createDomainConfig(domain, originType, ipOrDomain, originProtocol,
+            selfHostedCdnService.createDomainConfig(domain, originType, normalizedOrigin, originProtocol,
                     httpPort, httpsPort, originHost);
             return domain;
         } catch (BusinessException e) {
@@ -207,9 +207,16 @@ public class SelfHostedDomainServiceImpl extends BaseService<CdnDomain> implemen
             throw new BusinessException("主源站不能为空");
         }
         CdnDomainSources source = sourceVo.getMain();
+        String normalizedMain = SelfHostedOriginValidator.validateAndNormalize(
+                source.getOriginType(), source.getIpOrDomain(), "主源站");
+        String normalizedStandby = null;
+        if (sourceVo.getBack() != null && !Assert.isEmpty(sourceVo.getBack().getIpOrDomain())) {
+            normalizedStandby = SelfHostedOriginValidator.validateAndNormalize(
+                    sourceVo.getBack().getOriginType(), sourceVo.getBack().getIpOrDomain(), "备用源站");
+        }
         SelfHostedDomainConfig config = selfHostedCdnService.getDomainConfig(cdnDomain.getId());
         config.setOriginType(source.getOriginType());
-        config.setOriginAddress(source.getIpOrDomain());
+        config.setOriginAddress(normalizedMain);
         config.setHttpPort(source.getHttpPort() == null ? 80 : source.getHttpPort());
         config.setHttpsPort(source.getHttpsPort() == null ? 443 : source.getHttpsPort());
         config.setOriginHost(Assert.isEmpty(source.getHostName()) ? cdnDomain.getDomainName() : source.getHostName());
@@ -220,6 +227,7 @@ public class SelfHostedDomainServiceImpl extends BaseService<CdnDomain> implemen
         if (sourceVo.getBack() == null || Assert.isEmpty(sourceVo.getBack().getIpOrDomain())) {
             origin.remove("standby");
         } else {
+            sourceVo.getBack().setIpOrDomain(normalizedStandby);
             origin.put("standby", sourceVo.getBack());
         }
         config.setOriginConfigJson(origin.toJSONString());
@@ -234,12 +242,16 @@ public class SelfHostedDomainServiceImpl extends BaseService<CdnDomain> implemen
         if (standby == null || Assert.isEmpty(standby.getIpOrDomain())) {
             throw new BusinessException("未配置备用源站，无法切换");
         }
+        String normalizedStandby = SelfHostedOriginValidator.validateAndNormalize(
+                standby.getOriginType(), standby.getIpOrDomain(), "备用源站");
+        String normalizedMain = SelfHostedOriginValidator.validateAndNormalize(
+                config.getOriginType(), config.getOriginAddress(), "主源站");
         CdnDomainSources oldMain = CdnDomainSources.builder()
-                .originType(config.getOriginType()).ipOrDomain(config.getOriginAddress())
+                .originType(config.getOriginType()).ipOrDomain(normalizedMain)
                 .hostName(config.getOriginHost()).httpPort(config.getHttpPort())
                 .httpsPort(config.getHttpsPort()).activeStandby(0).build();
         config.setOriginType(standby.getOriginType());
-        config.setOriginAddress(standby.getIpOrDomain());
+        config.setOriginAddress(normalizedStandby);
         config.setOriginHost(Assert.isEmpty(standby.getHostName()) ? cdnDomain.getDomainName() : standby.getHostName());
         config.setHttpPort(standby.getHttpPort() == null ? 80 : standby.getHttpPort());
         config.setHttpsPort(standby.getHttpsPort() == null ? 443 : standby.getHttpsPort());
@@ -262,6 +274,20 @@ public class SelfHostedDomainServiceImpl extends BaseService<CdnDomain> implemen
     }
 
     @Override public void saveAdvancedReturnSource(CdnDomain d, DomainOriginSettingVo v) throws BusinessException {
+        if (v != null && v.getFlexibleOrigins() != null) {
+            for (FlexibleOriginDTO rule : v.getFlexibleOrigins()) {
+                if (rule == null || rule.getBack_sources() == null) {
+                    continue;
+                }
+                for (BackSourceDTO source : rule.getBack_sources()) {
+                    if (source == null || Assert.isEmpty(source.getIp_or_domain())) {
+                        continue;
+                    }
+                    source.setIp_or_domain(SelfHostedOriginValidator.validateAndNormalize(
+                            source.getSources_type(), source.getIp_or_domain(), "高级回源"));
+                }
+            }
+        }
         saveOriginValue(d, "flexibleOrigins", v == null ? null : v.getFlexibleOrigins());
     }
 
@@ -631,4 +657,5 @@ public class SelfHostedDomainServiceImpl extends BaseService<CdnDomain> implemen
             // Preserve the original DNS/configuration exception for the caller.
         }
     }
+
 }

@@ -35,6 +35,7 @@ import com.kuocai.cdn.enumeration.domainmerage.CdnRoute;
 import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.util.ConfigureRsaUtils;
+import com.kuocai.cdn.util.SelfHostedOriginValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -469,12 +470,24 @@ public class SelfHostedCdnService {
                 if (domain == null || !CdnRoute.isSelfHosted(domain.getRoute()) || "offline".equals(domain.getDomainStatus())) {
                     continue;
                 }
+                JSONObject normalizedOriginConfig;
+                String normalizedOriginAddress;
+                try {
+                    normalizedOriginAddress = SelfHostedOriginValidator.validateAndNormalize(
+                            config.getOriginType(), config.getOriginAddress(), "主源站");
+                    normalizedOriginConfig = validateAndNormalizeNestedOrigins(config.getOriginConfigJson());
+                } catch (BusinessException e) {
+                    quarantineInvalidDomainConfig(config, domain, e.getMessage());
+                    continue;
+                }
                 JSONObject item = (JSONObject) JSON.toJSON(config);
                 item.remove("certificateCipher");
                 item.remove("privateKeyCipher");
                 item.remove("accessConfigCipher");
                 item.put("domainName", domain.getDomainName());
                 item.put("cname", domain.getCname());
+                item.put("originAddress", normalizedOriginAddress);
+                item.put("originConfigJson", normalizedOriginConfig.toJSONString());
                 item.put("accessConfigJson", readAccessConfig(config).toJSONString());
                 item.put("certificate", decryptSecret(config.getCertificateCipher(), "certificate"));
                 item.put("privateKey", decryptSecret(config.getPrivateKeyCipher(), "privateKey"));
@@ -509,12 +522,19 @@ public class SelfHostedCdnService {
             node.setAppliedConfigVersion(request.getVersion());
             node.setStatus("online");
             node.setLastError(null);
+            node.setUpdateTime(new Date());
+            nodeDao.update(null, new UpdateWrapper<SelfHostedNode>()
+                    .eq("id", node.getId())
+                    .set("applied_config_version", request.getVersion())
+                    .set("status", "online")
+                    .set("last_error", null)
+                    .set("update_time", node.getUpdateTime()));
         } else {
             node.setStatus("degraded");
             node.setLastError(trim(request.getError()));
+            node.setUpdateTime(new Date());
+            nodeDao.updateById(node);
         }
-        node.setUpdateTime(new Date());
-        nodeDao.updateById(node);
         if (Boolean.TRUE.equals(request.getSuccess()) && isNodeConfigCurrent(node)) {
             reconcileAppliedDomains(node);
         }
@@ -574,6 +594,7 @@ public class SelfHostedCdnService {
     public SelfHostedDomainConfig createDomainConfig(CdnDomain domain, String originType, String originAddress,
                                                       String originProtocol, Integer httpPort, Integer httpsPort,
                                                       String originHost) throws BusinessException {
+        originAddress = SelfHostedOriginValidator.validateAndNormalize(originType, originAddress, "主源站");
         SelfHostedNodeGroup group = defaultGroup(domain.getRoute());
         requireActiveNode(group.getId());
         Date now = new Date();
@@ -593,6 +614,67 @@ public class SelfHostedCdnService {
         domainConfigDao.insert(config);
         bumpGroupVersion(group.getId());
         return config;
+    }
+
+    private JSONObject validateAndNormalizeNestedOrigins(String originConfigJson) throws BusinessException {
+        JSONObject originConfig;
+        try {
+            originConfig = Assert.isEmpty(originConfigJson)
+                    ? new JSONObject() : JSON.parseObject(originConfigJson);
+        } catch (Exception e) {
+            throw new BusinessException("回源配置格式不正确");
+        }
+        if (originConfig == null) {
+            originConfig = new JSONObject();
+        }
+        JSONObject standby = originConfig.getJSONObject("standby");
+        if (standby != null && !Assert.isEmpty(standby.getString("ipOrDomain"))) {
+            standby.put("ipOrDomain", SelfHostedOriginValidator.validateAndNormalize(
+                    standby.getString("originType"), standby.getString("ipOrDomain"), "备用源站"));
+        }
+        JSONArray flexibleOrigins = originConfig.getJSONArray("flexibleOrigins");
+        if (flexibleOrigins != null) {
+            for (int i = 0; i < flexibleOrigins.size(); i++) {
+                JSONObject rule = flexibleOrigins.getJSONObject(i);
+                JSONArray backSources = rule == null ? null : rule.getJSONArray("back_sources");
+                if (backSources == null) {
+                    continue;
+                }
+                for (int j = 0; j < backSources.size(); j++) {
+                    JSONObject source = backSources.getJSONObject(j);
+                    if (source == null || Assert.isEmpty(source.getString("ip_or_domain"))) {
+                        continue;
+                    }
+                    source.put("ip_or_domain", SelfHostedOriginValidator.validateAndNormalize(
+                            source.getString("sources_type"), source.getString("ip_or_domain"), "高级回源"));
+                }
+            }
+        }
+        return originConfig;
+    }
+
+    private void quarantineInvalidDomainConfig(SelfHostedDomainConfig config, CdnDomain domain, String error) {
+        String message = "源站配置无效，已自动隔离：" + error;
+        if (message.length() > 1000) {
+            message = message.substring(0, 1000);
+        }
+        try {
+            domainConfigDao.update(null, new UpdateWrapper<SelfHostedDomainConfig>()
+                    .eq("id", config.getId())
+                    .set("status", "invalid")
+                    .set("last_error", message)
+                    .set("update_time", new Date()));
+            if (domain != null) {
+                domain.setDomainStatus("configure_failed");
+                domain.setUpdateTime(new Date());
+                cdnDomainDao.updateById(domain);
+            }
+        } catch (Exception persistenceError) {
+            log.error("Unable to persist quarantined self-hosted domain configuration, configId={}",
+                    config.getId(), persistenceError);
+        }
+        log.error("Self-hosted domain configuration quarantined, domain={}, configId={}, reason={}",
+                domain == null ? config.getCdnDomainId() : domain.getDomainName(), config.getId(), error);
     }
 
     public SelfHostedDomainConfig getDomainConfig(Long cdnDomainId) throws BusinessException {
@@ -617,6 +699,11 @@ public class SelfHostedCdnService {
         config.setDesiredConfigVersion((config.getDesiredConfigVersion() == null ? 0L : config.getDesiredConfigVersion()) + 1L);
         config.setUpdateTime(new Date());
         domainConfigDao.updateById(config);
+        if ("enabled".equals(config.getStatus())) {
+            config.setLastError(null);
+            domainConfigDao.update(null, new UpdateWrapper<SelfHostedDomainConfig>()
+                    .eq("id", config.getId()).set("last_error", null));
+        }
         bumpGroupVersion(config.getNodeGroupId());
     }
 
