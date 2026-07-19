@@ -25,6 +25,7 @@ import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -74,15 +75,25 @@ public class SysConfigController extends BaseController {
                                             Integer edgeoneFreeDomainQuota, BigDecimal edgeoneDomainQuotaPrice,
                                             Integer edgeoneDomainQuotaValidDays, String defaultUserRoute,
                                             String overseasEnabledRoutes, String globalEnabledRoutes,
+                                            String overseasEnabledTargets, String globalEnabledTargets,
                                             Boolean httpsRequestFeeEnabled, String httpsRequestFeeRoutes,
                                             Long httpsRequestFeeUnitCount, BigDecimal httpsRequestFeeUnitPrice) {
         // 这里所有参数都不做非null校验
         WebsiteBaseConfigVo websiteBaseConfigVo = null;
         try {
-            List<String> normalizedOverseasRoutes = cdnServiceAreaPolicyService
-                    .normalizeConfiguredRoutes(overseasEnabledRoutes);
-            List<String> normalizedGlobalRoutes = cdnServiceAreaPolicyService
-                    .normalizeConfiguredRoutes(globalEnabledRoutes);
+            boolean targetConfigurationSubmitted = overseasEnabledTargets != null || globalEnabledTargets != null;
+            List<String> normalizedOverseasRoutes = targetConfigurationSubmitted
+                    ? Collections.emptyList()
+                    : cdnServiceAreaPolicyService.normalizeConfiguredRoutes(overseasEnabledRoutes);
+            List<String> normalizedGlobalRoutes = targetConfigurationSubmitted
+                    ? Collections.emptyList()
+                    : cdnServiceAreaPolicyService.normalizeConfiguredRoutes(globalEnabledRoutes);
+            List<String> normalizedOverseasTargets = targetConfigurationSubmitted
+                    ? cdnServiceAreaPolicyService.normalizeConfiguredTargets(overseasEnabledTargets)
+                    : null;
+            List<String> normalizedGlobalTargets = targetConfigurationSubmitted
+                    ? cdnServiceAreaPolicyService.normalizeConfiguredTargets(globalEnabledTargets)
+                    : null;
             websiteBaseConfigVo = WebsiteBaseConfigVo.builder().websiteName(websiteName).websiteAnnouncement(websiteAnnouncement).maxDomainCountProxy(0)
                     .inviteRewardGb(0)
                     .invitedRewardGb(0)
@@ -94,6 +105,8 @@ public class SysConfigController extends BaseController {
                     .defaultUserRoute(defaultUserRoute)
                     .overseasEnabledRoutes(normalizedOverseasRoutes)
                     .globalEnabledRoutes(normalizedGlobalRoutes)
+                    .overseasEnabledTargets(normalizedOverseasTargets)
+                    .globalEnabledTargets(normalizedGlobalTargets)
                     .httpsRequestFeeEnabled(httpsRequestFeeEnabled != null && httpsRequestFeeEnabled)
                     .httpsRequestFeeRoutes(httpsRequestFeeRoutes)
                     .httpsRequestFeeUnitCount(httpsRequestFeeUnitCount == null ? 10000L : httpsRequestFeeUnitCount)

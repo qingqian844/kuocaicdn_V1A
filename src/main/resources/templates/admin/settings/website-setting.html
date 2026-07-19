@@ -345,25 +345,48 @@
                                                 <thead class="thead-light">
                                                 <tr>
                                                     <th class="ps-3">CDN线路</th>
+                                                    <th>平台账号标识</th>
                                                     <th class="text-center">海外加速</th>
                                                     <th class="text-center">全球加速</th>
                                                 </tr>
                                                 </thead>
                                                 <tbody>
-                                                <tr th:each="vendor : ${authorizedVendors}"
-                                                    th:if="${!#strings.startsWith(vendor.code, 'self_hosted')}">
-                                                    <td class="ps-3" th:text="${vendor.name}"></td>
-                                                    <td class="text-center">
-                                                        <input class="form-check-input overseasEnabledRoute" type="checkbox"
-                                                               th:value="${vendor.code}"
-                                                               th:aria-label="|允许${vendor.name}使用海外加速|"
-                                                               th:checked="${websiteBaseConfig != null and websiteBaseConfig.overseasEnabledRoutes != null and #lists.contains(websiteBaseConfig.overseasEnabledRoutes, vendor.code)}">
+                                                <tr th:each="option : ${serviceAreaOptions}">
+                                                    <td class="ps-3" th:text="${option.routeName}"></td>
+                                                    <td>
+                                                        <span class="fw-semibold" th:text="${option.accountName}"></span>
+                                                        <span class="badge bg-soft-primary text-primary ms-1"
+                                                              th:if="${option.defaultAccount}">默认</span>
+                                                        <span class="badge bg-soft-danger text-danger ms-1"
+                                                              th:if="${option.accountStatus == 'disabled'}">已停用</span>
+                                                        <span class="badge bg-soft-warning text-warning ms-1"
+                                                              th:if="${option.accountStatus == 'missing'}">未配置</span>
+                                                        <span class="d-block small text-muted" th:if="${option.accountId != null}"
+                                                              th:text="|ID ${option.accountId}|"></span>
                                                     </td>
                                                     <td class="text-center">
-                                                        <input class="form-check-input globalEnabledRoute" type="checkbox"
-                                                               th:value="${vendor.code}"
-                                                               th:aria-label="|允许${vendor.name}使用全球加速|"
-                                                               th:checked="${websiteBaseConfig != null and websiteBaseConfig.globalEnabledRoutes != null and #lists.contains(websiteBaseConfig.globalEnabledRoutes, vendor.code)}">
+                                                        <input th:if="${option.fixedArea == null}"
+                                                               class="form-check-input overseasEnabledTarget" type="checkbox"
+                                                               th:value="${option.targetKey}"
+                                                               th:disabled="${!option.selectable}"
+                                                               th:aria-label="|允许${option.routeName} ${option.accountName}使用海外加速|"
+                                                               th:checked="${option.overseasEnabled}">
+                                                        <input th:if="${option.fixedArea == 'outside_mainland_china'}"
+                                                               class="form-check-input" type="checkbox" checked disabled
+                                                               aria-label="固定使用海外加速">
+                                                        <span th:if="${option.fixedArea != null and option.fixedArea != 'outside_mainland_china'}">-</span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <input th:if="${option.fixedArea == null}"
+                                                               class="form-check-input globalEnabledTarget" type="checkbox"
+                                                               th:value="${option.targetKey}"
+                                                               th:disabled="${!option.selectable}"
+                                                               th:aria-label="|允许${option.routeName} ${option.accountName}使用全球加速|"
+                                                               th:checked="${option.globalEnabled}">
+                                                        <input th:if="${option.fixedArea == 'global'}"
+                                                               class="form-check-input" type="checkbox" checked disabled
+                                                               aria-label="固定使用全球加速">
+                                                        <span th:if="${option.fixedArea != null and option.fixedArea != 'global'}">-</span>
                                                     </td>
                                                 </tr>
                                                 </tbody>
@@ -885,7 +908,7 @@
 <script th:src="@{common/util/reg.js}"></script>
 <script th:src="@{common/custom.js}"></script>
 <script th:src="@{common/custom_ceo.js(v='20260719-area-route-policy')}"></script>
-<script th:src="@{common/custom_cmo.js(v='20260719-area-route-policy')}"></script>
+<script th:src="@{common/custom_cmo.js(v='20260719-area-account-policy')}"></script>
 <script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
 
 <!-- JS Plugins Init. -->

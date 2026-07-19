@@ -217,11 +217,6 @@ public class CdnDomainController extends BaseController {
         if (Assert.isEmpty(CdnServiceAreaMap.huawei.get(serviceArea))) {
             return RespResult.fail("暂不支持的服务区域");
         }
-        try {
-            cdnServiceAreaPolicyService.requireAllowed(route, serviceArea);
-        } catch (BusinessException e) {
-            return RespResult.fail(e.getMessage());
-        }
         if (Assert.isEmpty(CdnOriginTypeMap.huawei.get(originType))) {
             return RespResult.fail("暂不支持的源站类型");
         }
@@ -249,6 +244,11 @@ public class CdnDomainController extends BaseController {
             }
             edgeOneResume = ownedEdgeOneDomain;
             selfHostedResume = ownedSelfHostedDomain;
+        }
+        try {
+            cdnServiceAreaPolicyService.requireAllowed(route, serviceArea);
+        } catch (BusinessException e) {
+            return RespResult.fail(e.getMessage());
         }
         if ("user".equals(loginUserRoleCode) && !edgeOneRoute && !selfHostedResume) {
             // 数量检查
@@ -640,6 +640,7 @@ public class CdnDomainController extends BaseController {
         }
         try {
             String sourceRoute = route;
+            String strippedDomain = domainName.startsWith("www.") ? domainName.substring(4) : domainName;
             cdnServiceAreaPolicyService.requireAllowed(sourceRoute, area);
             String verifyRoute = sourceRoute;
             if ("outside_mainland_china".equals(area)
@@ -648,7 +649,6 @@ public class CdnDomainController extends BaseController {
             }
             ICdnPlatformService iCdnPlatformService = CdnPlatformFactory.getCdnPlatform(verifyRoute);
             if (iCdnPlatformService instanceof ICdnDomainVerifyService) {
-                String strippedDomain = domainName.startsWith("www.") ? domainName.substring(4) : domainName;
                 DomainVerifyRecordInfo info = ((ICdnDomainVerifyService) iCdnPlatformService).createVerifyRecord(strippedDomain, area);
                 return RespResult.success("success", info);
             }
@@ -671,6 +671,7 @@ public class CdnDomainController extends BaseController {
         }
         try {
             String sourceRoute = route;
+            String strippedDomain = domainName.startsWith("www.") ? domainName.substring(4) : domainName;
             cdnServiceAreaPolicyService.requireAllowed(sourceRoute, area);
             String verifyRoute = sourceRoute;
             if ("outside_mainland_china".equals(area)
@@ -679,7 +680,6 @@ public class CdnDomainController extends BaseController {
             }
             ICdnPlatformService iCdnPlatformService = CdnPlatformFactory.getCdnPlatform(verifyRoute);
             if (iCdnPlatformService instanceof ICdnDomainVerifyService) {
-                String strippedDomain = domainName.startsWith("www.") ? domainName.substring(4) : domainName;
                 ((ICdnDomainVerifyService) iCdnPlatformService).verifyDomainRecord(strippedDomain, verifyType);
                 return RespResult.success("域名验证成功！");
             }

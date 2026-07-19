@@ -104,6 +104,10 @@ public class WebsiteBaseConfigVo {
 
     private List<String> globalEnabledRoutes;
 
+    private List<String> overseasEnabledTargets;
+
+    private List<String> globalEnabledTargets;
+
     private Boolean httpsRequestFeeEnabled;
 
     private String httpsRequestFeeRoutes;

@@ -3,9 +3,8 @@ package com.kuocai.cdn.service;
 import com.kuocai.cdn.config.SystemConfig;
 import com.kuocai.cdn.enumeration.domainmerage.CdnRoute;
 import com.kuocai.cdn.exception.BusinessException;
-import com.kuocai.cdn.license.LicenseService;
-import com.kuocai.cdn.license.LicenseVendorRegistry;
 import com.kuocai.cdn.util.Assert;
+import com.kuocai.cdn.util.SupportedVendorUtils;
 import com.kuocai.cdn.vo.WebsiteBaseConfigVo;
 import org.springframework.stereotype.Service;
 
@@ -20,12 +19,8 @@ public class CdnServiceAreaPolicyService {
     public static final String MAINLAND = "mainland_china";
     public static final String OVERSEAS = "outside_mainland_china";
     public static final String GLOBAL = "global";
-
-    private final LicenseService licenseService;
-
-    public CdnServiceAreaPolicyService(LicenseService licenseService) {
-        this.licenseService = licenseService;
-    }
+    public static final String ACCOUNT_TARGET_PREFIX = "account:";
+    public static final String ROUTE_TARGET_PREFIX = "route:";
 
     public List<String> normalizeConfiguredRoutes(String routes) throws BusinessException {
         if (Assert.isEmpty(routes)) {
@@ -37,18 +32,43 @@ public class CdnServiceAreaPolicyService {
             if (route.isEmpty()) {
                 continue;
             }
-            if (!LicenseVendorRegistry.isSupported(route) || CdnRoute.isSelfHosted(route)) {
+            if (!SupportedVendorUtils.allVendorCodes().contains(route) || CdnRoute.isSelfHosted(route)) {
                 throw new BusinessException("加速区域线路不存在或不可配置：" + route);
-            }
-            if (!licenseService.isVendorAuthorized(route)) {
-                throw new BusinessException("当前授权不包含加速区域线路：" + LicenseVendorRegistry.getName(route));
             }
             normalized.add(route);
         }
         return new ArrayList<>(normalized);
     }
 
+    public List<String> normalizeConfiguredTargets(String targets) throws BusinessException {
+        if (Assert.isEmpty(targets)) {
+            return Collections.emptyList();
+        }
+        Set<String> normalized = new LinkedHashSet<>();
+        for (String item : targets.split(",")) {
+            String target = item == null ? "" : item.trim();
+            if (target.isEmpty()) {
+                continue;
+            }
+            if (target.startsWith(ACCOUNT_TARGET_PREFIX)) {
+                throw new BusinessException("开源版不支持厂商多账号区域配置");
+            }
+            if (target.startsWith(ROUTE_TARGET_PREFIX)) {
+                String route = target.substring(ROUTE_TARGET_PREFIX.length()).trim();
+                requireSupportedRoute(route);
+                normalized.add(routeTarget(route));
+                continue;
+            }
+            throw new BusinessException("加速区域配置目标格式不正确：" + target);
+        }
+        return new ArrayList<>(normalized);
+    }
+
     public boolean isAllowed(String route, String serviceArea) {
+        return isAllowed(route, null, serviceArea);
+    }
+
+    public boolean isAllowed(String route, Long vendorAccountId, String serviceArea) {
         if (Assert.isEmpty(route) || !isKnownArea(serviceArea)) {
             return false;
         }
@@ -60,7 +80,7 @@ public class CdnServiceAreaPolicyService {
         if (CdnRoute.SELF_HOSTED.getCode().equals(route)) {
             return true;
         }
-        if (!licenseService.isVendorAuthorized(route)) {
+        if (!SupportedVendorUtils.allVendorCodes().contains(route) && !CdnRoute.SELF_HOSTED.getCode().equals(route)) {
             return false;
         }
         if (MAINLAND.equals(serviceArea)) {
@@ -70,10 +90,19 @@ public class CdnServiceAreaPolicyService {
         if (config == null) {
             return false;
         }
-        List<String> configuredRoutes = OVERSEAS.equals(serviceArea)
+        List<String> configuredTargets = OVERSEAS.equals(serviceArea)
+                ? config.getOverseasEnabledTargets()
+                : config.getGlobalEnabledTargets();
+        if (configuredTargets != null) {
+            if (vendorAccountId != null && configuredTargets.contains(accountTarget(vendorAccountId))) {
+                return true;
+            }
+            return configuredTargets.contains(routeTarget(route));
+        }
+        List<String> legacyRoutes = OVERSEAS.equals(serviceArea)
                 ? config.getOverseasEnabledRoutes()
                 : config.getGlobalEnabledRoutes();
-        return configuredRoutes != null && configuredRoutes.contains(route);
+        return legacyRoutes != null && legacyRoutes.contains(route);
     }
 
     public Set<String> allowedAreas(String route) {
@@ -91,7 +120,11 @@ public class CdnServiceAreaPolicyService {
     }
 
     public void requireAllowed(String route, String serviceArea) throws BusinessException {
-        if (isAllowed(route, serviceArea)) {
+        requireAllowed(route, null, serviceArea);
+    }
+
+    public void requireAllowed(String route, Long vendorAccountId, String serviceArea) throws BusinessException {
+        if (isAllowed(route, vendorAccountId, serviceArea)) {
             return;
         }
         if (!isKnownArea(serviceArea)) {
@@ -99,8 +132,26 @@ public class CdnServiceAreaPolicyService {
         }
         String areaName = MAINLAND.equals(serviceArea) ? "中国大陆加速"
                 : OVERSEAS.equals(serviceArea) ? "海外加速" : "全球加速";
-        throw new BusinessException("当前系统未开放" + LicenseVendorRegistry.getName(route)
+        throw new BusinessException("当前系统未开放" + vendorName(route)
                 + "的" + areaName + "，请联系管理员");
+    }
+
+    public static String accountTarget(Long accountId) {
+        return ACCOUNT_TARGET_PREFIX + accountId;
+    }
+
+    public static String routeTarget(String route) {
+        return ROUTE_TARGET_PREFIX + route;
+    }
+
+    private void requireSupportedRoute(String route) throws BusinessException {
+        if (!SupportedVendorUtils.allVendorCodes().contains(route) || CdnRoute.isSelfHosted(route)) {
+            throw new BusinessException("加速区域线路不存在或不可配置：" + route);
+        }
+    }
+
+    private String vendorName(String route) {
+        return SupportedVendorUtils.vendorNameMap().getOrDefault(route, route);
     }
 
     private boolean isKnownArea(String serviceArea) {
