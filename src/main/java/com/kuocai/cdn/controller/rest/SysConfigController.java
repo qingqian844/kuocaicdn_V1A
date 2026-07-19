@@ -14,7 +14,10 @@ import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.service.CdnServiceAreaPolicyService;
 import com.kuocai.cdn.service.CdnAreaRouteService;
 import com.kuocai.cdn.service.SysConfigService;
+import com.kuocai.cdn.service.SysUserService;
 import com.kuocai.cdn.util.Assert;
+import com.kuocai.cdn.util.AdminPathUtils;
+import com.kuocai.cdn.util.UserAvatarUtils;
 import com.kuocai.cdn.vo.*;
 import org.springframework.context.annotation.Scope;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -53,6 +56,9 @@ public class SysConfigController extends BaseController {
 
     @Resource
     private CdnServiceAreaPolicyService cdnServiceAreaPolicyService;
+
+    @Resource
+    private SysUserService sysUserService;
     /**
      * description: 保存或更新网站基本配置
      *
@@ -67,10 +73,12 @@ public class SysConfigController extends BaseController {
     @SysLog(module = "系统设置管理", describe = "保存或更新网站基本配置")
     public RespResult saveWebsiteBaseConfig(String websiteName, String websiteAnnouncement, Double defaultFlowPrice, Integer maxDomainCount,
                                             Integer maxDomainCountProxy, String icpNumber, String websiteIconImgUrl,
+                                            String defaultAvatarImgUrl, String adminPath,
                                             String websiteLogoImgUrl,
                                             String wechatQrCodeImgUrl, String qqGroupQrCodeImgUrl,
                                             Integer inviteRewardGb, Integer invitedRewardGb, Integer monthGiftGb,
-                                            MultipartFile websiteIconImg, MultipartFile websiteLogoImg,
+                                            MultipartFile websiteIconImg, MultipartFile defaultAvatarImg,
+                                            MultipartFile websiteLogoImg,
                                             MultipartFile wechatQrCodeImg, MultipartFile qqGroupQrCodeImg,
                                             Integer expireTime, Boolean edgeoneDomainQuotaEnabled,
                                             Integer edgeoneFreeDomainQuota, BigDecimal edgeoneDomainQuotaPrice,
@@ -83,6 +91,9 @@ public class SysConfigController extends BaseController {
                                             Long httpsRequestFeeUnitCount, BigDecimal httpsRequestFeeUnitPrice) {
         // 这里所有参数都不做非null校验
         WebsiteBaseConfigVo websiteBaseConfigVo = null;
+        WebsiteBaseConfigVo previousConfig = service.getConfigContentVo(
+                WebsiteBaseConfigVo.class, ConfigBizTypeConstants.WEBSITE_BASE_CONFIG);
+        String previousDefaultAvatar = UserAvatarUtils.defaultAvatar(previousConfig);
         try {
             boolean targetConfigurationSubmitted = mainlandEnabledTargets != null
                     || overseasEnabledTargets != null || globalEnabledTargets != null;
@@ -106,6 +117,7 @@ public class SysConfigController extends BaseController {
                     .inviteRewardGb(0)
                     .invitedRewardGb(0)
                     .monthGiftGb(0)
+                    .adminPath(AdminPathUtils.normalize(adminPath))
                     .edgeoneDomainQuotaEnabled(false)
                     .edgeoneFreeDomainQuota(0)
                     .edgeoneDomainQuotaPrice(BigDecimal.ZERO)
@@ -127,6 +139,7 @@ public class SysConfigController extends BaseController {
                     .defaultFlowPrice(BigDecimal.valueOf(defaultFlowPrice)).icpNumber(icpNumber)
                     // 判断文件是否已经存在且没被修改，是直接保存路径，否则进行转换
                     .websiteIconImg("false".equals(websiteIconImgUrl) ? (Assert.isEmpty(websiteIconImg) ? "" : ossClient.upload(websiteIconImg)) : ossClient.normalizePublicUrl(websiteIconImgUrl))
+                    .defaultAvatarImg(resolveDefaultAvatar(defaultAvatarImgUrl, defaultAvatarImg))
                     .websiteLogoImg(resolveWebsiteLogo(websiteLogoImgUrl, websiteLogoImg))
                     .wechatQrCodeImg("false".equals(wechatQrCodeImgUrl) ? (Assert.isEmpty(wechatQrCodeImg) ? "" : ossClient.upload(wechatQrCodeImg)) : ossClient.normalizePublicUrl(wechatQrCodeImgUrl))
                     .qqGroupQrCodeImg("false".equals(qqGroupQrCodeImgUrl) ? (Assert.isEmpty(qqGroupQrCodeImg) ? "" : ossClient.upload(qqGroupQrCodeImg)) : ossClient.normalizePublicUrl(qqGroupQrCodeImgUrl))
@@ -135,8 +148,20 @@ public class SysConfigController extends BaseController {
             return RespResult.fail(e.getMessage());
         }
         service.saveConfig(websiteBaseConfigVo, ConfigBizTypeConstants.WEBSITE_BASE_CONFIG, loginUserId);
+        sysUserService.replaceDefaultAvatarReferences(
+                previousDefaultAvatar, websiteBaseConfigVo.getDefaultAvatarImg());
         preloadComponent.loadWebsiteBaseConfig();
         return RespResult.success("更新成功");
+    }
+
+    private String resolveDefaultAvatar(String avatarUrl, MultipartFile avatarFile) throws Exception {
+        if (!Assert.isEmpty(avatarFile)) {
+            return ossClient.upload(avatarFile);
+        }
+        if ("false".equals(avatarUrl) || Assert.isEmpty(avatarUrl)) {
+            return com.kuocai.cdn.constant.UserConstants.IMG;
+        }
+        return ossClient.normalizePublicUrl(avatarUrl);
     }
 
     private String normalizeAreaRouteMode(String mode) {

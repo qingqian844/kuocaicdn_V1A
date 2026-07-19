@@ -9,6 +9,7 @@ import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.service.SysUserService;
 import com.kuocai.cdn.service.InstallationStateService;
 import com.kuocai.cdn.util.Assert;
+import com.kuocai.cdn.util.AdminPathUtils;
 import com.kuocai.cdn.util.GeetestUtils;
 import com.kuocai.cdn.util.ValidatorUtils;
 import com.kuocai.cdn.vo.SysUserVo;
@@ -17,7 +18,10 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import javax.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -365,6 +369,18 @@ public class LoginController extends BaseController {
      */
     @GetMapping("/kuocaiadmin")
     public String adminLogin(Map<String, Object> map) {
+        if (!AdminPathUtils.DEFAULT_PATH.equals(AdminPathUtils.configuredPath())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        return "admin/login";
+    }
+
+    @GetMapping("/{adminPath:[a-z0-9][a-z0-9_-]+}")
+    public String customAdminLogin(@PathVariable String adminPath, Map<String, Object> map) {
+        if (AdminPathUtils.DEFAULT_PATH.equals(adminPath)
+                || !AdminPathUtils.configuredPath().equals(adminPath)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
         return "admin/login";
     }
 

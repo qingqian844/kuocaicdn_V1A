@@ -322,6 +322,36 @@
                                 <!-- End Form -->
 
                                 <div class="row mb-4">
+                                    <label for="defaultAvatarImg" class="col-sm-3 col-form-label form-label">默认用户头像
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="新注册用户和仍使用默认头像的用户将显示此头像"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <label class="avatar avatar-xl avatar-circle avatar-uploader"
+                                               for="updateDefaultAvatarFile">
+                                            <img id="defaultAvatarImg" class="avatar-img"
+                                                 th:src="${websiteBaseConfig == null or #strings.isEmpty(websiteBaseConfig.defaultAvatarImg)} ? '/common/default-avatar.png' : ${websiteBaseConfig.defaultAvatarImg}"
+                                                 onerror="this.onerror=null;this.src='/common/default-avatar.png';"
+                                                 alt="默认用户头像">
+
+                                            <input type="file" class="js-file-attach avatar-uploader-input"
+                                                   id="updateDefaultAvatarFile" data-hs-file-attach-options='{
+                            "textTarget": "#defaultAvatarImg",
+                            "mode": "image",
+                            "targetAttr": "src",
+                            "allowTypes": [".png", ".jpeg", ".jpg", ".webp"]
+                         }'>
+
+                                            <span class="avatar-uploader-trigger">
+                                              <i class="bi-pencil-fill avatar-uploader-icon shadow-sm"></i>
+                                            </span>
+                                        </label>
+                                        <div class="form-text">保存后会同步替换仍使用系统默认头像的历史用户，不影响用户自行上传的头像。</div>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-4">
                                     <label for="defaultUserRoute" class="col-sm-3 col-form-label form-label">新用户默认厂商</label>
                                     <div class="col-sm-9">
                                         <select id="defaultUserRoute" class="form-select">
@@ -475,6 +505,24 @@
                                     </div>
                                 </div>
                                 <!-- End Form -->
+
+                                <div class="row mb-4">
+                                    <label for="adminPath" class="col-sm-3 col-form-label form-label">后台登录地址后缀
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="修改后管理员需使用新的地址登录"></i>
+                                    </label>
+
+                                    <div class="col-sm-9">
+                                        <div class="input-group">
+                                            <span class="input-group-text">/</span>
+                                            <input th:value="${websiteBaseConfig == null or #strings.isEmpty(websiteBaseConfig.adminPath)} ? 'kuocaiadmin' : ${websiteBaseConfig.adminPath}"
+                                                   type="text" class="form-control" id="adminPath"
+                                                   minlength="3" maxlength="32" pattern="[a-z0-9][a-z0-9_-]{2,31}"
+                                                   placeholder="kuocaiadmin">
+                                        </div>
+                                        <div class="form-text">仅支持3-32位小写字母、数字、短横线和下划线。保存后旧登录地址将失效。</div>
+                                    </div>
+                                </div>
 
                                 <!-- Form -->
                                 <div class="row mb-4">
@@ -643,22 +691,6 @@
                                     </div>
                                 </div>
                                 <!-- End Form -->
-
-                                <!-- Form -->
-                                <div class="row mb-4">
-                                    <label for="expireTime" class="col-sm-3 col-form-label form-label">每月赠送流量（GB）
-                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
-                                           title="每月赠送流量，单位GB，一个月有效期"></i>
-                                    </label>
-
-                                    <div class="col-sm-9">
-                                        <input th:value="${websiteBaseConfig} eq null ? '' : ${websiteBaseConfig.monthGiftGb}"
-                                               type="number" class="form-control" id="monthGiftGb"
-                                               placeholder="请输入每月赠送流量 GB。">
-                                    </div>
-                                </div>
-                                <!-- End Form -->
-
 
                                 <!-- Form -->
                                 <div class="row mb-4">
@@ -940,8 +972,8 @@
 <script th:src="@{common/layer/layer.js}"></script>
 <script th:src="@{common/util/reg.js}"></script>
 <script th:src="@{common/custom.js}"></script>
-<script th:src="@{common/custom_ceo.js(v='20260719-area-route-policy')}"></script>
-<script th:src="@{common/custom_cmo.js(v='20260719-area-account-policy')}"></script>
+<script th:src="@{common/custom_ceo.js(v='20260720-admin-path')}"></script>
+<script th:src="@{common/custom_cmo.js(v='20260720-branding-admin-path')}"></script>
 <script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
 
 <!-- JS Plugins Init. -->

@@ -9,6 +9,10 @@
 <header id="header"
         class="navbar navbar-expand-lg navbar-fixed navbar-height navbar-container navbar-bordered bg-white"
         th:fragment="header(curPage, dashboardLogo, dashboardIcon)">
+    <script th:inline="javascript">
+        window.kuocaiAdminPath = /*[[${websiteBaseConfig != null and !#strings.isEmpty(websiteBaseConfig.adminPath) ? websiteBaseConfig.adminPath : 'kuocaiadmin'}]]*/ 'kuocaiadmin';
+        window.kuocaiLoginRole = /*[[${loginUserRoleCode}]]*/ '';
+    </script>
     <div class="navbar-nav-wrap">
 
         <!-- Logo -->

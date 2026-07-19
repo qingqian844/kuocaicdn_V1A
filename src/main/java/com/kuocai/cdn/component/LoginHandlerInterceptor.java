@@ -2,6 +2,7 @@ package com.kuocai.cdn.component;
 
 import com.kuocai.cdn.dto.resp.RespResult;
 import com.kuocai.cdn.util.Assert;
+import com.kuocai.cdn.util.AdminPathUtils;
 import com.kuocai.cdn.util.JedisUtil;
 import com.kuocai.cdn.util.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +33,9 @@ public class LoginHandlerInterceptor implements HandlerInterceptor {
      */
     @Override
     public boolean preHandle(HttpServletRequest request, @Nonnull HttpServletResponse response, @Nonnull Object handler) throws Exception {
+        if (AdminPathUtils.isConfiguredRequestPath(request.getRequestURI())) {
+            return true;
+        }
         String requestURI = request.getRequestURI() + "?";
         Map<String, String[]> parameterMap = request.getParameterMap();
         String params = parameterMap.keySet().stream().map(k -> k + "=" + parameterMap.get(k)[0]).collect(Collectors.joining("&"));

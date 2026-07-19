@@ -44,6 +44,16 @@ public class WebsiteBaseConfigVo {
     private String websiteIconImg;
 
     /**
+     * 未设置自定义头像时使用的默认头像
+     */
+    private String defaultAvatarImg;
+
+    /**
+     * 管理员登录地址后缀
+     */
+    private String adminPath;
+
+    /**
      * 网站Logo
      */
     private String websiteLogoImg;

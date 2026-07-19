@@ -5,6 +5,7 @@ import cn.hutool.crypto.symmetric.AES;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.kuocai.cdn.async.SmsAsync;
@@ -85,6 +86,30 @@ public class SysUserService extends BaseService<SysUser> {
     @Autowired
     private SysUserBannedService sysUserBannedService;
 
+    private String resolveDefaultUserRoute() {
+        String configuredRoute = SystemConfig.websiteBaseConfig == null ? null : SystemConfig.websiteBaseConfig.getDefaultUserRoute();
+        if (Assert.notEmpty(configuredRoute)
+                && SupportedVendorUtils.allVendorCodes().contains(configuredRoute)) {
+            return configuredRoute;
+        }
+        return SupportedVendorUtils.defaultVendor();
+    }
+
+    private String resolveDefaultAvatar() {
+        return UserAvatarUtils.defaultAvatar(SystemConfig.websiteBaseConfig);
+    }
+
+    public int replaceDefaultAvatarReferences(String previousAvatar, String newAvatar) {
+        String replacement = Assert.isEmpty(newAvatar) ? UserConstants.IMG : newAvatar.trim();
+        UpdateWrapper<SysUser> wrapper = new UpdateWrapper<>();
+        wrapper.and(condition -> {
+            condition.isNull("img").or().eq("img", "").or().eq("img", UserConstants.IMG);
+            if (Assert.notEmpty(previousAvatar) && !UserConstants.IMG.equals(previousAvatar)) {
+                condition.or().eq("img", previousAvatar.trim());
+            }
+        }).set("img", replacement);
+        return dao.update(null, wrapper);
+    }
     /**
      * 发送密码至邮箱/手机
      *
@@ -573,7 +598,7 @@ public class SysUserService extends BaseService<SysUser> {
         // 密码加密
         String pwdSalt = null;
         // 获取密码盐
-        SysUser user = SysUser.builder().userName(userName).agentUserId(agentUserId).userPwd(ciphertext).phone(phone).pwdSalt(pwdSalt).img(UserConstants.IMG).status(UserConstants.STATUS).maxDomainCount(SystemConfig.websiteBaseConfig.getMaxDomainCount()).flowPrice(SystemConfig.websiteBaseConfig.getDefaultFlowPrice()).roleId(UserConstants.ROLE_ID).autoBalance(1).route(SupportedVendorUtils.defaultVendor()).build();
+        SysUser user = SysUser.builder().userName(userName).agentUserId(agentUserId).userPwd(ciphertext).phone(phone).pwdSalt(pwdSalt).img(resolveDefaultAvatar()).status(UserConstants.STATUS).maxDomainCount(SystemConfig.websiteBaseConfig.getMaxDomainCount()).flowPrice(SystemConfig.websiteBaseConfig.getDefaultFlowPrice()).roleId(UserConstants.ROLE_ID).autoBalance(1).route(resolveDefaultUserRoute()).enableOverseas(0).enableGlobal(0).build();
         SysUser userInfo = save(user);
         // 新增一个账户表
         Long userId = userInfo.getId();
@@ -597,7 +622,7 @@ public class SysUserService extends BaseService<SysUser> {
         // 密码加密
         String pwdSalt = null;
         // 获取密码盐
-        SysUser user = SysUser.builder().route(SupportedVendorUtils.defaultVendor()).userName(userName).agentUserId(agentUserId).userPwd(ciphertext).email(email).pwdSalt(pwdSalt).img(UserConstants.IMG).status(UserConstants.STATUS).maxDomainCount(SystemConfig.websiteBaseConfig.getMaxDomainCount()).flowPrice(SystemConfig.websiteBaseConfig.getDefaultFlowPrice()).roleId(UserConstants.ROLE_ID).autoBalance(1).build();
+        SysUser user = SysUser.builder().route(resolveDefaultUserRoute()).userName(userName).agentUserId(agentUserId).userPwd(ciphertext).email(email).pwdSalt(pwdSalt).img(resolveDefaultAvatar()).status(UserConstants.STATUS).maxDomainCount(SystemConfig.websiteBaseConfig.getMaxDomainCount()).flowPrice(SystemConfig.websiteBaseConfig.getDefaultFlowPrice()).roleId(UserConstants.ROLE_ID).autoBalance(1).enableOverseas(0).enableGlobal(0).build();
         SysUser userInfo = save(user);
         // 新增一个账户表
         Long userId = userInfo.getId();
@@ -614,7 +639,7 @@ public class SysUserService extends BaseService<SysUser> {
         String path = "";
         try {
             String upload = ossClient.upload(file);
-            path = Assert.isEmpty(upload) ? UserConstants.IMG : upload;
+            path = Assert.isEmpty(upload) ? resolveDefaultAvatar() : upload;
         } catch (Exception e) {
             throw new BusinessException("上传头像失败，{}", e.getMessage()).setCause(e).log();
         }

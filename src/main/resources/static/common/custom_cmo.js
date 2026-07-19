@@ -67,7 +67,7 @@ async function updatePassword() {
     if (data['code'] === 'SUCCESS') {
         setTimeout(function() {
             if (data['data'] === 1) {
-                window.location.href = 'kuocaiadmin'
+                window.location.href = '/' + (window.kuocaiAdminPath || 'kuocaiadmin')
             } else if (data['data'] === 2) {
                 window.location.href = 'user-login'
             } else {
@@ -115,12 +115,14 @@ async function manualRecharge() {
 async function saveWebsiteBaseConfig() {
     let formdata = new FormData();
     appendWebsiteImageFormData(formdata, "websiteIconImgUrl", "websiteIconImg", "#websiteIconImg", "#updateWebsiteIconFile");
+    appendWebsiteImageFormData(formdata, "defaultAvatarImgUrl", "defaultAvatarImg", "#defaultAvatarImg", "#updateDefaultAvatarFile");
     if (!appendWebsiteLogoFormData(formdata)) {
         return;
     }
     appendWebsiteImageFormData(formdata, "wechatQrCodeImgUrl", "wechatQrCodeImg", "#wechatQrCodeImg", "#updateWechatQrCodeFile");
     appendWebsiteImageFormData(formdata, "qqGroupQrCodeImgUrl", "qqGroupQrCodeImg", "#qqGroupQrCodeImg", "#updateQqGroupQrCodeFile");
     formdata.append("websiteName", $('#websiteName').val())
+    formdata.append("adminPath", ($('#adminPath').val() || '').trim().toLowerCase())
     formdata.append("websiteAnnouncement", $('#websiteAnnouncement').val())
     formdata.append("defaultFlowPrice", $('#defaultFlowPrice').val())
     formdata.append("maxDomainCount", $('#maxDomainCount').val())

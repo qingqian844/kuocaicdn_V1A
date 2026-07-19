@@ -35,4 +35,5 @@ class SysConfigControllerTest {
         assertThrows(BusinessException.class,
                 () -> SysConfigController.validateWebsiteLogoUrl("/images/../secret.png"));
     }
+
 }

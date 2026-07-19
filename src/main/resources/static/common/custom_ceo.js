@@ -186,7 +186,10 @@ async function logout(event) {
     try {
         const data = await sendRequest("POST", "logout", {}, undefined, false);
         if (data && data['code'] === 'SUCCESS') {
-            window.location.replace('.');
+            const target = window.kuocaiLoginRole === 'admin'
+                ? '/' + (window.kuocaiAdminPath || 'kuocaiadmin')
+                : '/user-login';
+            window.location.replace(target);
             return;
         }
         autoLayer(data);

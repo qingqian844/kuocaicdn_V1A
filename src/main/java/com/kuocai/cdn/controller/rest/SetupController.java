@@ -315,6 +315,8 @@ public class SetupController {
     }
 
     private void applyWebsiteDefaults(WebsiteBaseConfigVo config) {
+        if (Assert.isEmpty(config.getDefaultAvatarImg())) config.setDefaultAvatarImg("/common/default-avatar.png");
+        if (Assert.isEmpty(config.getAdminPath())) config.setAdminPath("kuocaiadmin");
         if (config.getExpireTime() == null) config.setExpireTime(30);
         if (config.getInviteRewardGb() == null) config.setInviteRewardGb(0);
         if (config.getInvitedRewardGb() == null) config.setInvitedRewardGb(0);

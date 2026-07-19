@@ -46,6 +46,35 @@ class ServiceAreaConfigurationTemplateTest {
     }
 
     @Test
+    void websiteSettingsExposeAvatarAndAdminPathWithoutMonthlyBenefit() throws IOException {
+        String template = read("src/main/resources/templates/admin/settings/website-setting.html");
+
+        assertTrue(template.contains("id=\"updateDefaultAvatarFile\""));
+        assertTrue(template.contains("id=\"adminPath\""));
+        assertFalse(template.contains("monthlyBenefitSetting"));
+        assertFalse(template.contains("每月福利赠送流量（GB）"));
+    }
+
+    @Test
+    void dashboardUsesConfiguredAdminPathForSessionExit() throws IOException {
+        String dashboard = read("src/main/resources/templates/common/common-dashboard.html");
+        String commonJs = read("src/main/resources/static/common/custom_ceo.js");
+
+        assertTrue(dashboard.contains("window.kuocaiAdminPath"));
+        assertTrue(dashboard.contains("websiteBaseConfig.adminPath"));
+        assertTrue(commonJs.contains("window.kuocaiAdminPath || 'kuocaiadmin'"));
+        assertTrue(commonJs.contains("window.kuocaiLoginRole === 'admin'"));
+    }
+
+    @Test
+    void dashboardOmitsMonthlyBenefit() throws IOException {
+        String dashboard = read("src/main/resources/templates/common/common-dashboard.html");
+
+        assertFalse(dashboard.contains("websiteBaseConfig.monthGiftGb > 0"));
+        assertFalse(dashboard.contains("claimMonthlyFreePackage"));
+    }
+
+    @Test
     void accountAndSelfHostedRowsRenderWithExpectedIdentifiers() throws IOException {
         String template = read("src/main/resources/templates/admin/settings/website-setting.html");
         String row = between(template,
