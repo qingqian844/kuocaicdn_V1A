@@ -328,7 +328,7 @@
                                                id="serviceAreaMainlandChina" th:checked="${allowMainland}" value="mainland_china">
                                         <span class="form-check-label">中国大陆可用区</span>
                                         <i class="bi-question-circle text-body ms-1"
-                                           th:title="|所有用户均使用${currentWebsiteName}中国境内节点线路组提供加速服务；域名需要完成 ICP 备案。${#strings.isEmpty(mainlandRouteDescription) ? '' : '线路组：' + mainlandRouteDescription}|"></i>
+                                           th:title="|${currentWebsiteName}境内线路组|"></i>
                                     </span>
                                     </label>
                                     <label class="form-control" for="serviceAreaOutSideMainlandChina" th:if="${allowOverseas}">
@@ -338,7 +338,7 @@
                                                th:checked="${!allowMainland and allowOverseas}" value="outside_mainland_china">
                                         <span class="form-check-label">全球可用区（不含中国大陆）</span>
                                         <i class="bi-question-circle text-body ms-1"
-                                           th:title="${#strings.isEmpty(overseasRouteDescription) ? '使用后台配置的中国境外线路组，不需要 ICP 备案。' : '线路组：' + overseasRouteDescription}"></i>
+                                           th:title="|${currentWebsiteName}境外线路组|"></i>
                                     </span>
                                     </label>
                                     <label class="form-control" for="serviceAreaGlobal" th:if="${allowGlobal}">
@@ -347,7 +347,7 @@
                                                th:checked="${!allowMainland and !allowOverseas and allowGlobal}" value="global">
                                         <span class="form-check-label">全球可用区</span>
                                         <i class="bi-question-circle text-body ms-1"
-                                           th:title="${#strings.isEmpty(globalRouteDescription) ? '使用后台配置的全球线路组；包含中国大陆节点时需要 ICP 备案。' : '线路组：' + globalRouteDescription}"></i>
+                                           th:title="|${currentWebsiteName}全球线路组|"></i>
                                     </span>
                                     </label>
                                 </div>
