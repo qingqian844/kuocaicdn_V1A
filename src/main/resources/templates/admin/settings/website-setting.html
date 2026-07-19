@@ -321,6 +321,56 @@
                                 </div>
                                 <!-- End Form -->
 
+                                <div class="row mb-4">
+                                    <label for="defaultUserRoute" class="col-sm-3 col-form-label form-label">新用户默认厂商</label>
+                                    <div class="col-sm-9">
+                                        <select id="defaultUserRoute" class="form-select">
+                                            <option th:if="${websiteBaseConfig != null and websiteBaseConfig.defaultUserRoute == 'self_hosted'}"
+                                                    value="self_hosted" selected>自建 CDN（旧版兼容）</option>
+                                            <option th:each="vendor : ${authorizedVendors}" th:value="${vendor.code}"
+                                                    th:selected="${websiteBaseConfig != null and websiteBaseConfig.defaultUserRoute == vendor.code}"
+                                                    th:text="${vendor.name}"></option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-4">
+                                    <label class="col-sm-3 col-form-label form-label">加速区域线路
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+                                           title="分别选择允许使用海外加速和全球加速的CDN线路；中国大陆加速默认可用"></i>
+                                    </label>
+                                    <div class="col-sm-9">
+                                        <div class="table-responsive border rounded">
+                                            <table class="table table-sm table-align-middle mb-0">
+                                                <thead class="thead-light">
+                                                <tr>
+                                                    <th class="ps-3">CDN线路</th>
+                                                    <th class="text-center">海外加速</th>
+                                                    <th class="text-center">全球加速</th>
+                                                </tr>
+                                                </thead>
+                                                <tbody>
+                                                <tr th:each="vendor : ${authorizedVendors}"
+                                                    th:if="${!#strings.startsWith(vendor.code, 'self_hosted')}">
+                                                    <td class="ps-3" th:text="${vendor.name}"></td>
+                                                    <td class="text-center">
+                                                        <input class="form-check-input overseasEnabledRoute" type="checkbox"
+                                                               th:value="${vendor.code}"
+                                                               th:aria-label="|允许${vendor.name}使用海外加速|"
+                                                               th:checked="${websiteBaseConfig != null and websiteBaseConfig.overseasEnabledRoutes != null and #lists.contains(websiteBaseConfig.overseasEnabledRoutes, vendor.code)}">
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <input class="form-check-input globalEnabledRoute" type="checkbox"
+                                                               th:value="${vendor.code}"
+                                                               th:aria-label="|允许${vendor.name}使用全球加速|"
+                                                               th:checked="${websiteBaseConfig != null and websiteBaseConfig.globalEnabledRoutes != null and #lists.contains(websiteBaseConfig.globalEnabledRoutes, vendor.code)}">
+                                                    </td>
+                                                </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
                                 <!-- Form -->
                                 <div class="row mb-4">
                                     <label for="websiteLogoImg" class="col-sm-3 col-form-label form-label">网站Logo
@@ -834,8 +884,8 @@
 <script th:src="@{common/layer/layer.js}"></script>
 <script th:src="@{common/util/reg.js}"></script>
 <script th:src="@{common/custom.js}"></script>
-<script th:src="@{common/custom_ceo.js(v='20260719-logout-fix')}"></script>
-<script th:src="@{common/custom_cmo.js(v='20260715-dashboard-logo-url')}"></script>
+<script th:src="@{common/custom_ceo.js(v='20260719-area-route-policy')}"></script>
+<script th:src="@{common/custom_cmo.js(v='20260719-area-route-policy')}"></script>
 <script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
 
 <!-- JS Plugins Init. -->

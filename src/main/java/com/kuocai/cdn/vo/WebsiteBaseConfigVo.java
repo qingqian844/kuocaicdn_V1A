@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * @author xiaobo
@@ -96,4 +97,18 @@ public class WebsiteBaseConfigVo {
     private BigDecimal edgeoneDomainQuotaPrice;
 
     private Integer edgeoneDomainQuotaValidDays;
+
+    private String defaultUserRoute;
+
+    private List<String> overseasEnabledRoutes;
+
+    private List<String> globalEnabledRoutes;
+
+    private Boolean httpsRequestFeeEnabled;
+
+    private String httpsRequestFeeRoutes;
+
+    private Long httpsRequestFeeUnitCount;
+
+    private BigDecimal httpsRequestFeeUnitPrice;
 }

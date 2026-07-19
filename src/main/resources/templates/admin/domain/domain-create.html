@@ -321,30 +321,8 @@
                                 <!--                            <label class="form-label">覆盖范围（如需境外线路请提工单申请）</label>-->
                                 <label class="form-label">加速区域</label>
 
-                                <div th:if='${route == "baishan"}' class="input-group input-group-sm-vertical">
-                                    <label class="form-control" for="serviceAreaMainlandChina">
-                                    <span class="form-check">
-                                        <input type="radio" class="form-check-input" name="serviceArea"
-                                               id="serviceAreaMainlandChina" checked value="mainland_china">
-
-                                        <span class="form-check-label">中国大陆</span>
-                                        <i class="bi-question-circle text-body ms-1" title="-"></i>
-                                    </span>
-                                </label>
-                                    <!--                                <label class="form-control" for="serviceAreaOutSideMainlandChina">-->
-                                    <!--                                    <span class="form-check">-->
-                                    <!--                                        <input type="radio" class="form-check-input" name="serviceArea"-->
-                                    <!--                                               id="serviceAreaOutSideMainlandChina" value="outside_mainland_china">-->
-
-                                    <!--                                        <span class="form-check-label">全球（不包含中国内地）</span>-->
-                                    <!--&lt;!&ndash;                                        <i class="bi-question-circle text-body ms-1" title="-"></i>&ndash;&gt;-->
-                                    <!--                                    </span>-->
-                                    <!--                                </label>-->
-                                    <!-- End Radio Check -->
-                                </div>
-
                                 <div th:if='${route == "tencent_edgeone"}' class="input-group input-group-sm-vertical">
-                                    <label class="form-control" for="serviceAreaOutSideMainlandChina">
+                                    <label class="form-control" for="serviceAreaOutSideMainlandChina" th:if="${allowOverseas}">
                                     <span class="form-check">
                                         <input type="radio" class="form-check-input" name="serviceArea"
                                                id="serviceAreaOutSideMainlandChina" checked value="outside_mainland_china">
@@ -362,7 +340,7 @@
                                         <i class="bi-question-circle text-body ms-1" title="腾讯云 EdgeOne 中国大陆可用区，对应腾讯 Area：mainland"></i>
                                     </span>
                                 </label>
-                                    <label class="form-control" for="serviceAreaGlobal">
+                                    <label class="form-control" for="serviceAreaGlobal" th:if="${allowGlobal}">
                                     <span class="form-check">
                                         <input type="radio" class="form-check-input" name="serviceArea" id="serviceAreaGlobal" value="global">
                                         <span class="form-check-label">全球可用区</span>
@@ -401,7 +379,7 @@
                                     </label>
                                 </div>
 
-                                <div th:if='${route != "baishan" and route != "tencent_edgeone" and route != "self_hosted_mainland" and route != "self_hosted_overseas" and route != "self_hosted_global"}'
+                                <div th:if='${route != "tencent_edgeone" and route != "self_hosted_mainland" and route != "self_hosted_overseas" and route != "self_hosted_global"}'
                                      th:with="currentWebsiteName=${openAgent and agentConfig != null and !#strings.isEmpty(agentConfig.websiteName) ? agentConfig.websiteName : websiteBaseConfig.websiteName}"
                                      class="input-group input-group-sm-vertical">
                                     <label class="form-control" for="serviceAreaMainlandChina">
@@ -414,7 +392,7 @@
                                            th:title="|所有用户均使用${currentWebsiteName}中国境内节点就近提供加速服务；选择该加速区域时，加速域名需为已备案域名。|"></i>
                                     </span>
                                 </label>
-                                    <label class="form-control" for="serviceAreaOutSideMainlandChina" th:if="${enableOverseas == 1}">
+                                    <label class="form-control" for="serviceAreaOutSideMainlandChina" th:if="${allowOverseas}">
                                     <span class="form-check">
                                         <input type="radio" class="form-check-input" name="serviceArea"
                                                id="serviceAreaOutSideMainlandChina" value="outside_mainland_china">
@@ -423,7 +401,7 @@
                                         <i class="bi-question-circle text-body ms-1" title="仅在中国大陆境外加速，适用于业务在海外的用户。"></i>
                                     </span>
                                 </label>
-                                    <label class="form-control" for="serviceAreaGlobal" th:if="${enableGlobal == 1}">
+                                    <label class="form-control" for="serviceAreaGlobal" th:if="${allowGlobal}">
                                     <span class="form-check">
                                         <input type="radio" class="form-check-input" name="serviceArea" id="serviceAreaGlobal" value="global">
                                         <span class="form-check-label">全球加速</span>
@@ -635,7 +613,7 @@
     <script th:src="@{common/layer/layer.js}"></script>
     <script th:src="@{common/util/reg.js}"></script>
     <script th:src="@{common/custom.js}"></script>
-    <script th:src="@{common/custom_ceo.js(v='20260719-logout-fix')}"></script>
+    <script th:src="@{common/custom_ceo.js(v='20260719-area-route-policy')}"></script>
     <script th:src="@{common/custom_cmo.js}"></script>
     <script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
 

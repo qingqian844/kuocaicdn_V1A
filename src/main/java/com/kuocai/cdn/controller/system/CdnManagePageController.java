@@ -14,6 +14,7 @@ import com.kuocai.cdn.enumeration.domainmerage.cachesetting.PreheatingCount;
 import com.kuocai.cdn.enumeration.domainmerage.cachesetting.RefreshFolderCount;
 import com.kuocai.cdn.enumeration.domainmerage.cachesetting.RefreshUrlCount;
 import com.kuocai.cdn.service.CacheTaskService;
+import com.kuocai.cdn.service.CdnServiceAreaPolicyService;
 import com.kuocai.cdn.service.SelfHostedCdnService;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.util.JedisUtil;
@@ -50,6 +51,9 @@ public class CdnManagePageController extends BaseController {
 
     @Resource
     private SelfHostedCdnService selfHostedCdnService;
+
+    @Resource
+    private CdnServiceAreaPolicyService cdnServiceAreaPolicyService;
 
     /**
      * 站点管理 域名管理
@@ -186,9 +190,10 @@ public class CdnManagePageController extends BaseController {
         map.put("verifyCode", verifyCode);
         String createRoute = resolveDomainCreateRoute(route);
         map.put("route", createRoute);
-        SysUser loginUser = getLoginUser();
-        map.put("enableOverseas", loginUser.getEnableOverseas());
-        map.put("enableGlobal", loginUser.getEnableGlobal());
+        map.put("allowOverseas", cdnServiceAreaPolicyService.isAllowed(
+                createRoute, CdnServiceAreaPolicyService.OVERSEAS));
+        map.put("allowGlobal", cdnServiceAreaPolicyService.isAllowed(
+                createRoute, CdnServiceAreaPolicyService.GLOBAL));
         return "admin/domain/domain-create";
     }
 

@@ -1552,17 +1552,6 @@ function openUserFlowPriceUpdateModal(dataStr) {
             $('#route').val($('#route option:first').val());
         }
     }
-    // 赋值
-    if (data.user.enableOverseas && data.user.enableOverseas == 1) {
-        $('#enableOverseas').prop("checked", true);
-    } else {
-        $('#disableOverseas').prop("checked", true);
-    }
-    if (data.user.enableGlobal && data.user.enableGlobal == 1) {
-        $('#enableGlobal').prop("checked", true);
-    } else {
-        $('#disableGlobal').prop("checked", true);
-    }
     turnModal('exampleModalCenter1', 'on');
 }
 
@@ -1574,8 +1563,6 @@ async function updateUserPrice() {
     let flowPrice = $('#flowPrice').val();
     let maxDomainCount = $('#maxDomainCount').val();
     let route = $('#route').find("option:selected").val();
-    const enableOverseas = $('input[name="enableOverseas"]:checked').val();
-    const enableGlobal = $('input[name="enableGlobal"]:checked').val();
     if (!userId) {
         layerWarn("用户ID不能为空");
         return;
@@ -1592,9 +1579,7 @@ async function updateUserPrice() {
         userId: userId,
         flowPrice: flowPrice,
         maxDomainCount: maxDomainCount,
-        route: route,
-        enableOverseas: enableOverseas,
-        enableGlobal: enableGlobal
+        route: route
     });
     autoLayer(data);
     if (data['code'] === 'SUCCESS') {

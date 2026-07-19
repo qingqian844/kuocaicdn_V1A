@@ -326,8 +326,6 @@
                                 <th>流量单价</th>
                                 <th>域名额度</th>
                                 <th>路线</th>
-                                <th>海外</th>
-                                <th>全球</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
@@ -430,40 +428,6 @@
                         </div>
                         <!-- End Select -->
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">开启海外</label>
-                        <div class="input-group input-group-sm-vertical">
-                            <label class="form-control" for="enableOverseas">
-                            <span class="form-check">
-                                <input type="radio" class="form-check-input" name="enableOverseas" id="enableOverseas" checked="" value="1">
-                                <span class="form-check-label">开启</span>
-                            </span>
-                        </label>
-                            <label class="form-control" for="disableOverseas">
-                            <span class="form-check">
-                                <input type="radio" class="form-check-input" name="enableOverseas" id="disableOverseas" value="0">
-                                <span class="form-check-label">关闭</span>
-                            </span>
-                        </label>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">全球加速</label>
-                        <div class="input-group input-group-sm-vertical">
-                            <label class="form-control" for="enableGlobal">
-                                <span class="form-check">
-                                    <input type="radio" class="form-check-input" name="enableGlobal" id="enableGlobal" value="1">
-                                    <label class="form-check-label" for="enableGlobal">开启</label>
-                            </span>
-                            </label>
-                            <label class="form-control" for="disableGlobal">
-                                <span class="form-check">
-                                    <input type="radio" class="form-check-input" name="enableGlobal" id="disableGlobal" value="0">
-                                    <label class="form-check-label" for="disableGlobal">关闭</label>
-                            </span>
-                            </label>
-                        </div>
-                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-white" data-bs-dismiss="modal">关闭</button>
@@ -498,7 +462,7 @@
     <script th:src="@{common/layer/layer.js}"></script>
     <script th:src="@{common/util/reg.js}"></script>
     <script th:src="@{common/custom.js}"></script>
-    <script th:src="@{common/custom_ceo.js(v='20260719-logout-fix')}"></script>
+    <script th:src="@{common/custom_ceo.js(v='20260719-area-route-policy')}"></script>
     <script th:src="@{common/custom_cmo.js}"></script>
     <script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
 
@@ -585,12 +549,6 @@
                     width: '5%'
                 }, {
                     data: null,
-                    width: '5%'
-                }, {
-                    data: null,
-                    width: '5%'
-                }, {
-                    data: null,
                     width: '10%'
                 }, ],
                 columnDefs: [{
@@ -655,22 +613,6 @@
                     }
                 }, {
                     targets: 10,
-                    render: function(data, type, row, meta) {
-                        if (row.user.enableOverseas) {
-                            return '<span class="badge bg-soft-success text-success">是</span>';
-                        }
-                        return '<span class="badge bg-soft-dark text-dark">否</span>';
-                    }
-                }, {
-                    targets: 11,
-                    render: function(data, type, row, meta) {
-                        if (row.user.enableGlobal) {
-                            return '<span class="badge bg-soft-success text-success">是</span>';
-                        }
-                        return '<span class="badge bg-soft-dark text-dark">否</span>';
-                    }
-                }, {
-                    targets: 12,
                     render: function(data, type, row, meta) {
                         // 将data转为json字符串
                         let dataStr = JSON.stringify(data).replace(/"/g, "&quot;");

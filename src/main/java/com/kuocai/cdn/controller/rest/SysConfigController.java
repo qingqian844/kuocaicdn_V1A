@@ -11,6 +11,7 @@ import com.kuocai.cdn.controller.base.BaseController;
 import com.kuocai.cdn.dto.resp.RespResult;
 import com.kuocai.cdn.api.volcengine.cdn.properties.VolcengineCdn;
 import com.kuocai.cdn.exception.BusinessException;
+import com.kuocai.cdn.service.CdnServiceAreaPolicyService;
 import com.kuocai.cdn.service.SysConfigService;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.vo.*;
@@ -25,6 +26,7 @@ import java.math.BigDecimal;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -47,6 +49,8 @@ public class SysConfigController extends BaseController {
     @Resource
     private PreloadComponent preloadComponent;
 
+    @Resource
+    private CdnServiceAreaPolicyService cdnServiceAreaPolicyService;
     /**
      * description: 保存或更新网站基本配置
      *
@@ -68,10 +72,17 @@ public class SysConfigController extends BaseController {
                                             MultipartFile wechatQrCodeImg, MultipartFile qqGroupQrCodeImg,
                                             Integer expireTime, Boolean edgeoneDomainQuotaEnabled,
                                             Integer edgeoneFreeDomainQuota, BigDecimal edgeoneDomainQuotaPrice,
-                                            Integer edgeoneDomainQuotaValidDays) {
+                                            Integer edgeoneDomainQuotaValidDays, String defaultUserRoute,
+                                            String overseasEnabledRoutes, String globalEnabledRoutes,
+                                            Boolean httpsRequestFeeEnabled, String httpsRequestFeeRoutes,
+                                            Long httpsRequestFeeUnitCount, BigDecimal httpsRequestFeeUnitPrice) {
         // 这里所有参数都不做非null校验
         WebsiteBaseConfigVo websiteBaseConfigVo = null;
         try {
+            List<String> normalizedOverseasRoutes = cdnServiceAreaPolicyService
+                    .normalizeConfiguredRoutes(overseasEnabledRoutes);
+            List<String> normalizedGlobalRoutes = cdnServiceAreaPolicyService
+                    .normalizeConfiguredRoutes(globalEnabledRoutes);
             websiteBaseConfigVo = WebsiteBaseConfigVo.builder().websiteName(websiteName).websiteAnnouncement(websiteAnnouncement).maxDomainCountProxy(0)
                     .inviteRewardGb(0)
                     .invitedRewardGb(0)
@@ -80,6 +91,13 @@ public class SysConfigController extends BaseController {
                     .edgeoneFreeDomainQuota(0)
                     .edgeoneDomainQuotaPrice(BigDecimal.ZERO)
                     .edgeoneDomainQuotaValidDays(0)
+                    .defaultUserRoute(defaultUserRoute)
+                    .overseasEnabledRoutes(normalizedOverseasRoutes)
+                    .globalEnabledRoutes(normalizedGlobalRoutes)
+                    .httpsRequestFeeEnabled(httpsRequestFeeEnabled != null && httpsRequestFeeEnabled)
+                    .httpsRequestFeeRoutes(httpsRequestFeeRoutes)
+                    .httpsRequestFeeUnitCount(httpsRequestFeeUnitCount == null ? 10000L : httpsRequestFeeUnitCount)
+                    .httpsRequestFeeUnitPrice(httpsRequestFeeUnitPrice == null ? BigDecimal.ZERO : httpsRequestFeeUnitPrice)
                     .maxDomainCount(maxDomainCount)
                     .defaultFlowPrice(BigDecimal.valueOf(defaultFlowPrice)).icpNumber(icpNumber)
                     // 判断文件是否已经存在且没被修改，是直接保存路径，否则进行转换

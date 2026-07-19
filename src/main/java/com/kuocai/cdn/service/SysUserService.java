@@ -346,7 +346,7 @@ public class SysUserService extends BaseService<SysUser> {
      * @param flowPrice 价格
      */
     public SysUser updateUserFlowPrice(Long id, BigDecimal flowPrice, Integer maxDomainCount, String route, Integer enableOverseas, Integer enableGlobal) {
-        SysUser sysUser = SysUser.builder().id(id).flowPrice(flowPrice).maxDomainCount(maxDomainCount).route(route).enableOverseas(enableOverseas).enableGlobal(enableGlobal).build();
+        SysUser sysUser = SysUser.builder().id(id).flowPrice(flowPrice).maxDomainCount(maxDomainCount).route(route).build();
         log.info("更新用户价格，目标用户[{}]，最新价格[{}]", id, flowPrice);
         Set<String> keys = JedisUtil.keys("Statistics:" + id + ":*");
         log.info("清除当前用户：{}的缓存统计数据：{}", id, keys);

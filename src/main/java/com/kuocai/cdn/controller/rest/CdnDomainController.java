@@ -21,6 +21,7 @@ import com.kuocai.cdn.entity.SysUser;
 import com.kuocai.cdn.enumeration.domainmerage.CdnRoute;
 import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.service.CdnDomainService;
+import com.kuocai.cdn.service.CdnServiceAreaPolicyService;
 import com.kuocai.cdn.service.EdgeOneDomainQuotaService;
 import com.kuocai.cdn.service.FlowDonateService;
 import com.kuocai.cdn.service.domain.operation.CdnetworksDomainServiceImpl;
@@ -62,14 +63,17 @@ public class CdnDomainController extends BaseController {
 
     private final CdnDomainService service;
     private final EdgeOneDomainQuotaService edgeOneDomainQuotaService;
+    private final CdnServiceAreaPolicyService cdnServiceAreaPolicyService;
     private final Executor executorService;
 
     @Autowired
     CdnDomainController(CdnDomainService service,
                         EdgeOneDomainQuotaService edgeOneDomainQuotaService,
+                        CdnServiceAreaPolicyService cdnServiceAreaPolicyService,
                         @Qualifier("cdnDomainExecutor") Executor executorService) {
         this.service = service;
         this.edgeOneDomainQuotaService = edgeOneDomainQuotaService;
+        this.cdnServiceAreaPolicyService = cdnServiceAreaPolicyService;
         this.executorService = executorService;
     }
 
@@ -79,7 +83,7 @@ public class CdnDomainController extends BaseController {
     CdnDomainController(CdnDomainService service, FlowDonateService ignoredFlowDonateService,
                         EdgeOneDomainQuotaService edgeOneDomainQuotaService, MongoTemplate ignoredMongoTemplate,
                         Executor executorService) {
-        this(service, edgeOneDomainQuotaService, executorService);
+        this(service, edgeOneDomainQuotaService, null, executorService);
     }
 
     /**
@@ -213,6 +217,11 @@ public class CdnDomainController extends BaseController {
         if (Assert.isEmpty(CdnServiceAreaMap.huawei.get(serviceArea))) {
             return RespResult.fail("暂不支持的服务区域");
         }
+        try {
+            cdnServiceAreaPolicyService.requireAllowed(route, serviceArea);
+        } catch (BusinessException e) {
+            return RespResult.fail(e.getMessage());
+        }
         if (Assert.isEmpty(CdnOriginTypeMap.huawei.get(originType))) {
             return RespResult.fail("暂不支持的源站类型");
         }
@@ -240,15 +249,6 @@ public class CdnDomainController extends BaseController {
             }
             edgeOneResume = ownedEdgeOneDomain;
             selfHostedResume = ownedSelfHostedDomain;
-        }
-        if (edgeOneRoute) {
-            SysUser sysUser = sysUserService.queryById(loginUserId);
-            if ("outside_mainland_china".equals(serviceArea) && (sysUser.getEnableOverseas() == null || sysUser.getEnableOverseas() != 1)) {
-                return RespResult.fail("当前账号未开启EdgeOne境外加速区，请联系管理员开启");
-            }
-            if ("global".equals(serviceArea) && (sysUser.getEnableGlobal() == null || sysUser.getEnableGlobal() != 1)) {
-                return RespResult.fail("当前账号未开启EdgeOne全球加速区，请联系管理员开启");
-            }
         }
         if ("user".equals(loginUserRoleCode) && !edgeOneRoute && !selfHostedResume) {
             // 数量检查
@@ -434,6 +434,11 @@ public class CdnDomainController extends BaseController {
         RespResult accessResult = checkDomainAccess(cdnDomain);
         if (accessResult != null) {
             return accessResult;
+        }
+        try {
+            cdnServiceAreaPolicyService.requireAllowed(cdnDomain.getRoute(), serviceArea);
+        } catch (BusinessException e) {
+            return RespResult.fail(e.getMessage());
         }
         try {
             ICdnPlatformService iCdnPlatformService = CdnPlatformFactory.getCdnPlatform(cdnDomain.getRoute());
@@ -630,14 +635,18 @@ public class CdnDomainController extends BaseController {
         if (!routes.contains(route)) {
             return RespResult.fail("请稍后再试");
         }
-        if ("outside_mainland_china".equals(area) && !"tencent_edgeone".equals(route) && !"tencent".equals(route)) {
-            route = "aliyun";
-        }
-        if (Assert.isEmpty(domainName)) {
+        if (Assert.isEmpty(domainName) || Assert.isEmpty(area)) {
             return RespResult.paramEmpty();
         }
         try {
-            ICdnPlatformService iCdnPlatformService = CdnPlatformFactory.getCdnPlatform(route);
+            String sourceRoute = route;
+            cdnServiceAreaPolicyService.requireAllowed(sourceRoute, area);
+            String verifyRoute = sourceRoute;
+            if ("outside_mainland_china".equals(area)
+                    && !"tencent_edgeone".equals(sourceRoute) && !"tencent".equals(sourceRoute)) {
+                verifyRoute = "aliyun";
+            }
+            ICdnPlatformService iCdnPlatformService = CdnPlatformFactory.getCdnPlatform(verifyRoute);
             if (iCdnPlatformService instanceof ICdnDomainVerifyService) {
                 String strippedDomain = domainName.startsWith("www.") ? domainName.substring(4) : domainName;
                 DomainVerifyRecordInfo info = ((ICdnDomainVerifyService) iCdnPlatformService).createVerifyRecord(strippedDomain, area);
@@ -657,14 +666,18 @@ public class CdnDomainController extends BaseController {
         if (!routes.contains(route)) {
             return RespResult.fail("请稍后再试");
         }
-        if ("outside_mainland_china".equals(area) && !"tencent_edgeone".equals(route) && !"tencent".equals(route)) {
-            route = "aliyun";
-        }
-        if (Assert.isEmpty(domainName) || Assert.isEmpty(verifyType)) {
+        if (Assert.isEmpty(domainName) || Assert.isEmpty(verifyType) || Assert.isEmpty(area)) {
             return RespResult.paramEmpty();
         }
         try {
-            ICdnPlatformService iCdnPlatformService = CdnPlatformFactory.getCdnPlatform(route);
+            String sourceRoute = route;
+            cdnServiceAreaPolicyService.requireAllowed(sourceRoute, area);
+            String verifyRoute = sourceRoute;
+            if ("outside_mainland_china".equals(area)
+                    && !"tencent_edgeone".equals(sourceRoute) && !"tencent".equals(sourceRoute)) {
+                verifyRoute = "aliyun";
+            }
+            ICdnPlatformService iCdnPlatformService = CdnPlatformFactory.getCdnPlatform(verifyRoute);
             if (iCdnPlatformService instanceof ICdnDomainVerifyService) {
                 String strippedDomain = domainName.startsWith("www.") ? domainName.substring(4) : domainName;
                 ((ICdnDomainVerifyService) iCdnPlatformService).verifyDomainRecord(strippedDomain, verifyType);

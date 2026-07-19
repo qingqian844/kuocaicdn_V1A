@@ -133,6 +133,13 @@ async function saveWebsiteBaseConfig() {
     formdata.append("edgeoneFreeDomainQuota", 0)
     formdata.append("edgeoneDomainQuotaPrice", 0)
     formdata.append("edgeoneDomainQuotaValidDays", 0)
+    formdata.append("defaultUserRoute", $('#defaultUserRoute').val() || '')
+    formdata.append("overseasEnabledRoutes", $('.overseasEnabledRoute:checked').map(function () { return this.value }).get().join(','))
+    formdata.append("globalEnabledRoutes", $('.globalEnabledRoute:checked').map(function () { return this.value }).get().join(','))
+    formdata.append("httpsRequestFeeEnabled", $('#httpsRequestFeeEnabled').is(':checked'))
+    formdata.append("httpsRequestFeeRoutes", $('.httpsRequestFeeRoute:checked').map(function () { return this.value }).get().join(','))
+    formdata.append("httpsRequestFeeUnitCount", $('#httpsRequestFeeUnitCount').val() || 10000)
+    formdata.append("httpsRequestFeeUnitPrice", $('#httpsRequestFeeUnitPrice').val() || 0)
     let expireTime = $('#expireTime').val();
     if (!integerReg(expireTime)) {
         layerWarn("请输入正整数")
