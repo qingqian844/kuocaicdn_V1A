@@ -403,6 +403,17 @@ function showDomainVerifyModal(domainName, serviceArea, info, pendingCreatePaylo
     })
     const verifyDomainModal = $('#verifyDomainModal')
     verifyDomainModal.find('.txt-verify-domain').text(verifyDomainName)
+    const verifyRecords = Array.isArray(info['verifyRecords']) && info['verifyRecords'].length
+        ? info['verifyRecords'] : [info]
+    const recordsBody = verifyDomainModal.find('.txt-verify-records').empty()
+    verifyRecords.forEach(function(record) {
+        const row = $('<tr></tr>')
+        $('<td></td>').text(record['targetName'] || '默认线路').appendTo(row)
+        $('<td></td>').text(record['subDomain'] || '').appendTo(row)
+        $('<td></td>').text(record['recordType'] || '').appendTo(row)
+        $('<td></td>').text(record['record'] || '').appendTo(row)
+        recordsBody.append(row)
+    })
     verifyDomainModal.find('.txt-sub-domain').text(info['subDomain'] || '')
     verifyDomainModal.find('.txt-record-type').text(info['recordType'] || '')
     verifyDomainModal.find('.txt-record').text(info['record'] || '')

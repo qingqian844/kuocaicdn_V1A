@@ -39,6 +39,7 @@ public enum CdnRoute {
     WANGSU("wangsu"),
     // 金山云路线
     KINGSOFT("kingsoft"),
+    MULTI_CDN("multi_cdn"),
     // 旧版自建 CDN 路线，仅用于兼容历史用户和域名。
     SELF_HOSTED("self_hosted"),
     SELF_HOSTED_MAINLAND("self_hosted_mainland"),
@@ -66,6 +67,10 @@ public enum CdnRoute {
 
     public static boolean isSelfHosted(String route) {
         return route != null && SELF_HOSTED_CODES.contains(route);
+    }
+
+    public static boolean isMultiCdn(String route) {
+        return MULTI_CDN.getCode().equals(route);
     }
 
     public static List<String> selfHostedCodes() {

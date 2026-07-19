@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -61,6 +62,8 @@ public class CdnDomainStatisticsService {
     @Autowired
     private HttpsCertificateService httpsCertificateService;
 
+    @Autowired
+    private CdnDomainRouteBindingService routeBindingService;
     /**
      * 清理所有统计缓存（用于修复峰值计算问题后清理错误缓存）
      */
@@ -195,8 +198,23 @@ public class CdnDomainStatisticsService {
      * @throws BusinessException
      */
     public JSONObject mergeAllPlatForm(List<CdnDomain> cdnDomains, DateTime start, DateTime end, String type, Long userId) throws BusinessException {
-        String domainNameAlls = cdnDomains.stream().map(CdnDomain::getDomainName).sorted().collect(Collectors.joining(","));
-        String key = String.format("Statistics:v5:%d:%s:%s:%s->%s", userId, type, domainNameAlls.hashCode(), start.getTime(), end.getTime());
+        if (routeBindingService != null) {
+            cdnDomains = routeBindingService.expandForStatistics(cdnDomains);
+        }
+        // 设置默认路由，如果没有设置，则使用默认的
+        for (CdnDomain cdnDomain : cdnDomains) {
+            if (Assert.isEmpty(cdnDomain.getRoute())) {
+                cdnDomain.setRoute(CdnOperationRoute.HUAWEI.getRoute());
+            }
+        }
+        String statisticsIdentity = cdnDomains.stream()
+                .sorted(Comparator.comparing(CdnDomain::getDomainName)
+                        .thenComparing(domain -> domain.getRoute() == null ? "" : domain.getRoute()))
+                .map(domain -> domain.getDomainName() + "@" + domain.getRoute())
+                .collect(Collectors.joining(","));
+        String statisticsKey = UUID.nameUUIDFromBytes(statisticsIdentity.getBytes(StandardCharsets.UTF_8)).toString();
+        String key = String.format("Statistics:v7:%d:%s:%s:%s->%s", userId, type,
+                statisticsKey, start.getTime(), end.getTime());
         DateTime now = DateUtil.date();
         if (!start.after(now) && end.after(now)) {
             key = key + ":rt:" + DateUtil.format(now, "yyyyMMddHHmm");

@@ -263,7 +263,7 @@
             <!-- End Page Header -->
 
             <!-- Card 防盗链配置 -->
-            <div th:if="${domain.route == 'tencent_edgeone'}" class="card mb-3 mb-lg-5">
+            <div th:if="${domain.route == 'tencent_edgeone' or domain.edgeOneIncluded}" class="card mb-3 mb-lg-5">
                 <div class="card-header card-header-content-md-between">
                     <h3 class="card-header-title">EdgeOne 安全防护策略</h3>
                 </div>

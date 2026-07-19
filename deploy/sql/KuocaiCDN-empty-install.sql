@@ -49,6 +49,31 @@ LOCK TABLES `agent_config` WRITE;
 /*!40000 ALTER TABLE `agent_config` DISABLE KEYS */;
 /*!40000 ALTER TABLE `agent_config` ENABLE KEYS */;
 UNLOCK TABLES;
+DROP TABLE IF EXISTS `cdn_domain_route_binding`;
+CREATE TABLE `cdn_domain_route_binding` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `domain_id` bigint(20) NOT NULL,
+  `user_id` bigint(20) NOT NULL,
+  `domain_name` varchar(255) NOT NULL,
+  `service_area` varchar(64) NOT NULL,
+  `route` varchar(64) NOT NULL,
+  `vendor_account_id` bigint(20) DEFAULT NULL,
+  `target_key` varchar(128) NOT NULL,
+  `upstream_domain_id` varchar(255) DEFAULT NULL,
+  `upstream_cname` varchar(255) DEFAULT NULL,
+  `domain_snapshot_json` longtext,
+  `local_domain_id` bigint(20) DEFAULT NULL,
+  `dns_record_id` bigint(20) DEFAULT NULL,
+  `primary_binding` tinyint(4) NOT NULL DEFAULT '0',
+  `status` varchar(32) NOT NULL DEFAULT 'active',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_domain_route_target` (`domain_id`,`target_key`),
+  KEY `idx_route_binding_domain` (`domain_id`,`status`),
+  KEY `idx_route_binding_account` (`route`,`vendor_account_id`),
+  KEY `idx_route_binding_user` (`user_id`,`service_area`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 DROP TABLE IF EXISTS `agent_level`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;

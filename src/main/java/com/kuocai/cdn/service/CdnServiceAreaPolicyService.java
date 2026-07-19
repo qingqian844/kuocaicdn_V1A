@@ -32,7 +32,7 @@ public class CdnServiceAreaPolicyService {
             if (route.isEmpty()) {
                 continue;
             }
-            if (!SupportedVendorUtils.allVendorCodes().contains(route) || CdnRoute.isSelfHosted(route)) {
+            if (!isConfigurableRoute(route)) {
                 throw new BusinessException("加速区域线路不存在或不可配置：" + route);
             }
             normalized.add(route);
@@ -41,6 +41,10 @@ public class CdnServiceAreaPolicyService {
     }
 
     public List<String> normalizeConfiguredTargets(String targets) throws BusinessException {
+        return normalizeConfiguredTargets(targets, null);
+    }
+
+    public List<String> normalizeConfiguredTargets(String targets, String serviceArea) throws BusinessException {
         if (Assert.isEmpty(targets)) {
             return Collections.emptyList();
         }
@@ -56,6 +60,10 @@ public class CdnServiceAreaPolicyService {
             if (target.startsWith(ROUTE_TARGET_PREFIX)) {
                 String route = target.substring(ROUTE_TARGET_PREFIX.length()).trim();
                 requireSupportedRoute(route);
+                String fixedArea = CdnRoute.selfHostedServiceArea(route);
+                if (fixedArea != null && serviceArea != null && !fixedArea.equals(serviceArea)) {
+                    throw new BusinessException(vendorName(route) + "不能配置到当前加速区域");
+                }
                 normalized.add(routeTarget(route));
                 continue;
             }
@@ -80,7 +88,7 @@ public class CdnServiceAreaPolicyService {
         if (CdnRoute.SELF_HOSTED.getCode().equals(route)) {
             return true;
         }
-        if (!SupportedVendorUtils.allVendorCodes().contains(route) && !CdnRoute.SELF_HOSTED.getCode().equals(route)) {
+        if (!SupportedVendorUtils.allVendorCodes().contains(route)) {
             return false;
         }
         if (MAINLAND.equals(serviceArea)) {
@@ -94,9 +102,6 @@ public class CdnServiceAreaPolicyService {
                 ? config.getOverseasEnabledTargets()
                 : config.getGlobalEnabledTargets();
         if (configuredTargets != null) {
-            if (vendorAccountId != null && configuredTargets.contains(accountTarget(vendorAccountId))) {
-                return true;
-            }
             return configuredTargets.contains(routeTarget(route));
         }
         List<String> legacyRoutes = OVERSEAS.equals(serviceArea)
@@ -136,18 +141,20 @@ public class CdnServiceAreaPolicyService {
                 + "的" + areaName + "，请联系管理员");
     }
 
-    public static String accountTarget(Long accountId) {
-        return ACCOUNT_TARGET_PREFIX + accountId;
-    }
-
     public static String routeTarget(String route) {
         return ROUTE_TARGET_PREFIX + route;
     }
 
     private void requireSupportedRoute(String route) throws BusinessException {
-        if (!SupportedVendorUtils.allVendorCodes().contains(route) || CdnRoute.isSelfHosted(route)) {
+        if (!isConfigurableRoute(route)) {
             throw new BusinessException("加速区域线路不存在或不可配置：" + route);
         }
+    }
+
+    private boolean isConfigurableRoute(String route) {
+        return SupportedVendorUtils.allVendorCodes().contains(route)
+                && !CdnRoute.MULTI_CDN.getCode().equals(route)
+                && !CdnRoute.SELF_HOSTED.getCode().equals(route);
     }
 
     private String vendorName(String route) {

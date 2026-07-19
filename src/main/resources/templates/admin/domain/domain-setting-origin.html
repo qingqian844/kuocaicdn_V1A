@@ -832,7 +832,36 @@
 
 
 
-            <!-- Card 视频拖拽 -->
+            <!-- Card 回源跟随重定向 -->
+            <div class="card mb-3 mb-lg-5" th:if="${domain.route == 'tencent_edgeone' or domain.edgeOneIncluded}">
+                <div class="card-header card-header-content-md-between">
+                    <h3 class="card-header-title">回源跟随重定向</h3>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        开启后，EdgeOne 回源遇到 301/302 等重定向时会继续跟随目标地址获取资源，可避免预热缓存时因源站重定向返回 404 或回源失败。
+                    </p>
+                    <div class="row align-items-end">
+                        <div class="col-sm-4">
+                            <label class="form-label" for="originFollowRedirectMaxTimes">最大重定向次数</label>
+                            <input id="originFollowRedirectMaxTimes" class="form-control" type="number" min="1" max="5"
+                                   th:value="${domainConfig.get('upstream_follow_redirect_max_times') != null ? domainConfig.get('upstream_follow_redirect_max_times') : 3}">
+                        </div>
+                        <div class="col-sm-8">
+                            <div class="form-check form-switch mb-2">
+                                <input id="origin_follow_redirect_status" type="checkbox" class="form-check-input" checked
+                                       th:if="${domainConfig.get('upstream_follow_redirect_status') == 'on'}"
+                                       th:onclick="saveOriginFollowRedirect('[[${domain.id}]]', 'off')">
+                                <input id="origin_follow_redirect_status" type="checkbox" class="form-check-input"
+                                       th:if="${domainConfig.get('upstream_follow_redirect_status') != 'on'}"
+                                       th:onclick="saveOriginFollowRedirect('[[${domain.id}]]', 'on')">
+                                <label class="form-check-label" for="origin_follow_redirect_status"
+                                       th:text="${domainConfig.get('upstream_follow_redirect_status') == 'on' ? '已开启' : '已关闭'}"></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="card mb-3 mb-lg-5" th:if="${domain.route == 'kingsoft'} ">
                 <div class="card-header card-header-content-md-between">
                     <h3 class="card-header-title">视频拖拽</h3>

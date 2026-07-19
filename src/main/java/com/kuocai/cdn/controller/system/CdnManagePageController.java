@@ -15,6 +15,7 @@ import com.kuocai.cdn.enumeration.domainmerage.cachesetting.RefreshFolderCount;
 import com.kuocai.cdn.enumeration.domainmerage.cachesetting.RefreshUrlCount;
 import com.kuocai.cdn.service.CacheTaskService;
 import com.kuocai.cdn.service.CdnServiceAreaPolicyService;
+import com.kuocai.cdn.service.CdnAreaRouteService;
 import com.kuocai.cdn.service.SelfHostedCdnService;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.util.JedisUtil;
@@ -55,6 +56,8 @@ public class CdnManagePageController extends BaseController {
     @Resource
     private CdnServiceAreaPolicyService cdnServiceAreaPolicyService;
 
+    @Resource
+    private CdnAreaRouteService cdnAreaRouteService;
     /**
      * 站点管理 域名管理
      */
@@ -190,10 +193,19 @@ public class CdnManagePageController extends BaseController {
         map.put("verifyCode", verifyCode);
         String createRoute = resolveDomainCreateRoute(route);
         map.put("route", createRoute);
-        map.put("allowOverseas", cdnServiceAreaPolicyService.isAllowed(
-                createRoute, CdnServiceAreaPolicyService.OVERSEAS));
-        map.put("allowGlobal", cdnServiceAreaPolicyService.isAllowed(
-                createRoute, CdnServiceAreaPolicyService.GLOBAL));
+        boolean allowMainland = cdnAreaRouteService.isAreaAvailable(
+                loginUserId, createRoute, CdnServiceAreaPolicyService.MAINLAND);
+        boolean allowOverseas = cdnAreaRouteService.isAreaAvailable(
+                loginUserId, createRoute, CdnServiceAreaPolicyService.OVERSEAS);
+        boolean allowGlobal = cdnAreaRouteService.isAreaAvailable(
+                loginUserId, createRoute, CdnServiceAreaPolicyService.GLOBAL);
+        map.put("routeAvailable", allowMainland || allowOverseas || allowGlobal);
+        map.put("allowMainland", allowMainland);
+        map.put("allowOverseas", allowOverseas);
+        map.put("allowGlobal", allowGlobal);
+        map.put("mainlandRouteDescription", cdnAreaRouteService.describeTargets(CdnServiceAreaPolicyService.MAINLAND));
+        map.put("overseasRouteDescription", cdnAreaRouteService.describeTargets(CdnServiceAreaPolicyService.OVERSEAS));
+        map.put("globalRouteDescription", cdnAreaRouteService.describeTargets(CdnServiceAreaPolicyService.GLOBAL));
         return "admin/domain/domain-create";
     }
 

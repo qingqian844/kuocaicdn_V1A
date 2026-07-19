@@ -187,4 +187,12 @@ public class CdnDomainVo {
      * 节点路线
      */
     private String route;
+
+    private String vendorAccountName;
+
+    private Boolean multiCdn;
+
+    private Boolean edgeOneIncluded;
+
+    private String primaryRoute;
 }

@@ -337,17 +337,47 @@
                                 <div class="row mb-4">
                                     <label class="col-sm-3 col-form-label form-label">加速区域线路
                                         <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right"
-                                           title="分别选择允许使用海外加速和全球加速的CDN线路；中国大陆加速默认可用"></i>
+                                           title="分别配置中国大陆、中国境外和全球线路组；每组可选择多 CDN 同时创建或负载分配一个厂商"></i>
                                     </label>
                                     <div class="col-sm-9">
+                                        <div class="row g-2 mb-3">
+                                            <div class="col-md-4">
+                                                <label class="form-label small" for="mainlandRouteMode">中国大陆调度模式</label>
+                                                <select class="form-select form-select-sm" id="mainlandRouteMode">
+                                                    <option value="load_balance"
+                                                            th:selected="${websiteBaseConfig == null or websiteBaseConfig.mainlandRouteMode != 'multi_cdn'}">负载分配一个厂商</option>
+                                                    <option value="multi_cdn"
+                                                            th:selected="${websiteBaseConfig != null and websiteBaseConfig.mainlandRouteMode == 'multi_cdn'}">多 CDN 同时创建</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label small" for="overseasRouteMode">中国境外调度模式</label>
+                                                <select class="form-select form-select-sm" id="overseasRouteMode">
+                                                    <option value="load_balance"
+                                                            th:selected="${websiteBaseConfig == null or websiteBaseConfig.overseasRouteMode != 'multi_cdn'}">负载分配一个厂商</option>
+                                                    <option value="multi_cdn"
+                                                            th:selected="${websiteBaseConfig != null and websiteBaseConfig.overseasRouteMode == 'multi_cdn'}">多 CDN 同时创建</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label small" for="globalRouteMode">全球调度模式</label>
+                                                <select class="form-select form-select-sm" id="globalRouteMode">
+                                                    <option value="load_balance"
+                                                            th:selected="${websiteBaseConfig == null or websiteBaseConfig.globalRouteMode != 'multi_cdn'}">负载分配一个厂商</option>
+                                                    <option value="multi_cdn"
+                                                            th:selected="${websiteBaseConfig != null and websiteBaseConfig.globalRouteMode == 'multi_cdn'}">多 CDN 同时创建</option>
+                                                </select>
+                                            </div>
+                                        </div>
                                         <div class="table-responsive border rounded">
                                             <table class="table table-sm table-align-middle mb-0">
                                                 <thead class="thead-light">
                                                 <tr>
                                                     <th class="ps-3">CDN线路</th>
                                                     <th>平台账号标识</th>
-                                                    <th class="text-center">海外加速</th>
-                                                    <th class="text-center">全球加速</th>
+                                                    <th class="text-center">中国大陆</th>
+                                                    <th class="text-center">中国境外</th>
+                                                    <th class="text-center">全球</th>
                                                 </tr>
                                                 </thead>
                                                 <tbody>
@@ -365,27 +395,30 @@
                                                               th:text="|ID ${option.accountId}|"></span>
                                                     </td>
                                                     <td class="text-center">
-                                                        <input th:if="${option.fixedArea == null}"
+                                                        <input th:if="${option.fixedArea == null or option.fixedArea == 'mainland_china'}"
+                                                               class="form-check-input mainlandEnabledTarget" type="checkbox"
+                                                               th:value="${option.targetKey}"
+                                                               th:disabled="${!option.selectable}"
+                                                               th:aria-label="|将${option.routeName} ${option.accountName}加入中国大陆线路组|"
+                                                               th:checked="${option.mainlandEnabled}">
+                                                        <span th:if="${option.fixedArea != null and option.fixedArea != 'mainland_china'}">-</span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <input th:if="${option.fixedArea == null or option.fixedArea == 'outside_mainland_china'}"
                                                                class="form-check-input overseasEnabledTarget" type="checkbox"
                                                                th:value="${option.targetKey}"
                                                                th:disabled="${!option.selectable}"
-                                                               th:aria-label="|允许${option.routeName} ${option.accountName}使用海外加速|"
+                                                               th:aria-label="|将${option.routeName} ${option.accountName}加入中国境外线路组|"
                                                                th:checked="${option.overseasEnabled}">
-                                                        <input th:if="${option.fixedArea == 'outside_mainland_china'}"
-                                                               class="form-check-input" type="checkbox" checked disabled
-                                                               aria-label="固定使用海外加速">
                                                         <span th:if="${option.fixedArea != null and option.fixedArea != 'outside_mainland_china'}">-</span>
                                                     </td>
                                                     <td class="text-center">
-                                                        <input th:if="${option.fixedArea == null}"
+                                                        <input th:if="${option.fixedArea == null or option.fixedArea == 'global'}"
                                                                class="form-check-input globalEnabledTarget" type="checkbox"
                                                                th:value="${option.targetKey}"
                                                                th:disabled="${!option.selectable}"
-                                                               th:aria-label="|允许${option.routeName} ${option.accountName}使用全球加速|"
+                                                               th:aria-label="|将${option.routeName} ${option.accountName}加入全球线路组|"
                                                                th:checked="${option.globalEnabled}">
-                                                        <input th:if="${option.fixedArea == 'global'}"
-                                                               class="form-check-input" type="checkbox" checked disabled
-                                                               aria-label="固定使用全球加速">
                                                         <span th:if="${option.fixedArea != null and option.fixedArea != 'global'}">-</span>
                                                     </td>
                                                 </tr>

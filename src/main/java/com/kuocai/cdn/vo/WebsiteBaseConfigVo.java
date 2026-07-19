@@ -100,6 +100,8 @@ public class WebsiteBaseConfigVo {
 
     private String defaultUserRoute;
 
+    private List<String> mainlandEnabledTargets;
+
     private List<String> overseasEnabledRoutes;
 
     private List<String> globalEnabledRoutes;
@@ -107,6 +109,12 @@ public class WebsiteBaseConfigVo {
     private List<String> overseasEnabledTargets;
 
     private List<String> globalEnabledTargets;
+
+    private String mainlandRouteMode;
+
+    private String overseasRouteMode;
+
+    private String globalRouteMode;
 
     private Boolean httpsRequestFeeEnabled;
 

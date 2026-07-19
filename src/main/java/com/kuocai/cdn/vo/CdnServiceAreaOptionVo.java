@@ -24,6 +24,8 @@ public class CdnServiceAreaOptionVo {
 
     private String fixedArea;
 
+    private Boolean mainlandEnabled;
+
     private Boolean overseasEnabled;
 
     private Boolean globalEnabled;

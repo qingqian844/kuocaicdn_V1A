@@ -1,6 +1,7 @@
 package com.kuocai.cdn.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.AllArgsConstructor;
@@ -10,6 +11,7 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
 
 /**
  * 加速域名(CdnDomain)实体类
@@ -72,6 +74,12 @@ public class CdnDomain implements Serializable {
      * 域名路线
      */
     private String route;
+
+    /**
+     * 多 CDN 线路组的上游绑定，仅用于运行时持久化。
+     */
+    @TableField(exist = false)
+    private List<CdnDomainRouteBinding> routeBindings;
 
     /**
      * 系统生成的CNAME

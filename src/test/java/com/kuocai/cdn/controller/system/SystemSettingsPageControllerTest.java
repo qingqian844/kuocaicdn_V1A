@@ -50,8 +50,8 @@ class SystemSettingsPageControllerTest {
         assertFalse(options.get(1).getOverseasEnabled());
         assertEquals("海外自建 CDN", options.get(2).getRouteName());
         assertEquals(CdnServiceAreaPolicyService.OVERSEAS, options.get(2).getFixedArea());
-        assertTrue(options.get(2).getOverseasEnabled());
-        assertFalse(options.get(2).getSelectable());
+        assertFalse(options.get(2).getOverseasEnabled());
+        assertTrue(options.get(2).getSelectable());
     }
 
     private CdnVendorAccount account(Long id, String name, int isDefault) {

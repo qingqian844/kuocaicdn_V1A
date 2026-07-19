@@ -2,8 +2,10 @@ package com.kuocai.cdn.controller.rest;
 
 import cn.hutool.core.util.ObjectUtil;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSONArray;
 import com.kuocai.cdn.annotation.RateLimiter;
 import com.kuocai.cdn.annotation.SysLog;
+import com.kuocai.cdn.api.DomainConfig;
 import com.kuocai.cdn.api.DomainVerifyRecordInfo;
 import com.kuocai.cdn.api.huawei.cdn.constant.DomainStatus;
 import com.kuocai.cdn.api.tencent.dns.TencentApi;
@@ -21,17 +23,21 @@ import com.kuocai.cdn.entity.SysUser;
 import com.kuocai.cdn.enumeration.domainmerage.CdnRoute;
 import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.service.CdnDomainService;
+import com.kuocai.cdn.service.CdnAreaRouteService;
 import com.kuocai.cdn.service.CdnServiceAreaPolicyService;
 import com.kuocai.cdn.service.EdgeOneDomainQuotaService;
 import com.kuocai.cdn.service.FlowDonateService;
 import com.kuocai.cdn.service.domain.operation.CdnetworksDomainServiceImpl;
 import com.kuocai.cdn.service.domain.operation.ICdnPlatformService;
+import com.kuocai.cdn.service.domain.operation.MultiCdnDomainServiceImpl;
 import com.kuocai.cdn.service.domain.operation.optional.ICdnDomainVerifyService;
 import com.kuocai.cdn.service.factory.CdnPlatformFactory;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.util.JedisUtil;
 import com.kuocai.cdn.util.ThreadMdcUtils;
 import com.kuocai.cdn.vo.CdnDomainVo;
+import com.kuocai.cdn.vo.AreaRouteTargetVo;
+import com.kuocai.cdn.vo.ResolvedAreaRouteVo;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,16 +70,22 @@ public class CdnDomainController extends BaseController {
     private final CdnDomainService service;
     private final EdgeOneDomainQuotaService edgeOneDomainQuotaService;
     private final CdnServiceAreaPolicyService cdnServiceAreaPolicyService;
+    private final CdnAreaRouteService cdnAreaRouteService;
+    private final MultiCdnDomainServiceImpl multiCdnDomainService;
     private final Executor executorService;
 
     @Autowired
     CdnDomainController(CdnDomainService service,
                         EdgeOneDomainQuotaService edgeOneDomainQuotaService,
                         CdnServiceAreaPolicyService cdnServiceAreaPolicyService,
+                        CdnAreaRouteService cdnAreaRouteService,
+                        MultiCdnDomainServiceImpl multiCdnDomainService,
                         @Qualifier("cdnDomainExecutor") Executor executorService) {
         this.service = service;
         this.edgeOneDomainQuotaService = edgeOneDomainQuotaService;
         this.cdnServiceAreaPolicyService = cdnServiceAreaPolicyService;
+        this.cdnAreaRouteService = cdnAreaRouteService;
+        this.multiCdnDomainService = multiCdnDomainService;
         this.executorService = executorService;
     }
 
@@ -83,7 +95,7 @@ public class CdnDomainController extends BaseController {
     CdnDomainController(CdnDomainService service, FlowDonateService ignoredFlowDonateService,
                         EdgeOneDomainQuotaService edgeOneDomainQuotaService, MongoTemplate ignoredMongoTemplate,
                         Executor executorService) {
-        this(service, edgeOneDomainQuotaService, null, executorService);
+        this(service, edgeOneDomainQuotaService, null, null, null, executorService);
     }
 
     /**
@@ -128,15 +140,24 @@ public class CdnDomainController extends BaseController {
         if (accessResult != null) {
             return accessResult;
         }
-        if (!isConfigurableStatus(cdnDomain.getDomainStatus())) {
-            return RespResult.fail("域名正在配置中，请稍后刷新后再配置");
-        }
         try {
             if (isConfigurableStatus(cdnDomain.getDomainStatus())) {
                 return RespResult.success("配置已就绪");
             }
-            loadDomainConfigForReadyCheck(cdnDomain);
-            return RespResult.success("配置已就绪");
+            DomainConfig domainConfig = loadDomainConfigForReadyCheck(cdnDomain);
+            String upstreamStatus = domainConfig == null || domainConfig.getDomainBasicInfo() == null
+                    ? null : domainConfig.getDomainBasicInfo().getDomainStatus();
+            if (isConfigurableStatus(upstreamStatus)) {
+                cdnDomain.setDomainStatus(upstreamStatus);
+                service.save(cdnDomain);
+                return RespResult.success("配置已就绪");
+            }
+            if (DomainStatus.CONFIGURE_FAILED.equals(upstreamStatus)) {
+                cdnDomain.setDomainStatus(upstreamStatus);
+                service.save(cdnDomain);
+                return RespResult.fail("多 CDN 线路组存在配置失败的上游，请联系管理员处理");
+            }
+            return RespResult.fail("域名正在配置中，请稍后刷新后再配置");
         } catch (BusinessException e) {
             log.info("域名[{}]上游配置尚未准备完成：{}", cdnDomain.getDomainName(), e.getMessage());
             return RespResult.fail("上游配置还在同步中，请稍后再进入配置");
@@ -167,14 +188,14 @@ public class CdnDomainController extends BaseController {
         return "online".equals(domainStatus) || "offline".equals(domainStatus);
     }
 
-    private void loadDomainConfigForReadyCheck(CdnDomain cdnDomain) throws BusinessException {
+    private DomainConfig loadDomainConfigForReadyCheck(CdnDomain cdnDomain) throws BusinessException {
         String domainRoute = cdnDomain.getRoute();
         ICdnPlatformService cdnPlatformService = CdnPlatformFactory.getCdnPlatform(domainRoute);
         if ("cdnetworks".equals(domainRoute)) {
-            ((CdnetworksDomainServiceImpl) cdnPlatformService).getDomainBasicConfig(cdnDomain.getDomainName());
-        } else {
-            cdnPlatformService.getDomainConfig(cdnDomain.getDomainName());
+            return ((CdnetworksDomainServiceImpl) cdnPlatformService)
+                    .getDomainBasicConfig(cdnDomain.getDomainName());
         }
+        return cdnPlatformService.getDomainConfig(cdnDomain.getDomainName());
     }
 
     @RateLimiter
@@ -198,10 +219,6 @@ public class CdnDomainController extends BaseController {
                 return RespResult.fail("当前用户已欠费或存在尚未支付的流量账单");
             }
         }
-        String fixedSelfHostedServiceArea = CdnRoute.selfHostedServiceArea(route);
-        if (fixedSelfHostedServiceArea != null) {
-            serviceArea = fixedSelfHostedServiceArea;
-        }
         // 参数校验
         if (Assert.isEmpty(domainName) || Assert.isEmpty(businessType) || Assert.isEmpty(serviceArea) || Assert.isEmpty(originType)) {
             return RespResult.paramEmpty();
@@ -224,10 +241,23 @@ public class CdnDomainController extends BaseController {
         if (portCheck != null) {
             return portCheck;
         }
-        boolean edgeOneRoute = isTencentEdgeOneRoute();
+        ResolvedAreaRouteVo routePlan;
+        try {
+            routePlan = cdnAreaRouteService.resolve(loginUserId, route, domainName, serviceArea);
+        } catch (BusinessException e) {
+            return RespResult.fail(e.getMessage());
+        }
+        AreaRouteTargetVo primaryTarget = routePlan.getPrimaryTarget();
+        String effectiveRoute = routePlan.isMultiCdn()
+                ? CdnRoute.MULTI_CDN.getCode() : primaryTarget.getRoute();
+        boolean edgeOneRoute = CdnRoute.TENCENT_EDGEONE.getCode().equals(effectiveRoute);
+        boolean containsEdgeOne = routePlan.getTargets().stream()
+                .anyMatch(target -> CdnRoute.TENCENT_EDGEONE.getCode().equals(target.getRoute()));
+        boolean multiCdnRoute = CdnRoute.isMultiCdn(effectiveRoute);
         boolean edgeOneResume = false;
-        boolean selfHostedRoute = CdnRoute.isSelfHosted(route);
+        boolean selfHostedRoute = CdnRoute.isSelfHosted(effectiveRoute);
         boolean selfHostedResume = false;
+        boolean multiCdnResume = false;
         CdnDomain existingDomain = cdnDomainService.queryByDomainName(domainName);
         if (Assert.notEmpty(existingDomain)) {
             boolean ownedEdgeOneDomain = edgeOneRoute
@@ -236,7 +266,10 @@ public class CdnDomainController extends BaseController {
             boolean ownedSelfHostedDomain = selfHostedRoute
                     && CdnRoute.isSelfHosted(existingDomain.getRoute())
                     && ObjectUtil.equal(loginUserId, existingDomain.getUserId());
-            if (!ownedEdgeOneDomain && !ownedSelfHostedDomain) {
+            boolean ownedMultiCdnDomain = multiCdnRoute
+                    && CdnRoute.isMultiCdn(existingDomain.getRoute())
+                    && ObjectUtil.equal(loginUserId, existingDomain.getUserId());
+            if (!ownedEdgeOneDomain && !ownedSelfHostedDomain && !ownedMultiCdnDomain) {
                 return RespResult.fail("加速域名已创建，不可重复添加");
             }
             if (!"configure_failed".equals(existingDomain.getDomainStatus())) {
@@ -244,13 +277,9 @@ public class CdnDomainController extends BaseController {
             }
             edgeOneResume = ownedEdgeOneDomain;
             selfHostedResume = ownedSelfHostedDomain;
+            multiCdnResume = ownedMultiCdnDomain;
         }
-        try {
-            cdnServiceAreaPolicyService.requireAllowed(route, serviceArea);
-        } catch (BusinessException e) {
-            return RespResult.fail(e.getMessage());
-        }
-        if ("user".equals(loginUserRoleCode) && !edgeOneRoute && !selfHostedResume) {
+        if ("user".equals(loginUserRoleCode) && !edgeOneRoute && !selfHostedResume && !multiCdnResume) {
             // 数量检查
             int userDomainCount = service.queryUserDomainCount(loginUserId);
             SysUser sysUser = sysUserService.queryById(loginUserId);
@@ -272,11 +301,21 @@ public class CdnDomainController extends BaseController {
 //            } */
 //        }
         try {
-            ICdnPlatformService iCdnPlatformService = CdnPlatformFactory.getCdnPlatform(route);
-            CdnDomain domain = iCdnPlatformService.create(loginUserId, domainName, businessType, serviceArea, originType, originAddr,
-                    originProtocol, httpPort, httpsPort, originHost, originWeight);
+            ICdnPlatformService iCdnPlatformService = CdnPlatformFactory.getCdnPlatform(effectiveRoute);
+            CdnDomain domain;
+            if (multiCdnRoute) {
+                domain = multiCdnDomainService.create(routePlan, loginUserId, domainName, businessType,
+                        serviceArea, originType, originAddr, originProtocol, httpPort, httpsPort,
+                        originHost, originWeight);
+            } else {
+                domain = iCdnPlatformService.create(loginUserId, domainName, businessType, serviceArea, originType, originAddr,
+                        originProtocol, httpPort, httpsPort, originHost, originWeight);
+            }
             domain = service.save(domain);
-            if ("user".equals(loginUserRoleCode) && "tencent_edgeone".equals(route)) {
+            if (multiCdnRoute) {
+                multiCdnDomainService.persistBindings(domain);
+            }
+            if (containsEdgeOne) {
                 edgeOneDomainQuotaService.recordRootDomain(loginUserId, domainName, domain.getId());
             }
             JedisUtil.delKey(key);
@@ -298,7 +337,7 @@ public class CdnDomainController extends BaseController {
                 data.put("needVerify", true);
                 data.put("originalDomainName", domainName);
                 String verifyDomainName = domainName;
-                if ("tencent_edgeone".equals(route)) {
+                if (containsEdgeOne) {
                     try {
                         verifyDomainName = TencentEdgeOneClient.getRootDomain(domainName);
                     } catch (Exception ignored) {
@@ -307,11 +346,12 @@ public class CdnDomainController extends BaseController {
                 data.put("domainName", verifyDomainName);
                 data.put("serviceArea", serviceArea);
                 try {
-                    ICdnPlatformService verifyPlatformService = CdnPlatformFactory.getCdnPlatform(route);
-                    if (verifyPlatformService instanceof ICdnDomainVerifyService) {
-                        String strippedDomain = verifyDomainName.startsWith("www.") ? verifyDomainName.substring(4) : verifyDomainName;
-                        DomainVerifyRecordInfo info = ((ICdnDomainVerifyService) verifyPlatformService).createVerifyRecord(strippedDomain, serviceArea);
-                        data.put("verifyInfo", info);
+                    JSONObject verifyInfo = buildVerifyRecordPayload(routePlan, domainName, serviceArea);
+                    if (verifyInfo != null) {
+                        data.put("verifyInfo", verifyInfo);
+                        if (Assert.notEmpty(verifyInfo.getString("domainName"))) {
+                            data.put("domainName", verifyInfo.getString("domainName"));
+                        }
                     }
                 } catch (Exception verifyException) {
                     data.put("verifyError", verifyException.getMessage());
@@ -319,7 +359,7 @@ public class CdnDomainController extends BaseController {
                 }
                 return RespResult.fail(e.getMessage(), data);
             }
-            if (!edgeOneRoute) {
+            if (!containsEdgeOne) {
                 JedisUtil.delKey(key);
             }
             return RespResult.fail(e.getMessage());
@@ -436,7 +476,14 @@ public class CdnDomainController extends BaseController {
             return accessResult;
         }
         try {
-            cdnServiceAreaPolicyService.requireAllowed(cdnDomain.getRoute(), serviceArea);
+            if (CdnRoute.isMultiCdn(cdnDomain.getRoute())) {
+                if (!ObjectUtil.equal(cdnDomain.getServiceArea(), serviceArea)) {
+                    return RespResult.fail("多 CDN 线路组创建后不能直接切换加速区域，请删除域名后按新区域重新创建");
+                }
+            }
+            if (!CdnRoute.isMultiCdn(cdnDomain.getRoute())) {
+                cdnServiceAreaPolicyService.requireAllowed(cdnDomain.getRoute(), serviceArea);
+            }
         } catch (BusinessException e) {
             return RespResult.fail(e.getMessage());
         }
@@ -620,6 +667,9 @@ public class CdnDomainController extends BaseController {
         if (accessResult != null) {
             return accessResult;
         }
+        if (CdnRoute.isMultiCdn(cdnDomain.getRoute())) {
+            multiCdnDomainService.forceCleanup(cdnDomain);
+        }
         if (service.deleteById(id) > 0) {
             deleteDnsRecord(cdnDomain);
             return RespResult.success("强制删除成功");
@@ -631,65 +681,90 @@ public class CdnDomainController extends BaseController {
     @PostMapping("createVerifyRecord")
     @SysLog(module = "站点管理", describe = "创建域名解析验证记录")
     public RespResult createVerifyRecord(String domainName, String area) {
-        List<String> routes = Arrays.asList("tencent", "tencent_edgeone", "aliyun", "baidu", "kingsoft", "volcengine");
-        if (!routes.contains(route)) {
-            return RespResult.fail("请稍后再试");
-        }
         if (Assert.isEmpty(domainName) || Assert.isEmpty(area)) {
             return RespResult.paramEmpty();
         }
         try {
-            String sourceRoute = route;
-            String strippedDomain = domainName.startsWith("www.") ? domainName.substring(4) : domainName;
-            cdnServiceAreaPolicyService.requireAllowed(sourceRoute, area);
-            String verifyRoute = sourceRoute;
-            if ("outside_mainland_china".equals(area)
-                    && !"tencent_edgeone".equals(sourceRoute) && !"tencent".equals(sourceRoute)) {
-                verifyRoute = "aliyun";
+            ResolvedAreaRouteVo plan = cdnAreaRouteService.resolve(
+                    loginUserId, route, domainName, area);
+            JSONObject result = buildVerifyRecordPayload(plan, domainName, area);
+            if (result == null) {
+                return RespResult.fail("当前线路组不需要域名归属权验证");
             }
-            ICdnPlatformService iCdnPlatformService = CdnPlatformFactory.getCdnPlatform(verifyRoute);
-            if (iCdnPlatformService instanceof ICdnDomainVerifyService) {
-                DomainVerifyRecordInfo info = ((ICdnDomainVerifyService) iCdnPlatformService).createVerifyRecord(strippedDomain, area);
-                return RespResult.success("success", info);
-            }
-            return RespResult.fail("非法请求，请稍后再试");
+            return RespResult.success("success", result);
         } catch (Exception e) {
             return RespResult.fail(e.getMessage());
         }
+    }
+
+    private JSONObject buildVerifyRecordPayload(ResolvedAreaRouteVo plan, String domainName, String area)
+            throws BusinessException {
+        String strippedDomain = domainName.startsWith("www.") ? domainName.substring(4) : domainName;
+        JSONArray records = new JSONArray();
+        for (AreaRouteTargetVo target : plan.getTargets()) {
+            ICdnPlatformService platform = CdnPlatformFactory.getCdnPlatform(target.getRoute());
+            if (!(platform instanceof ICdnDomainVerifyService)) {
+                continue;
+            }
+            DomainVerifyRecordInfo info = ((ICdnDomainVerifyService) platform)
+                    .createVerifyRecord(strippedDomain, area);
+            if (info == null) {
+                continue;
+            }
+            JSONObject item = JSONObject.parseObject(JSONObject.toJSONString(info));
+            item.put("targetKey", target.getTargetKey());
+            item.put("targetName", target.getAccountName());
+            records.add(item);
+        }
+        if (records.isEmpty()) {
+            return null;
+        }
+        JSONObject result = new JSONObject(records.getJSONObject(0));
+        result.put("verifyRecords", records);
+        return result;
     }
 
     @RateLimiter
     @PostMapping("verifyDomainRecord")
     @SysLog(module = "站点管理", describe = "验证域名解析")
     public RespResult verifyDomainRecord(String domainName, String verifyType, String area) {
-        List<String> routes = Arrays.asList("tencent", "tencent_edgeone", "aliyun", "baidu", "kingsoft", "volcengine");
-        if (!routes.contains(route)) {
-            return RespResult.fail("请稍后再试");
-        }
         if (Assert.isEmpty(domainName) || Assert.isEmpty(verifyType) || Assert.isEmpty(area)) {
             return RespResult.paramEmpty();
         }
         try {
-            String sourceRoute = route;
             String strippedDomain = domainName.startsWith("www.") ? domainName.substring(4) : domainName;
-            cdnServiceAreaPolicyService.requireAllowed(sourceRoute, area);
-            String verifyRoute = sourceRoute;
-            if ("outside_mainland_china".equals(area)
-                    && !"tencent_edgeone".equals(sourceRoute) && !"tencent".equals(sourceRoute)) {
-                verifyRoute = "aliyun";
+            ResolvedAreaRouteVo plan = cdnAreaRouteService.resolve(
+                    loginUserId, route, strippedDomain, area);
+            List<String> failures = new java.util.ArrayList<>();
+            int verifiedTargets = 0;
+            for (AreaRouteTargetVo target : plan.getTargets()) {
+                ICdnPlatformService platform = CdnPlatformFactory.getCdnPlatform(target.getRoute());
+                if (!(platform instanceof ICdnDomainVerifyService)) {
+                    continue;
+                }
+                verifiedTargets++;
+                try {
+                    ((ICdnDomainVerifyService) platform).verifyDomainRecord(strippedDomain, verifyType);
+                } catch (Exception e) {
+                    failures.add(target.getAccountName() + "：" + e.getMessage());
+                }
             }
-            ICdnPlatformService iCdnPlatformService = CdnPlatformFactory.getCdnPlatform(verifyRoute);
-            if (iCdnPlatformService instanceof ICdnDomainVerifyService) {
-                ((ICdnDomainVerifyService) iCdnPlatformService).verifyDomainRecord(strippedDomain, verifyType);
-                return RespResult.success("域名验证成功！");
+            if (verifiedTargets == 0) {
+                return RespResult.success("当前线路组无需验证，正在继续创建");
             }
-            return RespResult.fail("非法请求，请稍后再试");
+            if (!failures.isEmpty()) {
+                return RespResult.fail("部分线路验证失败：" + String.join("；", failures));
+            }
+            return RespResult.success("域名验证成功！");
         } catch (Exception e) {
             return RespResult.fail(e.getMessage());
         }
     }
 
     private void deleteDnsRecord(CdnDomain cdnDomain) {
+        if (cdnDomain == null || cdnDomain.getTencentDnsId() == null) {
+            return;
+        }
         executorService.execute(ThreadMdcUtils.wrapAsync(() -> {
             DeleteRecordDTO deleteRecordDTO = new DeleteRecordDTO();
             Long tencentNdsId = cdnDomain.getTencentDnsId();

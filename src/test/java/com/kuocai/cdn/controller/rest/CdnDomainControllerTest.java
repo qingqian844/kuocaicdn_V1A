@@ -8,7 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CdnDomainControllerTest {
 
-    private final CdnDomainController controller = new CdnDomainController(null, null, null, null, null);
+    private final CdnDomainController controller = new CdnDomainController(
+            null, null, null, null, null, null);
 
     @Test
     void tencentCdnRecordNotVerifiedRequiresDomainVerifyModal() {

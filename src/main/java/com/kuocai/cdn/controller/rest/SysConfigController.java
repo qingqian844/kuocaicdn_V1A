@@ -12,6 +12,7 @@ import com.kuocai.cdn.dto.resp.RespResult;
 import com.kuocai.cdn.api.volcengine.cdn.properties.VolcengineCdn;
 import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.service.CdnServiceAreaPolicyService;
+import com.kuocai.cdn.service.CdnAreaRouteService;
 import com.kuocai.cdn.service.SysConfigService;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.vo.*;
@@ -73,15 +74,18 @@ public class SysConfigController extends BaseController {
                                             MultipartFile wechatQrCodeImg, MultipartFile qqGroupQrCodeImg,
                                             Integer expireTime, Boolean edgeoneDomainQuotaEnabled,
                                             Integer edgeoneFreeDomainQuota, BigDecimal edgeoneDomainQuotaPrice,
-                                            Integer edgeoneDomainQuotaValidDays, String defaultUserRoute,
-                                            String overseasEnabledRoutes, String globalEnabledRoutes,
-                                            String overseasEnabledTargets, String globalEnabledTargets,
+                                             Integer edgeoneDomainQuotaValidDays, String defaultUserRoute,
+                                             String overseasEnabledRoutes, String globalEnabledRoutes,
+                                            String mainlandEnabledTargets, String overseasEnabledTargets,
+                                            String globalEnabledTargets, String mainlandRouteMode,
+                                            String overseasRouteMode, String globalRouteMode,
                                             Boolean httpsRequestFeeEnabled, String httpsRequestFeeRoutes,
                                             Long httpsRequestFeeUnitCount, BigDecimal httpsRequestFeeUnitPrice) {
         // 这里所有参数都不做非null校验
         WebsiteBaseConfigVo websiteBaseConfigVo = null;
         try {
-            boolean targetConfigurationSubmitted = overseasEnabledTargets != null || globalEnabledTargets != null;
+            boolean targetConfigurationSubmitted = mainlandEnabledTargets != null
+                    || overseasEnabledTargets != null || globalEnabledTargets != null;
             List<String> normalizedOverseasRoutes = targetConfigurationSubmitted
                     ? Collections.emptyList()
                     : cdnServiceAreaPolicyService.normalizeConfiguredRoutes(overseasEnabledRoutes);
@@ -89,11 +93,15 @@ public class SysConfigController extends BaseController {
                     ? Collections.emptyList()
                     : cdnServiceAreaPolicyService.normalizeConfiguredRoutes(globalEnabledRoutes);
             List<String> normalizedOverseasTargets = targetConfigurationSubmitted
-                    ? cdnServiceAreaPolicyService.normalizeConfiguredTargets(overseasEnabledTargets)
+                    ? cdnServiceAreaPolicyService.normalizeConfiguredTargets(
+                            overseasEnabledTargets, CdnServiceAreaPolicyService.OVERSEAS)
                     : null;
             List<String> normalizedGlobalTargets = targetConfigurationSubmitted
-                    ? cdnServiceAreaPolicyService.normalizeConfiguredTargets(globalEnabledTargets)
+                    ? cdnServiceAreaPolicyService.normalizeConfiguredTargets(
+                            globalEnabledTargets, CdnServiceAreaPolicyService.GLOBAL)
                     : null;
+            List<String> normalizedMainlandTargets = cdnServiceAreaPolicyService.normalizeConfiguredTargets(
+                    mainlandEnabledTargets, CdnServiceAreaPolicyService.MAINLAND);
             websiteBaseConfigVo = WebsiteBaseConfigVo.builder().websiteName(websiteName).websiteAnnouncement(websiteAnnouncement).maxDomainCountProxy(0)
                     .inviteRewardGb(0)
                     .invitedRewardGb(0)
@@ -103,10 +111,14 @@ public class SysConfigController extends BaseController {
                     .edgeoneDomainQuotaPrice(BigDecimal.ZERO)
                     .edgeoneDomainQuotaValidDays(0)
                     .defaultUserRoute(defaultUserRoute)
+                    .mainlandEnabledTargets(normalizedMainlandTargets)
                     .overseasEnabledRoutes(normalizedOverseasRoutes)
                     .globalEnabledRoutes(normalizedGlobalRoutes)
                     .overseasEnabledTargets(normalizedOverseasTargets)
                     .globalEnabledTargets(normalizedGlobalTargets)
+                    .mainlandRouteMode(normalizeAreaRouteMode(mainlandRouteMode))
+                    .overseasRouteMode(normalizeAreaRouteMode(overseasRouteMode))
+                    .globalRouteMode(normalizeAreaRouteMode(globalRouteMode))
                     .httpsRequestFeeEnabled(httpsRequestFeeEnabled != null && httpsRequestFeeEnabled)
                     .httpsRequestFeeRoutes(httpsRequestFeeRoutes)
                     .httpsRequestFeeUnitCount(httpsRequestFeeUnitCount == null ? 10000L : httpsRequestFeeUnitCount)
@@ -125,6 +137,11 @@ public class SysConfigController extends BaseController {
         service.saveConfig(websiteBaseConfigVo, ConfigBizTypeConstants.WEBSITE_BASE_CONFIG, loginUserId);
         preloadComponent.loadWebsiteBaseConfig();
         return RespResult.success("更新成功");
+    }
+
+    private String normalizeAreaRouteMode(String mode) {
+        return CdnAreaRouteService.MODE_MULTI_CDN.equals(mode)
+                ? CdnAreaRouteService.MODE_MULTI_CDN : CdnAreaRouteService.MODE_LOAD_BALANCE;
     }
 
     private String resolveWebsiteLogo(String logoUrl, MultipartFile logoFile) throws Exception {

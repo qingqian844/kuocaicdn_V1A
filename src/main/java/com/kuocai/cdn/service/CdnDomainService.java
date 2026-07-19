@@ -25,6 +25,7 @@ import com.kuocai.cdn.exception.CdnHuaweiException;
 import com.kuocai.cdn.service.base.BaseService;
 import com.kuocai.cdn.service.base.VoData;
 import com.kuocai.cdn.util.Assert;
+import com.kuocai.cdn.util.SupportedVendorUtils;
 import com.kuocai.cdn.vo.CdnDomainVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +62,9 @@ public class CdnDomainService extends BaseService<CdnDomain> implements VoData<C
 
     @Resource
     private SelfHostedCdnService selfHostedCdnService;
+
+    @Resource
+    private CdnDomainRouteBindingService routeBindingService;
 
     /**
      * 重写Datatable查询接口
@@ -380,6 +384,7 @@ public class CdnDomainService extends BaseService<CdnDomain> implements VoData<C
         cdnDomainVo.setServiceAreaName(CdnServiceAreaMap.huawei.get(serviceArea));
         cdnDomainVo.setUserImg(sysUser.getImg());
         cdnDomainVo.setUserName(sysUser.getUserName());
+        applyRouteInfo(cdnDomainVo, domain);
         return cdnDomainVo;
     }
 
@@ -412,6 +417,7 @@ public class CdnDomainService extends BaseService<CdnDomain> implements VoData<C
             cdnDomainVo.setUserName(sysUser.getUserName());
             cdnDomainVo.setUserImg(sysUser.getImg());
             cdnDomainVo.setDomainStatusName(DomainStatusMap.huawei.get(domain.getDomainStatus()));
+            applyRouteInfo(cdnDomainVo, domain);
             cdnDomainVos.add(cdnDomainVo);
         }
         return cdnDomainVos;
@@ -441,6 +447,25 @@ public class CdnDomainService extends BaseService<CdnDomain> implements VoData<C
             log.debug("解析旧版自建 CDN 域名服务区域失败，domainId={}", domain.getId(), e);
         }
         return domain.getServiceArea();
+    }
+    private void applyRouteInfo(CdnDomainVo target, CdnDomain domain) {
+        if (CdnRoute.isMultiCdn(domain.getRoute())) {
+            List<com.kuocai.cdn.entity.CdnDomainRouteBinding> bindings =
+                    routeBindingService.listActiveByDomainId(domain.getId());
+            target.setVendorAccountName(routeBindingService.bindingNames(domain.getId()));
+            target.setMultiCdn(true);
+            target.setEdgeOneIncluded(bindings.stream().anyMatch(binding ->
+                    CdnRoute.TENCENT_EDGEONE.getCode().equals(binding.getRoute())));
+            if (!bindings.isEmpty()) {
+                target.setPrimaryRoute(bindings.get(0).getRoute());
+            }
+            return;
+        }
+        target.setMultiCdn(false);
+        target.setEdgeOneIncluded(CdnRoute.TENCENT_EDGEONE.getCode().equals(domain.getRoute()));
+        target.setPrimaryRoute(domain.getRoute());
+        target.setVendorAccountName(SupportedVendorUtils.vendorNameMap()
+                .getOrDefault(domain.getRoute(), domain.getRoute()));
     }
     /**
      * 判断当前用户是否需要停止域名

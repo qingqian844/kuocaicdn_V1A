@@ -54,14 +54,28 @@ public class SelfHostedDomainServiceImpl extends BaseService<CdnDomain> implemen
     public CdnDomain create(Long userId, String domainName, String businessType, String serviceArea,
                             String originType, String ipOrDomain, String originProtocol, Integer httpPort,
                             Integer httpsPort, String originHost, Integer originWeight) throws BusinessException {
-        if (Assert.isEmpty(ipOrDomain)) {
-            throw new BusinessException("源站地址不能为空");
-        }
         SysUser owner = sysUserService.queryById(userId);
         String userRoute = owner == null ? null : owner.getRoute();
         String targetRoute = CdnRoute.resolveSelfHostedCreateRoute(userRoute, serviceArea);
+        return createForRoute(targetRoute, userId, domainName, businessType, serviceArea, originType,
+                ipOrDomain, originProtocol, httpPort, httpsPort, originHost, originWeight);
+    }
+
+    public CdnDomain createForRoute(String targetRoute, Long userId, String domainName, String businessType,
+                                    String serviceArea, String originType, String ipOrDomain,
+                                    String originProtocol, Integer httpPort, Integer httpsPort,
+                                    String originHost, Integer originWeight) throws BusinessException {
+        if (Assert.isEmpty(ipOrDomain)) {
+            throw new BusinessException("源站地址不能为空");
+        }
+        if (!CdnRoute.isSelfHosted(targetRoute)) {
+            throw new BusinessException("自建 CDN 线路不存在");
+        }
         String fixedServiceArea = CdnRoute.selfHostedServiceArea(targetRoute);
         if (fixedServiceArea != null) {
+            if (!fixedServiceArea.equals(serviceArea)) {
+                throw new BusinessException("自建 CDN 线路与加速区域不匹配");
+            }
             serviceArea = fixedServiceArea;
         }
         CdnDomain failedDomain = queryByObj(CdnDomain.builder().domainName(domainName).build()).stream()
@@ -103,26 +117,10 @@ public class SelfHostedDomainServiceImpl extends BaseService<CdnDomain> implemen
     @Override
     public CdnDomain configDNS(CdnDomain cdnDomain) throws TencentCloudSDKException, BusinessException {
         try {
-            SelfHostedDomainConfig config = selfHostedCdnService.getDomainConfig(cdnDomain.getId());
-            SelfHostedNodeGroup group = null;
-            for (SelfHostedNodeGroup candidate : selfHostedCdnService.listGroups()) {
-                if (candidate.getId().equals(config.getNodeGroupId())) {
-                    group = candidate;
-                    break;
-                }
-            }
-            if (group == null) {
-                throw new BusinessException("自建 CDN 节点组不存在");
-            }
-            selfHostedCdnService.requireActiveNode(group.getId());
-            selfHostedCdnService.syncGroupDns(group.getId());
-            if (!selfHostedCdnService.waitForDomainConfigurationApplied(
-                    cdnDomain.getId(), DOMAIN_APPLY_TIMEOUT_MS)) {
-                throw new BusinessException("节点配置下发超时，请检查节点状态和最近错误后重试");
-            }
+            String upstreamCname = prepareForMultiCdn(cdnDomain);
             if (cdnDomain.getTencentDnsId() == null || Assert.isEmpty(cdnDomain.getCname())) {
                 CreateRecordDTO dto = buildCustomerCnameRecord(cdnDomain.getDomainName(),
-                        TencentDns.LOCAL_DOMAIN_NAME, selfHostedCdnService.groupCname(group));
+                        TencentDns.LOCAL_DOMAIN_NAME, upstreamCname);
                 CreateRecordResponse response = TencentApi.createRecord(dto);
                 if (response == null || response.getRecordId() == null) {
                     throw new BusinessException("自建 CDN CNAME 创建失败");
@@ -140,6 +138,30 @@ public class SelfHostedDomainServiceImpl extends BaseService<CdnDomain> implemen
             markConfigureFailed(cdnDomain);
             throw e;
         }
+    }
+
+    public String prepareForMultiCdn(CdnDomain cdnDomain) throws BusinessException {
+        SelfHostedDomainConfig config = selfHostedCdnService.getDomainConfig(cdnDomain.getId());
+        SelfHostedNodeGroup group = null;
+        for (SelfHostedNodeGroup candidate : selfHostedCdnService.listGroups()) {
+            if (candidate.getId().equals(config.getNodeGroupId())) {
+                group = candidate;
+                break;
+            }
+        }
+        if (group == null) {
+            throw new BusinessException("自建 CDN 节点组不存在");
+        }
+        selfHostedCdnService.requireActiveNode(group.getId());
+        selfHostedCdnService.syncGroupDns(group.getId());
+        if (!selfHostedCdnService.waitForDomainConfigurationApplied(
+                cdnDomain.getId(), DOMAIN_APPLY_TIMEOUT_MS)) {
+            throw new BusinessException("节点配置下发超时，请检查节点状态和最近错误后重试");
+        }
+        cdnDomain.setDomainStatus("online");
+        cdnDomain.setUpdateTime(new Date());
+        save(cdnDomain);
+        return selfHostedCdnService.groupCname(group);
     }
 
     @Override
@@ -382,15 +404,26 @@ public class SelfHostedDomainServiceImpl extends BaseService<CdnDomain> implemen
 
     @Override
     public DomainConfig getDomainConfig(String domainName) throws BusinessException {
-        SelfHostedDomainConfig config = selfHostedCdnService.getDomainConfigByName(domainName);
-        JSONObject originJson = parseObject(config.getOriginConfigJson());
-        JSONObject cacheJson = parseObject(config.getCacheConfigJson());
-        JSONObject accessJson = selfHostedCdnService.readAccessConfig(config);
-        JSONObject advancedJson = parseObject(config.getAdvancedConfigJson());
-        JSONObject httpsJson = parseObject(config.getHttpsConfigJson());
         CdnDomain domain = queryByObj(CdnDomain.builder().domainName(domainName).build()).stream()
                 .filter(item -> CdnRoute.isSelfHosted(item.getRoute()))
                 .findFirst().orElseThrow(() -> new BusinessException("自建 CDN 域名不存在"));
+        return getDomainConfig(domain);
+    }
+
+    public DomainConfig getDomainConfig(CdnDomain domain) throws BusinessException {
+        if (domain == null || domain.getId() == null) {
+            throw new BusinessException("自建 CDN 域名不存在");
+        }
+        SelfHostedDomainConfig config = selfHostedCdnService.getDomainConfig(domain.getId());
+        JSONObject originJson = parseObject(config.getOriginConfigJson());
+        JSONObject cacheJson = parseObject(config.getCacheConfigJson());
+        JSONObject accessJson = selfHostedCdnService.readAccessConfig(config);
+        if (accessJson == null) {
+            accessJson = new JSONObject();
+        }
+        JSONObject advancedJson = parseObject(config.getAdvancedConfigJson());
+        JSONObject httpsJson = parseObject(config.getHttpsConfigJson());
+        String domainName = domain.getDomainName();
         DomainBasicInfo.SourceStationPrimaryInfo primary = DomainBasicInfo.SourceStationPrimaryInfo.builder()
                 .sourceStationType(config.getOriginType()).ipOrDomain(config.getOriginAddress())
                 .httpPort(String.valueOf(config.getHttpPort())).httpsPort(String.valueOf(config.getHttpsPort()))
@@ -403,7 +436,7 @@ public class SelfHostedDomainServiceImpl extends BaseService<CdnDomain> implemen
                 .httpsPort(String.valueOf(standbySource == null || standbySource.getHttpsPort() == null ? 443 : standbySource.getHttpsPort()))
                 .sourceHost(standbySource == null ? "" : standbySource.getHostName()).build();
         String domainStatus = domain.getDomainStatus();
-        if ("configuring".equals(domainStatus) && Assert.notEmpty(domain.getCname())
+        if ("configuring".equals(domainStatus)
                 && selfHostedCdnService.isDomainConfigurationApplied(domain.getId())) {
             domainStatus = "online";
         }

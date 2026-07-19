@@ -93,22 +93,35 @@ public class SystemSettingsPageController extends BaseController {
                 .accountStatus(accountStatus)
                 .selectable(selectable)
                 .fixedArea(fixedArea)
-                .overseasEnabled(CdnServiceAreaPolicyService.OVERSEAS.equals(fixedArea)
-                        || configured(config, targetKey, route, true))
-                .globalEnabled(CdnServiceAreaPolicyService.GLOBAL.equals(fixedArea)
-                        || configured(config, targetKey, route, false))
+                .mainlandEnabled(configured(config, targetKey, route,
+                        CdnServiceAreaPolicyService.MAINLAND))
+                .overseasEnabled(configured(config, targetKey, route,
+                        CdnServiceAreaPolicyService.OVERSEAS))
+                .globalEnabled(configured(config, targetKey, route,
+                        CdnServiceAreaPolicyService.GLOBAL))
                 .build();
     }
 
-    private boolean configured(WebsiteBaseConfigVo config, String targetKey, String route, boolean overseas) {
+    private boolean configured(WebsiteBaseConfigVo config, String targetKey, String route, String serviceArea) {
         if (config == null) {
             return false;
         }
-        List<String> targets = overseas ? config.getOverseasEnabledTargets() : config.getGlobalEnabledTargets();
+        List<String> targets;
+        if (CdnServiceAreaPolicyService.MAINLAND.equals(serviceArea)) {
+            targets = config.getMainlandEnabledTargets();
+        } else if (CdnServiceAreaPolicyService.OVERSEAS.equals(serviceArea)) {
+            targets = config.getOverseasEnabledTargets();
+        } else {
+            targets = config.getGlobalEnabledTargets();
+        }
         if (targets != null) {
             return targetKey != null && targets.contains(targetKey);
         }
-        List<String> legacyRoutes = overseas ? config.getOverseasEnabledRoutes() : config.getGlobalEnabledRoutes();
+        if (CdnServiceAreaPolicyService.MAINLAND.equals(serviceArea)) {
+            return false;
+        }
+        List<String> legacyRoutes = CdnServiceAreaPolicyService.OVERSEAS.equals(serviceArea)
+                ? config.getOverseasEnabledRoutes() : config.getGlobalEnabledRoutes();
         return legacyRoutes != null && legacyRoutes.contains(route);
     }
 

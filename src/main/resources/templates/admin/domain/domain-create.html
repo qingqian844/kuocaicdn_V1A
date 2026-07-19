@@ -253,17 +253,18 @@
 
                         <!-- Body -->
                         <div class="card-body">
+                            <div class="alert alert-danger" th:if="${routeAvailable == false}">
+                                当前没有可用的加速区域线路，请联系管理员配置线路组。
+                            </div>
                             <!-- Form -->
                             <div class="mb-4">
                                 <label for="domainName" class="form-label">加速域名 <i
                                     class="bi-question-circle text-body ms-1" data-bs-toggle="tooltip"
                                     data-bs-placement="top"
-                                    th:title="${route == 'self_hosted_overseas' ? '海外自建 CDN 路线不要求中国大陆 ICP 备案。' : '使用中国大陆节点的域名请先完成 ICP 备案，同时建议进行公安网备案。'}"
-                                    title="使用中国大陆节点的域名请先完成 ICP 备案，同时建议进行公安网备案。"></i></label>
+                                    title="选择包含中国大陆节点的加速区域时，域名需要完成 ICP 备案。"></i></label>
 
                                 <input type="text" class="form-control" name="productName" id="domainName"
-                                       th:placeholder="${route == 'self_hosted_overseas' ? '请输入加速域名，例如：www.example.com' : '请输入已备案的加速域名，例如：www.example.com'}"
-                                       placeholder="请输入已备案的加速域名，例如：www.example.com" maxlength="255" value="" autocomplete="off">
+                                       placeholder="请输入加速域名，例如：www.example.com" maxlength="255" value="" autocomplete="off">
                             </div>
                             <!-- End Form -->
 
@@ -318,96 +319,37 @@
                             <!-- End Row -->
 
                             <div class="row mb-4">
-                                <!--                            <label class="form-label">覆盖范围（如需境外线路请提工单申请）</label>-->
                                 <label class="form-label">加速区域</label>
-
-                                <div th:if='${route == "tencent_edgeone"}' class="input-group input-group-sm-vertical">
-                                    <label class="form-control" for="serviceAreaOutSideMainlandChina" th:if="${allowOverseas}">
+                                <div class="input-group input-group-sm-vertical"
+                                     th:with="currentWebsiteName=${openAgent and agentConfig != null and !#strings.isEmpty(agentConfig.websiteName) ? agentConfig.websiteName : websiteBaseConfig.websiteName}">
+                                    <label class="form-control" for="serviceAreaMainlandChina" th:if="${allowMainland}">
                                     <span class="form-check">
                                         <input type="radio" class="form-check-input" name="serviceArea"
-                                               id="serviceAreaOutSideMainlandChina" checked value="outside_mainland_china">
-
-                                        <span class="form-check-label">全球可用区（不含中国大陆）</span>
-                                        <i class="bi-question-circle text-body ms-1" title="腾讯云 EdgeOne 全球可用区（不含中国大陆），对应腾讯 Area：overseas"></i>
-                                    </span>
-                                </label>
-                                    <label class="form-control" for="serviceAreaMainlandChina">
-                                    <span class="form-check">
-                                        <input type="radio" class="form-check-input" name="serviceArea"
-                                               id="serviceAreaMainlandChina" value="mainland_china">
-
+                                               id="serviceAreaMainlandChina" th:checked="${allowMainland}" value="mainland_china">
                                         <span class="form-check-label">中国大陆可用区</span>
-                                        <i class="bi-question-circle text-body ms-1" title="腾讯云 EdgeOne 中国大陆可用区，对应腾讯 Area：mainland"></i>
-                                    </span>
-                                </label>
-                                    <label class="form-control" for="serviceAreaGlobal" th:if="${allowGlobal}">
-                                    <span class="form-check">
-                                        <input type="radio" class="form-check-input" name="serviceArea" id="serviceAreaGlobal" value="global">
-                                        <span class="form-check-label">全球可用区</span>
-                                        <i class="bi-question-circle text-body ms-1" title="腾讯云 EdgeOne 全球可用区，对应腾讯 Area：global"></i>
-                                    </span>
-                                </label>
-                                </div>
-
-                                <div th:if='${route == "self_hosted_mainland"}' class="input-group input-group-sm-vertical">
-                                    <label class="form-control" for="serviceAreaMainlandChina">
-                                        <span class="form-check">
-                                            <input type="radio" class="form-check-input" name="serviceArea" id="serviceAreaMainlandChina" checked value="mainland_china">
-                                            <span class="form-check-label">中国大陆</span>
-                                            <i class="bi-question-circle text-body ms-1" title="仅使用国内自建 CDN 节点组；加速域名需要完成 ICP 备案。"></i>
-                                        </span>
-                                    </label>
-                                </div>
-
-                                <div th:if='${route == "self_hosted_overseas"}' class="input-group input-group-sm-vertical">
-                                    <label class="form-control" for="serviceAreaOutSideMainlandChina">
-                                        <span class="form-check">
-                                            <input type="radio" class="form-check-input" name="serviceArea" id="serviceAreaOutSideMainlandChina" checked value="outside_mainland_china">
-                                            <span class="form-check-label">海外加速</span>
-                                            <i class="bi-question-circle text-body ms-1" title="仅使用海外自建 CDN 节点组，不包含中国大陆节点。"></i>
-                                        </span>
-                                    </label>
-                                </div>
-
-                                <div th:if='${route == "self_hosted_global"}' class="input-group input-group-sm-vertical">
-                                    <label class="form-control" for="serviceAreaGlobal">
-                                        <span class="form-check">
-                                            <input type="radio" class="form-check-input" name="serviceArea" id="serviceAreaGlobal" checked value="global">
-                                            <span class="form-check-label">全球加速</span>
-                                            <i class="bi-question-circle text-body ms-1" title="使用同时包含国内和海外节点的全球自建 CDN 节点组。"></i>
-                                        </span>
-                                    </label>
-                                </div>
-
-                                <div th:if='${route != "tencent_edgeone" and route != "self_hosted_mainland" and route != "self_hosted_overseas" and route != "self_hosted_global"}'
-                                     th:with="currentWebsiteName=${openAgent and agentConfig != null and !#strings.isEmpty(agentConfig.websiteName) ? agentConfig.websiteName : websiteBaseConfig.websiteName}"
-                                     class="input-group input-group-sm-vertical">
-                                    <label class="form-control" for="serviceAreaMainlandChina">
-                                    <span class="form-check">
-                                        <input type="radio" class="form-check-input" name="serviceArea"
-                                               id="serviceAreaMainlandChina" checked value="mainland_china">
-
-                                        <span class="form-check-label">中国大陆</span>
                                         <i class="bi-question-circle text-body ms-1"
-                                           th:title="|所有用户均使用${currentWebsiteName}中国境内节点就近提供加速服务；选择该加速区域时，加速域名需为已备案域名。|"></i>
+                                           th:title="|所有用户均使用${currentWebsiteName}中国境内节点线路组提供加速服务；域名需要完成 ICP 备案。${#strings.isEmpty(mainlandRouteDescription) ? '' : '线路组：' + mainlandRouteDescription}|"></i>
                                     </span>
-                                </label>
+                                    </label>
                                     <label class="form-control" for="serviceAreaOutSideMainlandChina" th:if="${allowOverseas}">
                                     <span class="form-check">
                                         <input type="radio" class="form-check-input" name="serviceArea"
-                                               id="serviceAreaOutSideMainlandChina" value="outside_mainland_china">
-
-                                        <span class="form-check-label">海外加速</span>
-                                        <i class="bi-question-circle text-body ms-1" title="仅在中国大陆境外加速，适用于业务在海外的用户。"></i>
+                                               id="serviceAreaOutSideMainlandChina"
+                                               th:checked="${!allowMainland and allowOverseas}" value="outside_mainland_china">
+                                        <span class="form-check-label">全球可用区（不含中国大陆）</span>
+                                        <i class="bi-question-circle text-body ms-1"
+                                           th:title="${#strings.isEmpty(overseasRouteDescription) ? '使用后台配置的中国境外线路组，不需要 ICP 备案。' : '线路组：' + overseasRouteDescription}"></i>
                                     </span>
-                                </label>
+                                    </label>
                                     <label class="form-control" for="serviceAreaGlobal" th:if="${allowGlobal}">
                                     <span class="form-check">
-                                        <input type="radio" class="form-check-input" name="serviceArea" id="serviceAreaGlobal" value="global">
-                                        <span class="form-check-label">全球加速</span>
-                                        <i class="bi-question-circle text-body ms-1" title="全球用户就近访问，中国境内和境外的用户均可获得良好的访问体验；选择该区域时，加速域名需为已备案域名。"></i>
+                                        <input type="radio" class="form-check-input" name="serviceArea" id="serviceAreaGlobal"
+                                               th:checked="${!allowMainland and !allowOverseas and allowGlobal}" value="global">
+                                        <span class="form-check-label">全球可用区</span>
+                                        <i class="bi-question-circle text-body ms-1"
+                                           th:title="${#strings.isEmpty(globalRouteDescription) ? '使用后台配置的全球线路组；包含中国大陆节点时需要 ICP 备案。' : '线路组：' + globalRouteDescription}"></i>
                                     </span>
-                                </label>
+                                    </label>
                                 </div>
                             </div>
                             <div class="row mb-4">
@@ -511,7 +453,7 @@
         <div th:replace="common/common-dashboard::#footer(curPage='domains')"></div>
         <!-- End Footer -->
         <div class="modal fade" id="verifyDomainModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-            <div class="modal-dialog">
+            <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h1 class="modal-title fs-5" id="staticBackdropLabel">验证域名的归属权</h1>
@@ -533,13 +475,15 @@
                                             <table class="table">
                                                 <thead>
                                                     <tr>
+                                                        <th scope="col">厂商账号</th>
                                                         <th scope="col">主机记录</th>
                                                         <th scope="col">记录类型</th>
                                                         <th scope="col">记录值</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody>
+                                                <tbody class="txt-verify-records">
                                                     <tr>
+                                                        <td><span class="txt-target-name">-</span></td>
                                                         <td><span class="txt-sub-domain">-</span></td>
                                                         <td><span class="txt-record-type">-</span></td>
                                                         <td><span class="txt-record">-</span></td>
