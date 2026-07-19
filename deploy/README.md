@@ -10,19 +10,60 @@
 
 ## 首次安装
 
+### 1. 放置交付文件
+
+将整个 `deploy/` 目录上传到服务器。把经销商提供的最新授权版 JAR 和客户授权文件放入：
+
+```text
+deploy/packages/KuocaiCDN-V2.x.x.x.jar
+deploy/packages/license.key
+```
+
+JAR 文件名不限，授权文件必须命名为 `license.key`。不需要手动创建 `env/app.env`，安装器会自动生成。
+
+### 2. 执行安装
+
 ```bash
+cd /root/kuocai-deploy
+chmod +x install.sh upgrade.sh backup.sh status.sh
 bash install.sh
 ```
 
-安装器会逐项询问 MySQL、Redis、MongoDB、RabbitMQ、MinIO 使用内置容器还是外部服务。选择外部服务时，请准备主机、端口、账号和密码；安装器会执行真实连接和权限检查。
+安装器会逐项询问 MySQL、Redis、MongoDB、RabbitMQ、MinIO 使用内置容器还是外部服务：
+
+- 输入 `1` 或直接按回车：使用内置容器。
+- 输入 `2`：使用外部服务，并继续填写连接信息。
+
+新客户建议五项全部直接按回车。选择外部服务时，请准备主机、端口、账号和密码；安装器会执行真实连接和权限检查。程序最终安装到 `/opt/kuocai-cdn/`。
+
+### 3. 获取临时管理员密码
 
 安装完成后：
 
-1. 查看 `/opt/kuocai-cdn/env/first-login.txt` 获取临时管理员密码。
-2. 打开安装器输出的管理地址并登录。
-3. 按八步向导完成管理员密码、授权域名、HTTPS、网站信息、厂商和可选模块配置。
-4. HTTPS 生效后，通过配置域名重新登录，再执行“完成初始化”。
-5. 初始化完成后删除 `env/first-login.txt`。
+```bash
+cat /opt/kuocai-cdn/env/first-login.txt
+```
+
+打开 `http://服务器IP/kuocaiadmin`，使用文件中的账号和临时密码登录。
+
+### 4. 完成网页初始化
+
+登录后自动进入 `/setup`：
+
+1. 检查数据库、缓存、消息队列、对象存储和授权文件。
+2. 修改管理员资料和永久密码。
+3. 验证授权域名的 DNS 和 `80` 端口。
+4. 自动配置 Caddy 并申请 HTTPS 证书。
+5. 配置网站名称、Logo、图标、备案号和默认参数。
+6. 配置 CDN 厂商账号、DNS 和默认厂商。
+7. 按需配置支付、邮件、短信和实名认证。
+8. 通过正式域名重新登录并完成初始化。
+
+初始化完成后删除临时密码文件：
+
+```bash
+rm -f /opt/kuocai-cdn/env/first-login.txt
+```
 
 运行时密钥保存在 `/opt/kuocai-cdn/env/app.env`，权限为 `600`。微信商户私钥由向导写入 `/opt/kuocai-cdn/secrets/`，不写入数据库。以上文件、客户 JAR 和授权文件均不得提交 Git。
 
@@ -52,5 +93,8 @@ bash /opt/kuocai-cdn/upgrade.sh /path/to/new.jar [/path/to/new-license.key]
 - 初始化状态：`curl -fsS http://127.0.0.1/api/setup/status`
 - 查看全部容器：`docker compose -f /opt/kuocai-cdn/docker-compose.yml ps`
 - 检查端口占用：确认其他 Nginx、Apache 或面板服务没有占用 `80/443`。
+- Docker 下载失败：确认服务器可以访问 `get.docker.com`、Docker Hub 和 GitHub。
+- 域名验证失败：确认 A 记录指向安装时填写的公网 IPv4，并等待 DNS 生效。
+- 外部服务失败：检查账号密码、数据库权限、安全组、白名单和服务监听地址。
 
 应用仅在 Docker 内部监听 `8000`，不要额外向公网开放该端口。Caddy 管理接口 `2019` 也仅允许 Docker 内部网络访问。

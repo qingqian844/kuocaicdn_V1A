@@ -10,11 +10,22 @@
 
 ## Install
 
+Put the licensed JAR and customer license in:
+
+```text
+packages/KuocaiCDN-V2.x.x.x.jar
+packages/license.key
+```
+
+The JAR filename can be arbitrary. The license must be named `license.key`. Do not create `env/app.env` manually; the installer generates it.
+
 ```bash
+cd /root/kuocai-deploy
+chmod +x install.sh upgrade.sh backup.sh status.sh
 bash install.sh
 ```
 
-For each dependency, choose a bundled container or an external service. External MySQL, Redis, MongoDB, RabbitMQ, and MinIO settings are validated before setup continues.
+For each dependency, press Enter or enter `1` for the bundled container. Enter `2` to use an external service. New installations should normally use all bundled services. External MySQL, Redis, MongoDB, RabbitMQ, and MinIO settings are validated before setup continues.
 
 After installation:
 
@@ -23,6 +34,10 @@ After installation:
 3. Complete the eight-step setup wizard.
 4. After HTTPS is active, sign in through the configured domain and complete setup.
 5. Delete `env/first-login.txt` after setup.
+
+```bash
+rm -f /opt/kuocai-cdn/env/first-login.txt
+```
 
 Runtime secrets are stored in `/opt/kuocai-cdn/env/app.env` with mode `600`. The WeChat merchant private key is stored under `/opt/kuocai-cdn/secrets/`, not in the database. Never commit these files, the licensed JAR, or the customer license to Git.
 

@@ -109,6 +109,117 @@ mvn -DskipTests package
 target/
 ```
 
+### 一键部署（推荐）
+
+一键部署会自动安装 Docker、启动应用和基础服务、初始化空数据库，并在首次登录后通过网页向导完成域名、HTTPS、网站和厂商配置。客户不需要提前安装 JDK、MySQL、Redis、MongoDB、RabbitMQ、MinIO 或 Nginx，也不需要手动创建 `env` 文件。
+
+#### 1. 准备服务器
+
+- 服务器架构：`x86_64`
+- 支持系统：Ubuntu、Debian、CentOS、Rocky Linux、AlmaLinux
+- 使用 `root` 用户安装
+- 安全组开放 TCP `80/443` 和 UDP `443`
+- 确认 Nginx、Apache、宝塔网站或其他程序没有占用 `80/443`
+- 准备一个授权文件中允许的域名，并将其 A 记录解析到服务器公网 IPv4
+
+#### 2. 准备交付目录
+
+从项目中取得完整的 `deploy/` 目录，并将经销商提供的最新 JAR 和 `license.key` 放入 `packages/`：
+
+```text
+deploy/
+├── install.sh
+├── upgrade.sh
+├── backup.sh
+├── status.sh
+├── docker-compose.yml
+├── caddy/
+├── env/
+├── packages/
+│   ├── KuocaiCDN-V2.x.x.x.jar
+│   └── license.key
+├── scripts/
+└── sql/
+```
+
+JAR 文件名不限，但授权文件必须命名为 `license.key`。不要把 `app.env`、客户授权文件或任何私钥提交到 Git。
+
+#### 3. 上传并执行安装
+
+可使用宝塔文件管理、SFTP 或 `scp` 将整个 `deploy/` 目录上传到服务器，例如：
+
+```bash
+scp -r deploy root@服务器IP:/root/kuocai-deploy
+ssh root@服务器IP
+cd /root/kuocai-deploy
+chmod +x install.sh upgrade.sh backup.sh status.sh
+bash install.sh
+```
+
+安装器会依次询问 MySQL、Redis、MongoDB、RabbitMQ、MinIO 使用方式：
+
+- 输入 `1` 或直接按回车：使用内置容器，推荐新客户使用。
+- 输入 `2`：使用外部服务，随后按提示填写主机、端口、账号和密码。
+
+全内置安装时，连续按回车选择五个内置服务，再确认自动识别出的公网 IPv4 即可。安装器会自动生成数据库密码、JWT 密钥、配置加密 RSA 密钥和临时管理员密码，运行配置保存在 `/opt/kuocai-cdn/env/app.env`。
+
+#### 4. 获取临时管理员密码
+
+安装结束后执行：
+
+```bash
+cat /opt/kuocai-cdn/env/first-login.txt
+```
+
+然后访问 `http://服务器IP/kuocaiadmin`，使用文件中的管理员账号和临时密码登录。初始化完成前，普通用户登录、注册和业务接口均不可使用。
+
+#### 5. 完成首次初始化
+
+登录后系统会自动进入 `/setup`，依次完成：
+
+1. 检查 MySQL、Redis、MongoDB、RabbitMQ、MinIO 和授权文件。
+2. 修改管理员账号、邮箱和永久密码。
+3. 填写授权域名，验证 DNS 和服务器 `80` 端口。
+4. 由 Caddy 自动配置反向代理并申请 HTTPS 证书。
+5. 配置网站名称、Logo、图标、备案号和业务默认值。
+6. 配置 CDN 厂商账号、DNS 和默认厂商；启用的配置必须测试通过。
+7. 按需配置支付宝、微信、邮件、短信和实名认证。
+8. 通过最终检查后完成初始化。
+
+HTTPS 生效后，需要点击向导中的链接，通过正式域名重新登录，再执行“完成初始化”。完成后建议删除临时密码文件：
+
+```bash
+rm -f /opt/kuocai-cdn/env/first-login.txt
+```
+
+#### 6. 常用运维命令
+
+```bash
+# 查看容器状态、健康状态和最近日志
+bash /opt/kuocai-cdn/status.sh
+
+# 备份数据库、JAR、授权、环境配置和运行私钥
+bash /opt/kuocai-cdn/backup.sh
+
+# 更新 JAR
+bash /opt/kuocai-cdn/upgrade.sh /root/KuocaiCDN-new.jar
+
+# 同时更新 JAR 和授权文件
+bash /opt/kuocai-cdn/upgrade.sh /root/KuocaiCDN-new.jar /root/license.key
+```
+
+升级脚本会先备份。新版本健康检查失败时会自动恢复旧 JAR 和授权文件，默认仅保留最近三份备份。
+
+#### 7. 常见问题
+
+- 提示 `80/443` 被占用：停止现有 Nginx、Apache、宝塔网站或其他反向代理后重试。
+- 域名验证失败：确认 A 记录已指向当前服务器公网 IPv4，并等待 DNS 生效。
+- 外部服务验证失败：检查安全组、白名单、账号密码、数据库权限和服务监听地址。
+- Docker 下载失败：确认服务器可以访问 `get.docker.com`、Docker Hub 和 GitHub。
+- 安装中断：修复错误后重新执行 `bash install.sh`，脚本会从已有状态继续，不会重复初始化历史数据库。
+
+交付包内还有更集中的安装说明：[deploy/README.md](deploy/README.md)。
+
 ### 启动方式
 
 ```bash
@@ -280,6 +391,54 @@ The packaged jar will be generated under:
 ```text
 target/
 ```
+
+### One-Click Deployment (Recommended)
+
+The one-click installer sets up Docker, application dependencies, the empty database, Caddy, and the first-run setup wizard. Customers do not need to install Java, MySQL, Redis, MongoDB, RabbitMQ, MinIO, or Nginx manually.
+
+#### 1. Prepare the server
+
+- Use an x86_64 Ubuntu, Debian, CentOS, Rocky Linux, or AlmaLinux server.
+- Run installation as `root`.
+- Open TCP `80/443` and UDP `443`.
+- Make sure no existing web server occupies `80/443`.
+- Point an authorized domain A record to the server public IPv4 address.
+
+#### 2. Prepare and upload the delivery folder
+
+Put the licensed JAR and customer license in `deploy/packages/`. The JAR filename can be arbitrary, but the license must be named `license.key`.
+
+```bash
+scp -r deploy root@SERVER_IP:/root/kuocai-deploy
+ssh root@SERVER_IP
+cd /root/kuocai-deploy
+chmod +x install.sh upgrade.sh backup.sh status.sh
+bash install.sh
+```
+
+For each dependency, press Enter or enter `1` for the bundled container. Enter `2` to provide an external service. New installations should normally use all bundled services.
+
+#### 3. First sign-in and setup
+
+```bash
+cat /opt/kuocai-cdn/env/first-login.txt
+```
+
+Open `http://SERVER_IP/kuocaiadmin`, sign in with the temporary password, and complete the eight-step setup wizard. After HTTPS is active, sign in again through the configured domain before completing setup.
+
+```bash
+rm -f /opt/kuocai-cdn/env/first-login.txt
+```
+
+#### 4. Operations
+
+```bash
+bash /opt/kuocai-cdn/status.sh
+bash /opt/kuocai-cdn/backup.sh
+bash /opt/kuocai-cdn/upgrade.sh /root/KuocaiCDN-new.jar [/root/license.key]
+```
+
+See [deploy/README.en.md](deploy/README.en.md) for the delivery-package instructions.
 
 ### Run
 
