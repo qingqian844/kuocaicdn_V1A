@@ -54,6 +54,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -771,84 +772,170 @@ public class SelfHostedCdnService {
             throw new BusinessException("节点组不存在");
         }
         List<SelfHostedNode> nodes = healthyNodesInGroup(groupId);
-        Map<String, Long> oldRecords = new LinkedHashMap<>();
-        List<Long> legacyRecordIds = new ArrayList<>();
-        if (!Assert.isEmpty(group.getDnsRecordIds())) {
-            try {
-                JSONObject stored = JSON.parseObject(group.getDnsRecordIds());
-                for (String key : stored.keySet()) {
-                    oldRecords.put(key, stored.getLong(key));
-                }
-            } catch (Exception legacyFormat) {
-                try {
-                    legacyRecordIds.addAll(JSON.parseArray(group.getDnsRecordIds(), Long.class));
-                } catch (Exception ignored) {
-                    // Ignore a malformed historical value and rebuild it below.
-                }
-            }
-        }
-        Map<String, Long> newRecords = new LinkedHashMap<>();
         boolean ipv6Required = domainConfigDao.selectCount(new QueryWrapper<SelfHostedDomainConfig>()
                 .eq("node_group_id", groupId).eq("status", "enabled").eq("ipv6_enabled", 1)) > 0;
+        Set<String> desiredAddresses = new LinkedHashSet<>();
+        for (SelfHostedNode node : nodes) {
+            Map<String, String> addresses = resolveNodeAddresses(node.getHost(), ipv6Required);
+            for (Map.Entry<String, String> address : addresses.entrySet()) {
+                desiredAddresses.add(SelfHostedDnsPlan.recordKey(address.getKey(), address.getValue()));
+            }
+        }
+
+        SelfHostedDnsPlan.State state = SelfHostedDnsPlan.State.parse(group.getDnsRecordIds());
+        SelfHostedDnsPlan.Plan plan = SelfHostedDnsPlan.build(
+                group, desiredAddresses, state, TencentDns.LOCAL_DOMAIN_NAME);
         try {
-            for (SelfHostedNode node : nodes) {
-                Map<String, String> addresses = resolveNodeAddresses(node.getHost(), ipv6Required);
-                for (Map.Entry<String, String> address : addresses.entrySet()) {
-                    String recordType = address.getKey();
-                    String ip = address.getValue();
-                    String recordKey = recordType + "|" + ip;
-                    String legacyKey = oldRecords.containsKey(ip) ? ip : null;
-                    String existingKey = oldRecords.containsKey(recordKey) ? recordKey : legacyKey;
-                    if (existingKey != null) {
-                        newRecords.put(existingKey, oldRecords.get(existingKey));
-                        continue;
-                    }
-                    CreateRecordDTO dto = new CreateRecordDTO();
-                    dto.setDomain(TencentDns.LOCAL_DOMAIN_NAME).setSubDomain(group.getCnameLabel())
-                            .setRecordType(recordType).setRecordLine("默认").setValue(ip)
-                            .setTTL(DNS_RECORD_TTL_SECONDS);
-                    CreateRecordResponse response = TencentApi.createRecord(dto);
-                    if (response == null || response.getRecordId() == null) {
-                        throw new BusinessException("DNS 服务未返回节点记录 ID");
-                    }
-                    newRecords.put(recordKey, response.getRecordId());
+            deleteStaleParentRecords(group, state, plan.parentRecords);
+            deleteStaleShardRecords(group, state, plan.shardAddresses);
+            createMissingShardRecords(group, state, plan.shardAddresses);
+            deleteLegacyDirectRecords(group, state);
+            createMissingParentRecords(group, state, plan.parentRecords);
+
+            state.shardRecords.keySet().retainAll(plan.shardAddresses.keySet());
+            for (String shard : new ArrayList<>(state.shardRecords.keySet())) {
+                if (state.shardRecords.get(shard).isEmpty()) {
+                    state.shardRecords.remove(shard);
                 }
             }
+            persistDnsState(group, state);
         } catch (Exception e) {
-            for (Map.Entry<String, Long> entry : newRecords.entrySet()) {
-                if (oldRecords.containsKey(entry.getKey())) continue;
-                try {
-                    TencentApi.deleteRecord(new DeleteRecordDTO().setDomain(TencentDns.LOCAL_DOMAIN_NAME)
-                            .setRecordId(entry.getValue()));
-                } catch (Exception ignored) {
-                    // Best-effort rollback of records created during this failed sync.
+            if (e instanceof BusinessException && e.getMessage() != null
+                    && e.getMessage().startsWith("自建 CDN 节点组最多支持")) {
+                throw (BusinessException) e;
+            }
+            throw new BusinessException("节点组 DNS 同步失败：" + e.getMessage()).setCause(e);
+        }
+    }
+
+    private void deleteStaleParentRecords(SelfHostedNodeGroup group, SelfHostedDnsPlan.State state,
+                                          Set<String> desiredParentRecords) throws Exception {
+        for (String key : new ArrayList<>(state.parentRecords.keySet())) {
+            if (!desiredParentRecords.contains(key)) {
+                deleteTrackedDnsRecord(group, state, state.parentRecords, key);
+            }
+        }
+    }
+
+    private void deleteStaleShardRecords(SelfHostedNodeGroup group, SelfHostedDnsPlan.State state,
+                                         Map<String, LinkedHashSet<String>> desiredShards) throws Exception {
+        for (String shard : new ArrayList<>(state.shardRecords.keySet())) {
+            Set<String> desired = desiredShards.get(shard);
+            Map<String, Long> records = state.shardRecords.get(shard);
+            for (String key : new ArrayList<>(records.keySet())) {
+                if (desired == null || !desired.contains(key)) {
+                    deleteTrackedDnsRecord(group, state, records, key);
                 }
             }
-            throw new BusinessException("节点组 DNS 同步失败：" + e.getMessage());
-        }
-        List<Long> deleteIds = new ArrayList<>(legacyRecordIds);
-        for (Map.Entry<String, Long> entry : oldRecords.entrySet()) {
-            if (!newRecords.containsKey(entry.getKey())) {
-                deleteIds.add(entry.getValue());
+            if (desired == null && records.isEmpty()) {
+                state.shardRecords.remove(shard);
+                persistDnsState(group, state);
             }
         }
-        Map<String, Long> recordsToPersist = new LinkedHashMap<>(newRecords);
-        for (Long recordId : deleteIds) {
+    }
+
+    private void createMissingShardRecords(SelfHostedNodeGroup group, SelfHostedDnsPlan.State state,
+                                           Map<String, LinkedHashSet<String>> desiredShards) throws Exception {
+        for (Map.Entry<String, LinkedHashSet<String>> shard : desiredShards.entrySet()) {
+            LinkedHashMap<String, Long> records = state.shardRecords.computeIfAbsent(
+                    shard.getKey(), key -> new LinkedHashMap<>());
+            for (String recordKey : shard.getValue()) {
+                if (!records.containsKey(recordKey)) {
+                    createTrackedDnsRecord(group, state, records, recordKey, shard.getKey());
+                }
+            }
+        }
+    }
+
+    private void deleteLegacyDirectRecords(SelfHostedNodeGroup group,
+                                           SelfHostedDnsPlan.State state) throws Exception {
+        for (String key : new ArrayList<>(state.legacyDirectRecords.keySet())) {
+            deleteTrackedDnsRecord(group, state, state.legacyDirectRecords, key);
+        }
+        for (Long recordId : new ArrayList<>(state.legacyRecordIds)) {
+            deleteDnsRecordAllowMissing(recordId);
+            state.legacyRecordIds.remove(recordId);
+            persistDnsState(group, state);
+        }
+    }
+
+    private void createMissingParentRecords(SelfHostedNodeGroup group, SelfHostedDnsPlan.State state,
+                                            Set<String> desiredParentRecords) throws Exception {
+        for (String recordKey : desiredParentRecords) {
+            if (!state.parentRecords.containsKey(recordKey)) {
+                createTrackedDnsRecord(group, state, state.parentRecords,
+                        recordKey, group.getCnameLabel());
+            }
+        }
+    }
+
+    private void createTrackedDnsRecord(SelfHostedNodeGroup group, SelfHostedDnsPlan.State state,
+                                        Map<String, Long> records, String recordKey,
+                                        String subDomain) throws Exception {
+        CreateRecordDTO dto = new CreateRecordDTO().setDomain(TencentDns.LOCAL_DOMAIN_NAME)
+                .setSubDomain(subDomain)
+                .setRecordType(SelfHostedDnsPlan.recordType(recordKey))
+                .setRecordLine("默认")
+                .setValue(SelfHostedDnsPlan.recordValue(recordKey))
+                .setTTL(DNS_RECORD_TTL_SECONDS);
+        CreateRecordResponse response = createDnsRecord(dto);
+        if (response == null || response.getRecordId() == null) {
+            throw new BusinessException("DNS 服务未返回节点记录 ID");
+        }
+        records.put(recordKey, response.getRecordId());
+        try {
+            persistDnsState(group, state);
+        } catch (Exception persistError) {
+            records.remove(recordKey);
             try {
-                TencentApi.deleteRecord(new DeleteRecordDTO().setDomain(TencentDns.LOCAL_DOMAIN_NAME).setRecordId(recordId));
-            } catch (Exception ignored) {
-                // Keep failed deletions in the tracked map so the next health reconciliation can retry them.
-                for (Map.Entry<String, Long> entry : oldRecords.entrySet()) {
-                    if (recordId.equals(entry.getValue())) {
-                        recordsToPersist.put(entry.getKey(), entry.getValue());
-                        break;
-                    }
-                }
+                deleteDnsRecord(response.getRecordId());
+            } catch (Exception cleanupError) {
+                log.warn("Failed to roll back an untracked self-hosted DNS record, recordId={}",
+                        response.getRecordId(), cleanupError);
+            }
+            throw persistError;
+        }
+    }
+
+    private void deleteTrackedDnsRecord(SelfHostedNodeGroup group, SelfHostedDnsPlan.State state,
+                                        Map<String, Long> records, String recordKey) throws Exception {
+        Long recordId = records.get(recordKey);
+        if (recordId != null) {
+            deleteDnsRecordAllowMissing(recordId);
+        }
+        records.remove(recordKey);
+        persistDnsState(group, state);
+    }
+
+    private void deleteDnsRecordAllowMissing(Long recordId) throws Exception {
+        try {
+            deleteDnsRecord(recordId);
+        } catch (Exception e) {
+            String message = e.getMessage() == null ? "" : e.getMessage().toLowerCase(Locale.ROOT);
+            if (!message.contains("记录不存在") && !message.contains("record not exist")
+                    && !message.contains("invalidparameter.recordid")
+                    && !message.contains("invalid record id")) {
+                throw e;
             }
         }
-        group.setDnsRecordIds(JSON.toJSONString(recordsToPersist));
+    }
+
+    private void persistDnsState(SelfHostedNodeGroup group,
+                                 SelfHostedDnsPlan.State state) throws BusinessException {
+        group.setDnsRecordIds(state.toJson());
         group.setUpdateTime(new Date());
-        groupDao.updateById(group);
+        if (groupDao.updateById(group) != 1) {
+            throw new BusinessException("保存节点组 DNS 状态失败");
+        }
+    }
+
+    protected CreateRecordResponse createDnsRecord(CreateRecordDTO request) throws Exception {
+        return TencentApi.createRecord(request);
+    }
+
+    protected void deleteDnsRecord(Long recordId) throws Exception {
+        TencentApi.deleteRecord(new DeleteRecordDTO().setDomain(TencentDns.LOCAL_DOMAIN_NAME)
+                .setRecordId(recordId));
     }
 
     public List<SelfHostedNode> nodesInGroup(Long groupId, boolean enabledOnly) {
