@@ -70,7 +70,7 @@ public class MvcConfig implements WebMvcConfigurer, ErrorPageRegistrar {
                 .excludePathPatterns(
                         "/", "/index", "/product_price", "/contact", "/alipay-authentication-redirect",
                         "/login/**", "/admin-login", "/user-login", "/register", "/register-email", "/forget", "/SysUser/registerUser", "/SysUser/registerUserByEmail", "/sign", "/MP_verify_uTqpCgnxTUMc708G.txt", "/robots.txt", "/getWechatQrCode", "/wechatBinding", "/wechatOpenIdLogin", "/kuocaiadmin",
-                        "/FaceCertifyVerify/i/**", "/api/**",
+                        "/FaceCertifyVerify/i/**", "/api/**", "/internal/scdn/**",
                         "/400", "/401", "/403", "/404", "/500", "/banned",
                         "/**/front/**", "/**/dashboard/assets/**", "/**/common/**")
                 .order(1);
