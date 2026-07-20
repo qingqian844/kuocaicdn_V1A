@@ -15,7 +15,9 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.zip.CRC32;
 
 @Slf4j
@@ -82,6 +84,25 @@ public class CdnAreaRouteService {
             }
         }
         return targets;
+    }
+
+    public List<String> configuredSelfHostedRoutes() {
+        Set<String> routes = new LinkedHashSet<>();
+        for (String serviceArea : new String[]{
+                CdnServiceAreaPolicyService.MAINLAND,
+                CdnServiceAreaPolicyService.OVERSEAS,
+                CdnServiceAreaPolicyService.GLOBAL}) {
+            try {
+                for (AreaRouteTargetVo target : resolveConfiguredTargets(serviceArea)) {
+                    if (target != null && CdnRoute.isSelfHosted(target.getRoute())) {
+                        routes.add(target.getRoute());
+                    }
+                }
+            } catch (BusinessException e) {
+                log.warn("读取自建 CDN 区域线路失败，区域={}，原因={}", serviceArea, e.getMessage());
+            }
+        }
+        return new ArrayList<>(routes);
     }
 
     public String configuredMode(String serviceArea) {

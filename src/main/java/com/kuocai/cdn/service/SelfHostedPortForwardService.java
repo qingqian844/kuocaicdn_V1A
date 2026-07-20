@@ -43,19 +43,22 @@ public class SelfHostedPortForwardService {
     private final SelfHostedNodeDao nodeDao;
     private final SelfHostedCdnService selfHostedCdnService;
     private final SysUserService sysUserService;
+    private final CdnAreaRouteService cdnAreaRouteService;
 
     public SelfHostedPortForwardService(SelfHostedPortForwardDao portForwardDao,
                                         SelfHostedNodeGroupDao groupDao,
                                         SelfHostedGroupNodeDao groupNodeDao,
-                                        SelfHostedNodeDao nodeDao,
-                                        SelfHostedCdnService selfHostedCdnService,
-                                        SysUserService sysUserService) {
+                                         SelfHostedNodeDao nodeDao,
+                                         SelfHostedCdnService selfHostedCdnService,
+                                         SysUserService sysUserService,
+                                         CdnAreaRouteService cdnAreaRouteService) {
         this.portForwardDao = portForwardDao;
         this.groupDao = groupDao;
         this.groupNodeDao = groupNodeDao;
         this.nodeDao = nodeDao;
         this.selfHostedCdnService = selfHostedCdnService;
         this.sysUserService = sysUserService;
+        this.cdnAreaRouteService = cdnAreaRouteService;
     }
 
     public List<JSONObject> list(Long userId, boolean admin) {
@@ -80,18 +83,40 @@ public class SelfHostedPortForwardService {
             return groupDao.selectList(new QueryWrapper<SelfHostedNodeGroup>()
                     .eq("status", "enabled").orderByDesc("is_default").orderByAsc("id"));
         }
-        if (!CdnRoute.isSelfHosted(route)) {
+        List<String> selfHostedRoutes = availableSelfHostedRoutes(route);
+        if (selfHostedRoutes.isEmpty()) {
             throw new BusinessException("当前账号未开通自建 CDN");
         }
         List<SelfHostedNodeGroup> result = new ArrayList<>();
-        result.add(selfHostedCdnService.defaultGroup(route));
+        Set<Long> groupIds = new LinkedHashSet<>();
+        BusinessException lastError = null;
+        for (String selfHostedRoute : selfHostedRoutes) {
+            try {
+                SelfHostedNodeGroup group = selfHostedCdnService.defaultGroup(selfHostedRoute);
+                if (group != null && groupIds.add(group.getId())) {
+                    result.add(group);
+                }
+            } catch (BusinessException e) {
+                lastError = e;
+            }
+        }
+        if (result.isEmpty()) {
+            if (lastError != null) {
+                throw lastError;
+            }
+            throw new BusinessException("当前账号没有可用的自建 CDN 节点组");
+        }
         return result;
+    }
+
+    public boolean isAvailable(String route, boolean admin) {
+        return admin || !availableSelfHostedRoutes(route).isEmpty();
     }
 
     @Transactional(rollbackFor = Exception.class)
     public SelfHostedPortForward save(SelfHostedPortForwardSaveRequest request,
                                       Long loginUserId, String route, boolean admin) throws BusinessException {
-        if (!admin && !CdnRoute.isSelfHosted(route)) {
+        if (!isAvailable(route, admin)) {
             throw new BusinessException("当前账号未开通自建 CDN");
         }
         validateRequest(request);
@@ -172,13 +197,31 @@ public class SelfHostedPortForwardService {
     }
 
     private Long resolveGroupId(Long requestedGroupId, String route, boolean admin) throws BusinessException {
-        if (!admin) {
-            return selfHostedCdnService.defaultGroup(route).getId();
+        if (admin) {
+            if (requestedGroupId == null) {
+                throw new BusinessException("请选择节点组");
+            }
+            return requestedGroupId;
         }
+        List<SelfHostedNodeGroup> groups = availableGroups(route, false);
         if (requestedGroupId == null) {
-            throw new BusinessException("请选择节点组");
+            return groups.get(0).getId();
         }
-        return requestedGroupId;
+        for (SelfHostedNodeGroup group : groups) {
+            if (requestedGroupId.equals(group.getId())) {
+                return requestedGroupId;
+            }
+        }
+        throw new BusinessException("所选节点组不属于当前账号已开放的自建 CDN 线路");
+    }
+
+    private List<String> availableSelfHostedRoutes(String route) {
+        if (CdnRoute.isSelfHosted(route)) {
+            List<String> routes = new ArrayList<>();
+            routes.add(route);
+            return routes;
+        }
+        return cdnAreaRouteService.configuredSelfHostedRoutes();
     }
 
     private SelfHostedPortForward getOwnedRule(Long id, Long loginUserId, boolean admin) throws BusinessException {

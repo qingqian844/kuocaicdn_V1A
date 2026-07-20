@@ -133,6 +133,21 @@ class CdnAreaRouteServiceTest {
         assertEquals("account:102", plan.getPrimaryTarget().getTargetKey());
     }
 
+    @Test
+    void listsSelfHostedTargetsAcrossConfiguredAreas() {
+        VendorAccountService accounts = mock(VendorAccountService.class);
+        LicenseService license = mock(LicenseService.class);
+        when(license.isVendorAuthorized("self_hosted_overseas")).thenReturn(true);
+        when(license.isVendorAuthorized("self_hosted_global")).thenReturn(true);
+        SystemConfig.websiteBaseConfig = WebsiteBaseConfigVo.builder()
+                .overseasEnabledTargets(Collections.singletonList("route:self_hosted_overseas"))
+                .globalEnabledTargets(Collections.singletonList("route:self_hosted_global"))
+                .build();
+
+        assertEquals(Arrays.asList("self_hosted_overseas", "self_hosted_global"),
+                new CdnAreaRouteService(accounts, license).configuredSelfHostedRoutes());
+    }
+
     private CdnAreaRouteService serviceWithAccounts() throws BusinessException {
         VendorAccountService accounts = mock(VendorAccountService.class);
         LicenseService license = mock(LicenseService.class);

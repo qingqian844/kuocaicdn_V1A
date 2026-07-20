@@ -120,7 +120,7 @@
     function renderGroups() {
         const select = document.getElementById('ruleGroup');
         select.innerHTML = groups.map(group => '<option value="' + esc(group.id) + '">[' + coverageName(group.coverage) + '] ' + esc(group.groupName) + (group.isDefault === 1 ? '（默认）' : '') + '</option>').join('');
-        document.getElementById('ruleGroupHelp').textContent = isAdmin ? '管理员可选择任意启用的节点组。' : '当前用户使用其自建 CDN 线路对应的默认节点组。';
+        document.getElementById('ruleGroupHelp').textContent = isAdmin ? '管理员可选择任意启用的节点组。' : '仅显示系统已为当前账号开放区域对应的默认节点组。';
     }
     function openRuleModal() {
         document.getElementById('ruleModalTitle').textContent = '新增端口转发规则';

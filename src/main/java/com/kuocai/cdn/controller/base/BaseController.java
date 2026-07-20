@@ -104,6 +104,8 @@ public class BaseController {
     protected CacheTaskService cacheTaskService;
     @Autowired
     protected FlowDonateService flowDonateService;
+    @Autowired
+    protected SelfHostedPortForwardService selfHostedPortForwardService;
 
 
     @Autowired
@@ -184,6 +186,8 @@ public class BaseController {
             currentWebsiteBaseConfig = SystemConfig.websiteBaseConfig;
         }
         map.put("websiteBaseConfig", currentWebsiteBaseConfig);
+        map.put("selfHostedPortForwardEnabled",
+                selfHostedPortForwardService.isAvailable(route, isAdmin()));
         map.put("websitePermissionConfig", SystemConfig.websitePermissionConfig);
         map.put("websiteAgreementConfig", SystemConfig.websiteAgreementConfig);
         map.put("websiteHomeCodeConfig", SystemConfig.websiteHomeCodeConfig);

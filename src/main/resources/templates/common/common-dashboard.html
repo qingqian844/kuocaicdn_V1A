@@ -875,7 +875,7 @@
                             <!--                               href="certification-list">我的证书</a>-->
                             <a th:class="${curPage == 'cache-preheating' ? 'nav-link active':'nav-link'}"
                                href="cache-preheating">缓存配置</a>
-                            <a th:if="${session.loginUser != null and (session.loginUser.roleId == 1 or (session.loginUser.route != null and #strings.startsWith(session.loginUser.route, 'self_hosted')))}"
+                            <a th:if="${selfHostedPortForwardEnabled}"
                                th:class="${curPage == 'self-hosted-port-forward' ? 'nav-link active':'nav-link'}"
                                href="self-hosted-port-forward">端口转发</a>
                         </div>
