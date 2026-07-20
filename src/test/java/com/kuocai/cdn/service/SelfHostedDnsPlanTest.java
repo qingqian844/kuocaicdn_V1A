@@ -5,6 +5,7 @@ import com.kuocai.cdn.exception.BusinessException;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -40,6 +41,19 @@ class SelfHostedDnsPlanTest {
                         new SelfHostedDnsPlan.State(), "dns.example.com"));
 
         assertTrue(error.getMessage().contains("最多支持100个 IP 地址"));
+    }
+
+    @Test
+    void partialFinalShardIsBalancedInsteadOfOverloadingOneNode() throws Exception {
+        SelfHostedDnsPlan.Plan plan = SelfHostedDnsPlan.build(
+                SelfHostedNodeGroup.builder().id(1L).cnameLabel("edge").build(),
+                addresses(11), new SelfHostedDnsPlan.State(), "dns.example.com");
+
+        List<Integer> sizes = new java.util.ArrayList<>();
+        for (LinkedHashSet<String> shard : plan.shardAddresses.values()) {
+            sizes.add(shard.size());
+        }
+        assertEquals(java.util.Arrays.asList(6, 5), sizes);
     }
 
     @Test

@@ -36,8 +36,13 @@ final class SelfHostedDnsPlan {
 
         int shardCount = (desiredAddresses.size() + ADDRESSES_PER_SHARD - 1) / ADDRESSES_PER_SHARD;
         LinkedHashMap<String, LinkedHashSet<String>> shards = new LinkedHashMap<>();
+        LinkedHashMap<String, Integer> targetSizes = new LinkedHashMap<>();
         for (int index = 1; index <= shardCount; index++) {
-            shards.put(shardLabel(group, index), new LinkedHashSet<>());
+            String shard = shardLabel(group, index);
+            shards.put(shard, new LinkedHashSet<>());
+            int targetSize = desiredAddresses.size() / shardCount
+                    + (index <= desiredAddresses.size() % shardCount ? 1 : 0);
+            targetSizes.put(shard, targetSize);
         }
 
         Set<String> desiredSet = new LinkedHashSet<>(desiredAddresses);
@@ -48,7 +53,7 @@ final class SelfHostedDnsPlan {
                 continue;
             }
             for (String key : existing.keySet()) {
-                if (entry.getValue().size() >= ADDRESSES_PER_SHARD) {
+                if (entry.getValue().size() >= targetSizes.get(entry.getKey())) {
                     break;
                 }
                 if (desiredSet.contains(key) && assigned.add(key)) {
@@ -61,9 +66,9 @@ final class SelfHostedDnsPlan {
             if (assigned.contains(key)) {
                 continue;
             }
-            for (LinkedHashSet<String> shard : shards.values()) {
-                if (shard.size() < ADDRESSES_PER_SHARD) {
-                    shard.add(key);
+            for (Map.Entry<String, LinkedHashSet<String>> shard : shards.entrySet()) {
+                if (shard.getValue().size() < targetSizes.get(shard.getKey())) {
+                    shard.getValue().add(key);
                     assigned.add(key);
                     break;
                 }
