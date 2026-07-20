@@ -33,6 +33,7 @@ import com.kuocai.cdn.service.domain.operation.MultiCdnDomainServiceImpl;
 import com.kuocai.cdn.service.domain.operation.optional.ICdnDomainVerifyService;
 import com.kuocai.cdn.service.factory.CdnPlatformFactory;
 import com.kuocai.cdn.util.Assert;
+import com.kuocai.cdn.util.EdgeOneFailureReasonFormatter;
 import com.kuocai.cdn.util.JedisUtil;
 import com.kuocai.cdn.util.ThreadMdcUtils;
 import com.kuocai.cdn.vo.CdnDomainVo;
@@ -142,6 +143,9 @@ public class CdnDomainController extends BaseController {
         }
         try {
             if (isConfigurableStatus(cdnDomain.getDomainStatus())) {
+                if (Assert.notEmpty(cdnDomain.getFailureReason())) {
+                    service.clearFailureReason(cdnDomain.getId());
+                }
                 return RespResult.success("配置已就绪");
             }
             DomainConfig domainConfig = loadDomainConfigForReadyCheck(cdnDomain);
@@ -149,13 +153,22 @@ public class CdnDomainController extends BaseController {
                     ? null : domainConfig.getDomainBasicInfo().getDomainStatus();
             if (isConfigurableStatus(upstreamStatus)) {
                 cdnDomain.setDomainStatus(upstreamStatus);
+                cdnDomain.setFailureReason(null);
                 service.save(cdnDomain);
+                service.clearFailureReason(cdnDomain.getId());
                 return RespResult.success("配置已就绪");
             }
             if (DomainStatus.CONFIGURE_FAILED.equals(upstreamStatus)) {
                 cdnDomain.setDomainStatus(upstreamStatus);
+                if (CdnRoute.TENCENT_EDGEONE.getCode().equals(cdnDomain.getRoute())
+                        && Assert.isEmpty(cdnDomain.getFailureReason())) {
+                    cdnDomain.setFailureReason(
+                            EdgeOneFailureReasonFormatter.defaultReason(cdnDomain.getServiceArea()));
+                }
                 service.save(cdnDomain);
-                return RespResult.fail("多 CDN 线路组存在配置失败的上游，请联系管理员处理");
+                return RespResult.fail(Assert.notEmpty(cdnDomain.getFailureReason())
+                        ? cdnDomain.getFailureReason()
+                        : "上游存在配置失败的域名，请联系管理员处理");
             }
             return RespResult.fail("域名正在配置中，请稍后刷新后再配置");
         } catch (BusinessException e) {

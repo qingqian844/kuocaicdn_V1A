@@ -1,5 +1,6 @@
 package com.kuocai.cdn.service.domain.operation;
 
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.kuocai.cdn.api.DomainAdvancedInfo;
 import com.kuocai.cdn.api.DomainBackSourceInfo;
 import com.kuocai.cdn.api.DomainBasicInfo;
@@ -29,6 +30,7 @@ import com.kuocai.cdn.service.domain.operation.support.AbstractUnsupportedCdnPla
 import com.kuocai.cdn.service.domain.operation.optional.ICdnDomainVerifyService;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.util.DomainUtil;
+import com.kuocai.cdn.util.EdgeOneFailureReasonFormatter;
 import com.kuocai.cdn.util.KuocaiBaseUtil;
 import com.kuocai.cdn.vo.CdnDomainSourcesVo;
 import com.kuocai.cdn.vo.DomainHttpsSettingVo;
@@ -357,6 +359,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
             zoneId = resolveZoneIdForCreate(userId, domainName, serviceArea);
             TencentEdgeOneClient.ensureZoneBoundToConfiguredPlan(zoneId);
             localDomain = save(buildPendingCreateDomain(localDomain, userId, domainName, businessType, serviceArea, zoneId));
+            clearPendingCreateFailure(localDomain);
 
             if (localRecordExisted) {
                 AccelerationDomain existingDomain = tryGetAccelerationDomain(zoneId, domainName);
@@ -392,27 +395,33 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
             if (recovered != null) {
                 return recovered;
             }
-            markPendingCreateFailed(localDomain);
-            throw e;
+            String failureReason = EdgeOneFailureReasonFormatter.format(
+                    e.getMessage(), null, null, serviceArea);
+            markPendingCreateFailed(localDomain, failureReason);
+            throw new BusinessException(failureReason).setCause(e);
         } catch (TencentCloudSDKException e) {
             log.error("Create EdgeOne domain {} failed: {} - {}", domainName, e.getErrorCode(), e.getMessage());
             CdnDomain recovered = tryRecoverPendingCreate(localDomain, zoneId, domainName, businessType, serviceArea, originType, ipOrDomain, localRecordExisted);
             if (recovered != null) {
                 return recovered;
             }
-            markPendingCreateFailed(localDomain);
-            if (isUnauthorized(e)) {
-                throw new BusinessException("创建腾讯云 EdgeOne 域名失败：根域名已完成归属权验证并已写入 eo-user 授权标签，但当前 EdgeOne Secret 仍缺少 teo:CreateAccelerationDomain 创建加速域名权限，或腾讯云 CAM 策略的资源范围/条件未匹配。请在腾讯云 CAM 中给该密钥放行 EdgeOne 创建加速域名权限后重试。错误代码：" + e.getErrorCode() + "，" + TencentEdgeOneClient.formatTencentError(e));
-            }
-            throw new BusinessException("创建腾讯云 EdgeOne 域名失败：" + TencentEdgeOneClient.formatTencentError(e));
+            String rawReason = isUnauthorized(e)
+                    ? "创建腾讯云 EdgeOne 域名失败：当前密钥缺少 teo:CreateAccelerationDomain 权限，或 CAM 策略的资源范围/条件未匹配。"
+                    : TencentEdgeOneClient.formatTencentError(e);
+            String failureReason = EdgeOneFailureReasonFormatter.format(
+                    rawReason, e.getErrorCode(), e.getRequestId(), serviceArea);
+            markPendingCreateFailed(localDomain, failureReason);
+            throw new BusinessException(failureReason).setCause(e);
         } catch (Exception e) {
             log.error("Create EdgeOne domain {} failed", domainName, e);
             CdnDomain recovered = tryRecoverPendingCreate(localDomain, zoneId, domainName, businessType, serviceArea, originType, ipOrDomain, localRecordExisted);
             if (recovered != null) {
                 return recovered;
             }
-            markPendingCreateFailed(localDomain);
-            throw new BusinessException("创建腾讯云 EdgeOne 域名失败：" + e.getMessage());
+            String failureReason = EdgeOneFailureReasonFormatter.format(
+                    e.getMessage(), null, null, serviceArea);
+            markPendingCreateFailed(localDomain, failureReason);
+            throw new BusinessException(failureReason).setCause(e);
         }
     }
 
@@ -434,6 +443,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         pending.setServiceArea(serviceArea);
         pending.setDomainId(zoneId);
         pending.setDomainStatus("configuring");
+        pending.setFailureReason(null);
         pending.setRoute(CdnRoute.TENCENT_EDGEONE.getCode());
         if (pending.getCreateTime() == null) {
             pending.setCreateTime(now);
@@ -452,8 +462,11 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         if (upstreamDomain != null && Assert.notEmpty(upstreamDomain.getCname())) {
             localDomain.setCnameTencent(upstreamDomain.getCname());
         }
+        localDomain.setFailureReason(null);
         localDomain.setUpdateTime(new Date());
-        return save(localDomain);
+        CdnDomain savedDomain = save(localDomain);
+        clearPendingCreateFailure(savedDomain);
+        return savedDomain;
     }
 
     private CdnDomain tryRecoverPendingCreate(CdnDomain localDomain, String zoneId, String domainName,
@@ -485,16 +498,31 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
                 && normalize(requestedType).equalsIgnoreCase(normalize(origin.getOriginType()));
     }
 
-    private void markPendingCreateFailed(CdnDomain localDomain) {
+    private void markPendingCreateFailed(CdnDomain localDomain, String failureReason) {
         if (localDomain == null || localDomain.getId() == null) {
             return;
         }
         try {
             localDomain.setDomainStatus("configure_failed");
+            localDomain.setFailureReason(failureReason);
             localDomain.setUpdateTime(new Date());
             save(localDomain);
         } catch (Exception e) {
             log.error("Mark EdgeOne pending domain {} as failed error", localDomain.getDomainName(), e);
+        }
+    }
+
+    private void clearPendingCreateFailure(CdnDomain localDomain) {
+        if (localDomain == null || localDomain.getId() == null) {
+            return;
+        }
+        try {
+            UpdateWrapper<CdnDomain> update = new UpdateWrapper<>();
+            update.eq("id", localDomain.getId()).set("failure_reason", null);
+            dao.update(null, update);
+            localDomain.setFailureReason(null);
+        } catch (Exception e) {
+            log.error("Clear EdgeOne pending domain {} failure reason error", localDomain.getDomainName(), e);
         }
     }
 

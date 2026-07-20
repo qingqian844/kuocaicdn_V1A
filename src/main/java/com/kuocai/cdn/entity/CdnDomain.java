@@ -66,6 +66,11 @@ public class CdnDomain implements Serializable {
     private String domainStatus;
 
     /**
+     * 域名创建或配置失败原因
+     */
+    private String failureReason;
+
+    /**
      * 腾讯云DNS解析ID
      */
     private Long tencentDnsId;

@@ -511,6 +511,35 @@
 
     <!-- JS Plugins Init. -->
     <script>
+        function escapeDomainFailureText(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, function(char) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                }[char];
+            });
+        }
+
+        function renderDomainFailureReason(row) {
+            if (!row || row.domainStatus !== 'configure_failed') {
+                return '';
+            }
+            let reason = row.failureReason;
+            if (!reason && (row.route === 'tencent_edgeone' || row.edgeOneIncluded === true)) {
+                reason = row.serviceArea === 'outside_mainland_china'
+                    ? '腾讯云 EdgeOne 配置失败。请确认域名未绑定在其他 EdgeOne 账号。'
+                    : '腾讯云 EdgeOne 配置失败。未备案域名请使用海外加速；若已备案，请确认域名未绑定在其他 EdgeOne 账号。';
+            }
+            if (!reason) {
+                return '';
+            }
+            const safeReason = escapeDomainFailureText(reason);
+            return `<div class="text-danger mt-1" style="min-width: 220px; max-width: 360px; white-space: normal; line-height: 1.45; font-size: 12px;" title="${safeReason}">${safeReason}</div>`;
+        }
+
         $(document).on('ready', function() {
             // INITIALIZATION OF DATATABLES
             // =======================================================
@@ -669,6 +698,7 @@
                     targets: 5,
                     render: function(data, type, row, meta) {
                         var curStatus = row.domainStatusName;
+                        const failureReason = renderDomainFailureReason(row);
                         if (curStatus === '已停用') {
                             // 将时间字符串转换为时间戳
                             const targetDate = new Date(row.updateTime);
@@ -681,19 +711,22 @@
                             return `
                                 <span class="badge bg-soft-danger text-danger" >${curStatus}</span>
                                 <span class="badge bg-soft-danger text-danger" >于${7-daysDiff}天后自动删除</span>
-
+                                ${failureReason}
                             `;
                         } else if (curStatus === '已开启') {
                             return `
                                 <span class="badge bg-soft-success text-success">${curStatus}</span>
+                                ${failureReason}
                             `;
                         } else if (curStatus === '配置中') {
                             return `
                                 <span class="badge bg-soft-primary text-primary">${curStatus}</span>
+                                ${failureReason}
                             `;
                         } else {
                             return `
                                 <span class="badge bg-soft-warning text-warning">${curStatus}</span>
+                                ${failureReason}
                             `;
                         }
                     }

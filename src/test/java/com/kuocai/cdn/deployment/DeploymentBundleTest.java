@@ -23,6 +23,7 @@ class DeploymentBundleTest {
 
         assertFalse(sql.matches("(?s).*\\bCREATE\\s+DATABASE\\b.*"));
         assertFalse(sql.matches("(?s).*\\bUSE\\s+`?kuocai_cdn`?.*"));
+        assertTrue(sql.contains("`failure_reason` varchar(1000)"));
         assertTrue(installer.contains("SCHEMA_IMPORT_MARKER"));
         assertTrue(installer.contains("created_by_installer"));
         assertTrue(installer.contains("历史数据库没有首次安装状态"));

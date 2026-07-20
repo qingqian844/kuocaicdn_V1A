@@ -18,6 +18,7 @@ import com.kuocai.cdn.service.domain.operation.AliyunDomainServiceImpl;
 import com.kuocai.cdn.service.domain.operation.ICdnPlatformService;
 import com.kuocai.cdn.service.factory.CdnPlatformFactory;
 import com.kuocai.cdn.util.Assert;
+import com.kuocai.cdn.util.EdgeOneFailureReasonFormatter;
 import com.kuocai.cdn.util.JedisUtil;
 import com.kuocai.cdn.util.KuocaiBaseUtil;
 import com.kuocai.cdn.util.KuocaiDateUtil;
@@ -165,6 +166,7 @@ public class DomainTask {
                         log.info("从服务商处获取到域名[{}]的原始状态为: {}", cdnDomain.getDomainName(), domainStatus);
                         boolean edgeOneDomain = "tencent_edgeone".equals(cdnDomain.getRoute());
                         boolean changed = false;
+                        boolean clearFailureReason = false;
                         if (edgeOneDomain && Assert.notEmpty(domainBasicInfo.getCname())
                                 && ObjectUtil.notEqual(domainBasicInfo.getCname(), cdnDomain.getCnameTencent())) {
                             cdnDomain.setCnameTencent(domainBasicInfo.getCname());
@@ -178,8 +180,23 @@ public class DomainTask {
                             cdnDomain.setDomainStatus(domainStatus);
                             changed = true;
                         }
+                        if (edgeOneDomain && "configure_failed".equals(domainStatus)
+                                && Assert.isEmpty(cdnDomain.getFailureReason())) {
+                            cdnDomain.setFailureReason(
+                                    EdgeOneFailureReasonFormatter.defaultReason(cdnDomain.getServiceArea()));
+                            changed = true;
+                        } else if (edgeOneDomain && !"configuring".equals(domainStatus)
+                                && !"configure_failed".equals(domainStatus)
+                                && Assert.notEmpty(cdnDomain.getFailureReason())) {
+                            cdnDomain.setFailureReason(null);
+                            clearFailureReason = true;
+                            changed = true;
+                        }
                         if (changed) {
                             cdnDomainService.save(cdnDomain);
+                        }
+                        if (clearFailureReason) {
+                            cdnDomainService.clearFailureReason(cdnDomain.getId());
                         }
                         if (edgeOneDomain) {
                             edgeOneDomainQuotaService.recordRootDomain(cdnDomain.getUserId(), cdnDomain.getDomainName(), cdnDomain.getId());
@@ -199,6 +216,8 @@ public class DomainTask {
                                 && isStalePendingCreate(cdnDomain)) {
                             log.warn("EdgeOne 域名[{}]创建记录长时间未在上游出现，标记为创建失败并允许用户重试", cdnDomain.getDomainName());
                             cdnDomain.setDomainStatus("configure_failed");
+                            cdnDomain.setFailureReason(
+                                    EdgeOneFailureReasonFormatter.stalePendingReason(cdnDomain.getServiceArea()));
                             cdnDomainService.save(cdnDomain);
                         }
                         // 如果错误明确指出域名在供应商处不存在，则更新本地数据库状态

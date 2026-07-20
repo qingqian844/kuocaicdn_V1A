@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.kuocai.cdn.api.huawei.cdn.DomainConfigureApi;
 import com.kuocai.cdn.api.huawei.cdn.DomainOperationApi;
 import com.kuocai.cdn.api.huawei.cdn.constant.DomainStatus;
@@ -83,6 +84,15 @@ public class CdnDomainService extends BaseService<CdnDomain> implements VoData<C
         JSONArray jsonArray = jsonObject.getJSONArray("data");
         jsonObject.put("data", convert2Vo(jsonArray.toJavaList(CdnDomain.class)));
         return jsonObject;
+    }
+
+    public void clearFailureReason(Long domainId) {
+        if (domainId == null) {
+            return;
+        }
+        UpdateWrapper<CdnDomain> update = new UpdateWrapper<>();
+        update.eq("id", domainId).set("failure_reason", null);
+        dao.update(null, update);
     }
 
     /**

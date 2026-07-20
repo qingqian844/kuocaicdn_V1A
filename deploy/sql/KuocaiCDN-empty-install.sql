@@ -167,6 +167,7 @@ CREATE TABLE `cdn_domain` (
   `business_type` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `service_area` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `domain_status` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `failure_reason` varchar(1000) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `tencent_dns_id` bigint(20) DEFAULT NULL,
   `route` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `cname` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,

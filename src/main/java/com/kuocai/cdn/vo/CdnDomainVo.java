@@ -109,6 +109,11 @@ public class CdnDomainVo {
     private String domainStatusName;
 
     /**
+     * 域名创建或配置失败原因
+     */
+    private String failureReason;
+
+    /**
      * 腾讯云CNAME
      */
     private String tencentCname;
