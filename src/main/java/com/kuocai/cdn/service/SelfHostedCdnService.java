@@ -35,6 +35,7 @@ import com.kuocai.cdn.enumeration.domainmerage.CdnRoute;
 import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.util.ConfigureRsaUtils;
+import com.kuocai.cdn.util.SelfHostedDomainValidator;
 import com.kuocai.cdn.util.SelfHostedOriginValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -473,7 +474,9 @@ public class SelfHostedCdnService {
                 }
                 JSONObject normalizedOriginConfig;
                 String normalizedOriginAddress;
+                String normalizedDomainName;
                 try {
+                    normalizedDomainName = SelfHostedDomainValidator.validateAndNormalize(domain.getDomainName());
                     normalizedOriginAddress = SelfHostedOriginValidator.validateAndNormalize(
                             config.getOriginType(), config.getOriginAddress(), "主源站");
                     normalizedOriginConfig = validateAndNormalizeNestedOrigins(config.getOriginConfigJson());
@@ -485,9 +488,13 @@ public class SelfHostedCdnService {
                 item.remove("certificateCipher");
                 item.remove("privateKeyCipher");
                 item.remove("accessConfigCipher");
-                item.put("domainName", domain.getDomainName());
+                item.put("domainName", SelfHostedDomainValidator.toAgentServerName(normalizedDomainName));
                 item.put("cname", domain.getCname());
                 item.put("originAddress", normalizedOriginAddress);
+                if (Assert.isEmpty(config.getOriginHost())
+                        || normalizedDomainName.equalsIgnoreCase(config.getOriginHost().trim())) {
+                    item.put("originHost", SelfHostedDomainValidator.defaultOriginHost(normalizedDomainName));
+                }
                 item.put("originConfigJson", normalizedOriginConfig.toJSONString());
                 item.put("accessConfigJson", readAccessConfig(config).toJSONString());
                 item.put("certificate", decryptSecret(config.getCertificateCipher(), "certificate"));
@@ -655,7 +662,7 @@ public class SelfHostedCdnService {
     }
 
     private void quarantineInvalidDomainConfig(SelfHostedDomainConfig config, CdnDomain domain, String error) {
-        String message = "源站配置无效，已自动隔离：" + error;
+        String message = "自建 CDN 配置无效，已自动隔离：" + error;
         if (message.length() > 1000) {
             message = message.substring(0, 1000);
         }

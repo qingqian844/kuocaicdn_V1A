@@ -21,6 +21,7 @@ import com.kuocai.cdn.service.SysUserService;
 import com.kuocai.cdn.service.base.BaseService;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.util.DomainUtil;
+import com.kuocai.cdn.util.SelfHostedDomainValidator;
 import com.kuocai.cdn.util.SelfHostedOriginValidator;
 import com.kuocai.cdn.vo.*;
 import com.tencentcloudapi.common.exception.TencentCloudSDKException;
@@ -66,6 +67,7 @@ public class SelfHostedDomainServiceImpl extends BaseService<CdnDomain> implemen
                                     String serviceArea, String originType, String ipOrDomain,
                                     String originProtocol, Integer httpPort, Integer httpsPort,
                                     String originHost, Integer originWeight) throws BusinessException {
+        domainName = SelfHostedDomainValidator.validateAndNormalize(domainName);
         String normalizedOrigin = SelfHostedOriginValidator.validateAndNormalize(
                 originType, ipOrDomain, "主源站");
         if (!CdnRoute.isSelfHosted(targetRoute)) {

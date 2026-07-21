@@ -42,7 +42,15 @@ def api_request(config, method, path, payload=None):
 
 def safe_name(domain):
     value = domain.lower().strip()
-    if not value or any(ch not in "abcdefghijklmnopqrstuvwxyz0123456789.-" for ch in value):
+    host = value[2:] if value.startswith("*.") else value[1:] if value.startswith(".") else value
+    labels = host.split(".")
+    valid_labels = all(
+        label and len(label) <= 63 and label[0].isalnum() and label[-1].isalnum()
+        and all(ch.isalnum() or ch == "-" for ch in label)
+        for label in labels
+    )
+    if (not host or len(host) > 253 or len(labels) < 2 or not valid_labels
+            or any(ord(ch) > 127 for ch in host)):
         raise ValueError("invalid domain name")
     return hashlib.sha256(value.encode("utf-8")).hexdigest()[:20]
 

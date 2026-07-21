@@ -182,6 +182,74 @@ class SelfHostedCdnRouteTest {
     }
 
     @Test
+    void wildcardDomainUsesLegacyCompatibleNginxNameWithoutBlockingOtherDomains() {
+        SelfHostedGroupNodeDao groupNodeDao = mock(SelfHostedGroupNodeDao.class);
+        SelfHostedDomainConfigDao domainConfigDao = mock(SelfHostedDomainConfigDao.class);
+        CdnDomainDao domainDao = mock(CdnDomainDao.class);
+        SelfHostedDomainConfig wildcardConfig = SelfHostedDomainConfig.builder()
+                .id(3L).cdnDomainId(4L).nodeGroupId(2L).originType("ipaddr")
+                .originAddress("192.0.2.10").originHost("*.example.com")
+                .originConfigJson("{}").status("enabled").build();
+        SelfHostedDomainConfig regularConfig = SelfHostedDomainConfig.builder()
+                .id(5L).cdnDomainId(6L).nodeGroupId(2L).originType("ipaddr")
+                .originAddress("192.0.2.11").originHost("cdn.example.net")
+                .originConfigJson("{}").status("enabled").build();
+        when(groupNodeDao.selectList(any())).thenReturn(Collections.singletonList(
+                SelfHostedGroupNode.builder().groupId(2L).nodeId(1L).build()));
+        when(domainConfigDao.selectList(any())).thenReturn(java.util.Arrays.asList(wildcardConfig, regularConfig));
+        when(domainDao.selectById(4L)).thenReturn(CdnDomain.builder().id(4L).domainName("*.Example.COM")
+                .route(CdnRoute.SELF_HOSTED_OVERSEAS.getCode()).domainStatus("online").build());
+        when(domainDao.selectById(6L)).thenReturn(CdnDomain.builder().id(6L).domainName("cdn.example.net")
+                .route(CdnRoute.SELF_HOSTED_OVERSEAS.getCode()).domainStatus("online").build());
+        SelfHostedCdnService service = new SelfHostedCdnService(mock(SelfHostedNodeDao.class),
+                mock(SelfHostedNodeGroupDao.class), groupNodeDao, domainConfigDao,
+                mock(SelfHostedCacheJobDao.class), mock(SelfHostedCacheJobNodeDao.class), domainDao,
+                mock(SelfHostedPortForwardDao.class));
+
+        String json = service.desiredConfig(
+                SelfHostedNode.builder().id(1L).desiredConfigVersion(5L).build()).toJSONString();
+
+        assertTrue(json.contains("\"domainName\":\".example.com\""));
+        assertTrue(json.contains("\"originHost\":\"example.com\""));
+        assertTrue(json.contains("\"domainName\":\"cdn.example.net\""));
+        verify(domainConfigDao, never()).update(any(), any());
+    }
+
+    @Test
+    void invalidHistoricalDomainIsQuarantinedWithoutBlockingValidDomain() {
+        SelfHostedGroupNodeDao groupNodeDao = mock(SelfHostedGroupNodeDao.class);
+        SelfHostedDomainConfigDao domainConfigDao = mock(SelfHostedDomainConfigDao.class);
+        CdnDomainDao domainDao = mock(CdnDomainDao.class);
+        SelfHostedDomainConfig invalidConfig = SelfHostedDomainConfig.builder()
+                .id(3L).cdnDomainId(4L).nodeGroupId(2L).originType("ipaddr")
+                .originAddress("192.0.2.10").originConfigJson("{}").status("enabled").build();
+        SelfHostedDomainConfig validConfig = SelfHostedDomainConfig.builder()
+                .id(5L).cdnDomainId(6L).nodeGroupId(2L).originType("ipaddr")
+                .originAddress("192.0.2.11").originConfigJson("{}").status("enabled").build();
+        when(groupNodeDao.selectList(any())).thenReturn(Collections.singletonList(
+                SelfHostedGroupNode.builder().groupId(2L).nodeId(1L).build()));
+        when(domainConfigDao.selectList(any())).thenReturn(java.util.Arrays.asList(invalidConfig, validConfig));
+        CdnDomain invalidDomain = CdnDomain.builder().id(4L).domainName("https://bad.example.com/path")
+                .route(CdnRoute.SELF_HOSTED_OVERSEAS.getCode()).domainStatus("online").build();
+        when(domainDao.selectById(4L)).thenReturn(invalidDomain);
+        when(domainDao.selectById(6L)).thenReturn(CdnDomain.builder().id(6L).domainName("cdn.example.net")
+                .route(CdnRoute.SELF_HOSTED_OVERSEAS.getCode()).domainStatus("online").build());
+        SelfHostedCdnService service = new SelfHostedCdnService(mock(SelfHostedNodeDao.class),
+                mock(SelfHostedNodeGroupDao.class), groupNodeDao, domainConfigDao,
+                mock(SelfHostedCacheJobDao.class), mock(SelfHostedCacheJobNodeDao.class), domainDao,
+                mock(SelfHostedPortForwardDao.class));
+
+        String json = service.desiredConfig(
+                SelfHostedNode.builder().id(1L).desiredConfigVersion(5L).build()).toJSONString();
+
+        assertFalse(json.contains("https://bad.example.com/path"));
+        assertTrue(json.contains("\"domainName\":\"cdn.example.net\""));
+        assertEquals("configure_failed", invalidDomain.getDomainStatus());
+        verify(domainConfigDao).update(any(), any());
+        verify(domainDao).updateById(invalidDomain);
+    }
+
+    @Test
     void enablingHttpsWithoutNewPemKeepsTheStoredCertificate() throws Exception {
         SelfHostedDomainConfigDao domainConfigDao = mock(SelfHostedDomainConfigDao.class);
         SelfHostedGroupNodeDao groupNodeDao = mock(SelfHostedGroupNodeDao.class);
