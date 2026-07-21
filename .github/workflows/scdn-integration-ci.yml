@@ -18,6 +18,8 @@ jobs:
           distribution: temurin
           java-version: "8"
           cache: maven
+      - name: Install repository-local Huawei SDK
+        run: mvn --batch-mode initialize
       - name: Run CDN and SCDN contract tests
         run: mvn --batch-mode -DskipTests=false test
 
