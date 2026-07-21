@@ -3,7 +3,6 @@ package com.kuocai.cdn.integration.scdn;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kuocai.cdn.config.ScdnIntegrationProperties;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -18,16 +17,16 @@ import java.util.Map;
 @ConditionalOnProperty(name = "scdn.integration.enabled", havingValue = "true")
 public class ScdnOutboxPublisher {
     private final JdbcTemplate jdbcTemplate;
-    private final RabbitTemplate rabbitTemplate;
+    private final ScdnRabbitEventSender eventSender;
     private final ObjectMapper objectMapper;
     private final ScdnIntegrationProperties properties;
 
     public ScdnOutboxPublisher(JdbcTemplate jdbcTemplate,
-                               RabbitTemplate rabbitTemplate,
+                               ScdnRabbitEventSender eventSender,
                                ObjectMapper objectMapper,
                                ScdnIntegrationProperties properties) {
         this.jdbcTemplate = jdbcTemplate;
-        this.rabbitTemplate = rabbitTemplate;
+        this.eventSender = eventSender;
         this.objectMapper = objectMapper;
         this.properties = properties;
     }
@@ -54,7 +53,7 @@ public class ScdnOutboxPublisher {
             event.put("aggregateId", row.get("aggregate_id").toString());
             event.put("payload", objectMapper.readValue(
                     row.get("payload_json").toString(), new TypeReference<Map<String, Object>>() {}));
-            rabbitTemplate.convertAndSend(properties.getOutboxExchange(), eventType, event);
+            eventSender.send(properties.getOutboxExchange(), eventType, row.get("event_id").toString(), event);
             jdbcTemplate.update(
                     "UPDATE scdn_outbox_event SET status='published',published_time=NOW(),attempt_count=? WHERE id=? AND status='pending'",
                     attempts + 1, id);

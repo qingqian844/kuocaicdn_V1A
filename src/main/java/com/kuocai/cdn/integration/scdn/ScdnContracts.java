@@ -9,6 +9,7 @@ import javax.validation.constraints.DecimalMin;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
+import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 
 public final class ScdnContracts {
@@ -68,15 +69,20 @@ public final class ScdnContracts {
     @Data
     public static class CreateOrderRequest {
         @NotBlank
+        @Size(max = 96)
         private String externalOrderId;
         @NotNull
+        @Positive
         private Long userId;
         @NotNull
         @DecimalMin(value = "0.01")
         private BigDecimal amount;
         @NotBlank
+        @Size(max = 255)
         private String title;
+        @Size(max = 1000)
         private String detail;
+        @Size(max = 64)
         private String productCode;
     }
 
@@ -96,13 +102,17 @@ public final class ScdnContracts {
     @Data
     public static class WalletOperationRequest {
         @NotBlank
+        @Size(min = 8, max = 128)
         private String businessReference;
         @NotNull
+        @Positive
         private Long userId;
         @NotNull
         @Positive
         private BigDecimal amount;
+        @Size(max = 255)
         private String description;
+        @Size(max = 128)
         private String originalBusinessReference;
     }
 

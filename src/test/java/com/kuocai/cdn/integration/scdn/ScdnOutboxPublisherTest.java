@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kuocai.cdn.config.ScdnIntegrationProperties;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.HashMap;
@@ -21,9 +20,9 @@ import static org.mockito.Mockito.when;
 class ScdnOutboxPublisherTest {
 
     @Test
-    void publishesEventAndMarksItPublished() {
+    void publishesEventAndMarksItPublished() throws Exception {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
-        RabbitTemplate rabbit = mock(RabbitTemplate.class);
+        ScdnRabbitEventSender sender = mock(ScdnRabbitEventSender.class);
         ScdnIntegrationProperties properties = new ScdnIntegrationProperties();
         properties.setOutboxExchange("events");
         Map<String, Object> row = new HashMap<>();
@@ -36,10 +35,10 @@ class ScdnOutboxPublisherTest {
         row.put("attempt_count", 0);
         when(jdbc.queryForList(any(String.class))).thenReturn(List.of(row));
 
-        ScdnOutboxPublisher publisher = new ScdnOutboxPublisher(jdbc, rabbit, new ObjectMapper(), properties);
+        ScdnOutboxPublisher publisher = new ScdnOutboxPublisher(jdbc, sender, new ObjectMapper(), properties);
         publisher.publishPending();
 
-        verify(rabbit).convertAndSend(eq("events"), eq("scdn.order.created"), any(Map.class));
+        verify(sender).send(eq("events"), eq("scdn.order.created"), eq("event-12"), any(Map.class));
         ArgumentCaptor<String> sql = ArgumentCaptor.forClass(String.class);
         verify(jdbc).update(sql.capture(), eq(1), eq(12L));
         assertEquals(true, sql.getValue().contains("status='published'"));

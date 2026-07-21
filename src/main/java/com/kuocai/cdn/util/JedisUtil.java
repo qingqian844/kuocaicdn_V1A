@@ -197,11 +197,7 @@ public class JedisUtil {
         synchronized (JedisUtil.class) {
             Jedis jedis = getJedis();
             try {
-                String result = setStr(key, value);
-                if (RETURN_OK.equals(result)) {
-                    jedis.expire(key, expire);
-                }
-                return result;
+                return jedis.setex(key, expire, value);
             } finally {
                 close(jedis);
             }

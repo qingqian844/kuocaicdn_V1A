@@ -26,17 +26,20 @@ public class ScdnSsoService {
     private final ObjectMapper objectMapper;
     private final ScdnOneTimeCodeStore codeStore;
     private final ScdnAccessTokenIssuer tokenIssuer;
+    private final ScdnStateEventReconciler stateEvents;
 
     public ScdnSsoService(ScdnIntegrationProperties properties,
                           SysUserService sysUserService,
                           ObjectMapper objectMapper,
                           ScdnOneTimeCodeStore codeStore,
-                          ScdnAccessTokenIssuer tokenIssuer) {
+                          ScdnAccessTokenIssuer tokenIssuer,
+                          ScdnStateEventReconciler stateEvents) {
         this.properties = properties;
         this.sysUserService = sysUserService;
         this.objectMapper = objectMapper;
         this.codeStore = codeStore;
         this.tokenIssuer = tokenIssuer;
+        this.stateEvents = stateEvents;
     }
 
     public String issue(SysUser user) {
@@ -114,9 +117,10 @@ public class ScdnSsoService {
     private ScdnContracts.UserEligibilityResponse eligibility(SysUser user) {
         boolean admin = user.getRoleId() != null && user.getRoleId() == 1L;
         boolean verified = UserStatus.CERTIFIED.getCode().equals(user.getStatus()) || admin;
-        boolean active = !UserStatus.BANNED.getCode().equals(user.getStatus())
+        boolean banned = stateEvents.isBanned(user.getId());
+        boolean active = !banned && !UserStatus.BANNED.getCode().equals(user.getStatus())
                 && !UserStatus.CANCELLATION.getCode().equals(user.getStatus());
-        return ScdnContracts.UserEligibilityResponse.builder()
+        ScdnContracts.UserEligibilityResponse response = ScdnContracts.UserEligibilityResponse.builder()
                 .userId(user.getId())
                 .userName(user.getUserName())
                 .email(user.getEmail())
@@ -126,6 +130,8 @@ public class ScdnSsoService {
                 .realNameVerified(verified)
                 .eligible(active && verified)
                 .build();
+        stateEvents.trackUser(response, banned);
+        return response;
     }
 
     private ScdnIntegrationException invalidCode() {

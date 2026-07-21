@@ -17,6 +17,7 @@ import java.security.MessageDigest;
 @Component
 public class ScdnInternalAuthFilter extends OncePerRequestFilter {
     static final String TOKEN_HEADER = "X-Scdn-Internal-Token";
+    static final String CLIENT_CERTIFICATE_ATTRIBUTE = "javax.servlet.request.X509Certificate";
 
     private final ScdnIntegrationProperties properties;
     private final ObjectMapper objectMapper;
@@ -34,6 +35,16 @@ public class ScdnInternalAuthFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+        if (!properties.isEnabled()) {
+            writeError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE,
+                    "INTEGRATION_DISABLED", "SCDN integration is disabled");
+            return;
+        }
+        if (properties.isMtlsRequired() && !hasVerifiedClientCertificate(request)) {
+            writeError(response, HttpServletResponse.SC_UNAUTHORIZED,
+                    "MTLS_REQUIRED", "A verified SCDN client certificate is required");
+            return;
+        }
         String expected = properties.getInternalToken();
         String actual = request.getHeader(TOKEN_HEADER);
         if (expected == null || expected.trim().isEmpty()) {
@@ -48,6 +59,28 @@ public class ScdnInternalAuthFilter extends OncePerRequestFilter {
             return;
         }
         filterChain.doFilter(request, response);
+    }
+
+    private boolean hasVerifiedClientCertificate(HttpServletRequest request) {
+        Object certificates = request.getAttribute(CLIENT_CERTIFICATE_ATTRIBUTE);
+        if (certificates instanceof Object[] && ((Object[]) certificates).length > 0) {
+            return true;
+        }
+        String header = properties.getMtlsVerifiedHeader();
+        if (header == null || !"SUCCESS".equals(request.getHeader(header))) {
+            return false;
+        }
+        String remoteAddress = request.getRemoteAddr();
+        String trusted = properties.getTrustedProxyAddresses();
+        if (remoteAddress == null || trusted == null) {
+            return false;
+        }
+        for (String address : trusted.split(",")) {
+            if (remoteAddress.equals(address.trim())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void writeError(HttpServletResponse response, int status, String code, String message) throws IOException {

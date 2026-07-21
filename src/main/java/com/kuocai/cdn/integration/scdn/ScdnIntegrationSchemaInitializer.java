@@ -1,11 +1,13 @@
 package com.kuocai.cdn.integration.scdn;
 
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 
 @Component
+@ConditionalOnProperty(name = "scdn.integration.enabled", havingValue = "true")
 public class ScdnIntegrationSchemaInitializer {
     private final JdbcTemplate jdbcTemplate;
 
@@ -18,6 +20,7 @@ public class ScdnIntegrationSchemaInitializer {
         jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS scdn_order_link (" +
                 "id BIGINT NOT NULL AUTO_INCREMENT,external_order_id VARCHAR(96) NOT NULL," +
                 "transaction_order_id BIGINT NOT NULL,user_id BIGINT NOT NULL,amount DECIMAL(18,6) NOT NULL," +
+                "last_event_status VARCHAR(32) NULL," +
                 "create_time DATETIME DEFAULT CURRENT_TIMESTAMP,update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
                 "PRIMARY KEY (id),UNIQUE KEY uk_scdn_external_order (external_order_id)," +
                 "UNIQUE KEY uk_scdn_platform_order (transaction_order_id),KEY idx_scdn_order_user (user_id,create_time)) " +
@@ -44,6 +47,10 @@ public class ScdnIntegrationSchemaInitializer {
                 "available_time DATETIME DEFAULT CURRENT_TIMESTAMP,create_time DATETIME DEFAULT CURRENT_TIMESTAMP," +
                 "published_time DATETIME NULL,PRIMARY KEY (id),UNIQUE KEY uk_scdn_outbox_event (event_id)," +
                 "KEY idx_scdn_outbox_publish (status,available_time)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS scdn_user_state_snapshot (" +
+                "user_id BIGINT NOT NULL,account_status VARCHAR(32) NOT NULL,real_name_verified TINYINT(1) NOT NULL," +
+                "agent_user_id BIGINT NULL,banned TINYINT(1) NOT NULL,update_time DATETIME DEFAULT CURRENT_TIMESTAMP " +
+                "ON UPDATE CURRENT_TIMESTAMP,PRIMARY KEY (user_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     }
 }
 

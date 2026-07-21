@@ -1,0 +1,36 @@
+name: SCDN integration CI
+
+on:
+  push:
+    branches: [main, codex/scdn-integration-v1-clean]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  java:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "8"
+          cache: maven
+      - name: Run CDN and SCDN contract tests
+        run: mvn --batch-mode -DskipTests=false test
+
+  secrets:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan repository secrets
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: secret
+          exit-code: "1"

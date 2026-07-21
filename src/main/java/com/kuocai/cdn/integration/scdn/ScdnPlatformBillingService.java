@@ -22,27 +22,32 @@ import java.security.MessageDigest;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Supplier;
 
 @Service
 public class ScdnPlatformBillingService {
-    private static final int IDEMPOTENCY_KEY_MIN = 16;
+    private static final int IDEMPOTENCY_KEY_MIN = 8;
     private static final int IDEMPOTENCY_KEY_MAX = 128;
 
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
     private final SysUserService sysUserService;
     private final TransactionOrderService transactionOrderService;
+    private final ScdnPlatformEventService events;
+    private final ScdnStateEventReconciler stateEvents;
 
     public ScdnPlatformBillingService(JdbcTemplate jdbcTemplate,
                                       ObjectMapper objectMapper,
                                       SysUserService sysUserService,
-                                      TransactionOrderService transactionOrderService) {
+                                      TransactionOrderService transactionOrderService,
+                                      ScdnPlatformEventService events,
+                                      ScdnStateEventReconciler stateEvents) {
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
         this.sysUserService = sysUserService;
         this.transactionOrderService = transactionOrderService;
+        this.events = events;
+        this.stateEvents = stateEvents;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -52,9 +57,7 @@ public class ScdnPlatformBillingService {
     }
 
     public ScdnContracts.OrderResponse getOrder(String externalOrderId) {
-        if (externalOrderId == null || externalOrderId.trim().isEmpty()) {
-            throw badRequest("INVALID_ORDER_ID", "External order id is required");
-        }
+        requireExternalOrderId(externalOrderId);
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
                 "SELECT l.external_order_id,l.transaction_order_id,l.user_id,l.amount,o.order_num,o.status " +
                         "FROM scdn_order_link l JOIN transaction_order o ON o.id=l.transaction_order_id " +
@@ -81,8 +84,12 @@ public class ScdnPlatformBillingService {
     }
 
     private ScdnContracts.OrderResponse createOrderOnce(ScdnContracts.CreateOrderRequest request) {
+        requireExternalOrderId(request.getExternalOrderId());
         SysUser user = requireActiveUser(request.getUserId());
         BigDecimal amount = money(request.getAmount());
+        if (amount.compareTo(new BigDecimal("0.01")) < 0) {
+            throw badRequest("INVALID_AMOUNT", "Order amount must be at least 0.01");
+        }
         List<Map<String, Object>> existing = jdbcTemplate.queryForList(
                 "SELECT l.external_order_id,l.transaction_order_id,l.user_id,l.amount,o.order_num,o.status " +
                         "FROM scdn_order_link l JOIN transaction_order o ON o.id=l.transaction_order_id " +
@@ -111,8 +118,9 @@ public class ScdnPlatformBillingService {
                 .build();
         order = transactionOrderService.save(order);
         jdbcTemplate.update(
-                "INSERT INTO scdn_order_link (external_order_id,transaction_order_id,user_id,amount) VALUES (?,?,?,?)",
-                request.getExternalOrderId(), order.getId(), user.getId(), amount);
+                "INSERT INTO scdn_order_link " +
+                        "(external_order_id,transaction_order_id,user_id,amount,last_event_status) VALUES (?,?,?,?,?)",
+                request.getExternalOrderId(), order.getId(), user.getId(), amount, order.getStatus());
         ScdnContracts.OrderResponse response = ScdnContracts.OrderResponse.builder()
                 .externalOrderId(request.getExternalOrderId())
                 .platformOrderId(order.getId())
@@ -121,7 +129,7 @@ public class ScdnPlatformBillingService {
                 .amount(amount)
                 .status(order.getStatus())
                 .build();
-        outbox("scdn.order.created", "order", request.getExternalOrderId(), response);
+        events.enqueue("scdn.order.created", "order", request.getExternalOrderId(), response);
         return response;
     }
 
@@ -151,7 +159,7 @@ public class ScdnPlatformBillingService {
                 request.getDescription());
         ScdnContracts.WalletOperationResponse response = saveLedger(
                 request, null, "debit", order.getId(), balanceAfter);
-        outbox("scdn.wallet.debited", "wallet", request.getBusinessReference(), response);
+        events.enqueue("scdn.wallet.debited", "wallet", request.getBusinessReference(), response);
         return response;
     }
 
@@ -196,7 +204,7 @@ public class ScdnPlatformBillingService {
                 request.getDescription());
         ScdnContracts.WalletOperationResponse response = saveLedger(
                 request, request.getOriginalBusinessReference(), "refund", order.getId(), balanceAfter);
-        outbox("scdn.wallet.refunded", "wallet", request.getBusinessReference(), response);
+        events.enqueue("scdn.wallet.refunded", "wallet", request.getBusinessReference(), response);
         return response;
     }
 
@@ -286,7 +294,8 @@ public class ScdnPlatformBillingService {
         if (user == null) {
             throw new ScdnIntegrationException("USER_NOT_FOUND", "User does not exist", HttpStatus.NOT_FOUND);
         }
-        if ("banned".equals(user.getStatus()) || "cancellation".equals(user.getStatus())) {
+        if (stateEvents.isBanned(userId)
+                || "banned".equals(user.getStatus()) || "cancellation".equals(user.getStatus())) {
             throw new ScdnIntegrationException("USER_DISABLED", "User account is disabled", HttpStatus.FORBIDDEN);
         }
         return user;
@@ -340,18 +349,6 @@ public class ScdnPlatformBillingService {
         }
     }
 
-    private void outbox(String eventType, String aggregateType, String aggregateId, Object payload) {
-        try {
-            jdbcTemplate.update(
-                    "INSERT INTO scdn_outbox_event " +
-                            "(event_id,event_type,aggregate_type,aggregate_id,payload_json) VALUES (?,?,?,?,?)",
-                    UUID.randomUUID().toString(), eventType, aggregateType, aggregateId,
-                    objectMapper.writeValueAsString(payload));
-        } catch (Exception e) {
-            throw new IllegalStateException("Unable to create SCDN outbox event", e);
-        }
-    }
-
     private ScdnContracts.OrderResponse orderResponse(Map<String, Object> row) {
         return ScdnContracts.OrderResponse.builder()
                 .externalOrderId(string(row.get("external_order_id")))
@@ -381,13 +378,23 @@ public class ScdnPlatformBillingService {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw badRequest("INVALID_AMOUNT", "Amount must be greater than zero");
         }
-        return amount.setScale(6, RoundingMode.HALF_UP);
+        BigDecimal rounded = amount.setScale(6, RoundingMode.HALF_UP);
+        if (rounded.compareTo(BigDecimal.ZERO) <= 0) {
+            throw badRequest("INVALID_AMOUNT", "Amount is below the minimum accounting precision");
+        }
+        return rounded;
     }
 
     private void validateIdempotencyKey(String key) {
         if (key == null || key.length() < IDEMPOTENCY_KEY_MIN || key.length() > IDEMPOTENCY_KEY_MAX
                 || !key.matches("[A-Za-z0-9._:-]+")) {
-            throw badRequest("INVALID_IDEMPOTENCY_KEY", "Idempotency key must contain 16-128 safe characters");
+            throw badRequest("INVALID_IDEMPOTENCY_KEY", "Idempotency key must contain 8-128 safe characters");
+        }
+    }
+
+    private void requireExternalOrderId(String externalOrderId) {
+        if (externalOrderId == null || externalOrderId.trim().isEmpty() || externalOrderId.length() > 96) {
+            throw badRequest("INVALID_ORDER_ID", "External order id is invalid");
         }
     }
 

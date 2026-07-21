@@ -43,7 +43,9 @@ class ScdnPlatformBillingServiceTest {
             order.setId(ids.incrementAndGet());
             return order;
         });
-        service = new ScdnPlatformBillingService(jdbc, new ObjectMapper(), users, orders);
+        ObjectMapper objectMapper = new ObjectMapper();
+        service = new ScdnPlatformBillingService(jdbc, objectMapper, users, orders,
+                new ScdnPlatformEventService(jdbc, objectMapper), mock(ScdnStateEventReconciler.class));
     }
 
     @Test
@@ -101,6 +103,6 @@ class ScdnPlatformBillingServiceTest {
         jdbc.execute("CREATE TABLE scdn_wallet_ledger (id BIGINT AUTO_INCREMENT PRIMARY KEY,business_reference VARCHAR(128) UNIQUE,original_business_reference VARCHAR(128),operation VARCHAR(16),transaction_order_id BIGINT,user_id BIGINT,amount DECIMAL(18,6),balance_after DECIMAL(18,6),create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
         jdbc.execute("CREATE TABLE scdn_idempotency_record (id BIGINT AUTO_INCREMENT PRIMARY KEY,idempotency_key VARCHAR(128) UNIQUE,operation_type VARCHAR(32),request_hash VARCHAR(64),response_json CLOB,status VARCHAR(16),create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
         jdbc.execute("CREATE TABLE scdn_outbox_event (id BIGINT AUTO_INCREMENT PRIMARY KEY,event_id VARCHAR(64) UNIQUE,event_type VARCHAR(64),aggregate_type VARCHAR(32),aggregate_id VARCHAR(128),payload_json CLOB,status VARCHAR(16) DEFAULT 'pending',attempt_count INT DEFAULT 0,available_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,published_time TIMESTAMP)");
-        jdbc.execute("CREATE TABLE scdn_order_link (id BIGINT AUTO_INCREMENT PRIMARY KEY,external_order_id VARCHAR(96) UNIQUE,transaction_order_id BIGINT UNIQUE,user_id BIGINT,amount DECIMAL(18,6),create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+        jdbc.execute("CREATE TABLE scdn_order_link (id BIGINT AUTO_INCREMENT PRIMARY KEY,external_order_id VARCHAR(96) UNIQUE,transaction_order_id BIGINT UNIQUE,user_id BIGINT,amount DECIMAL(18,6),last_event_status VARCHAR(32),create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
     }
 }

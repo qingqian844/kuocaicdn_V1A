@@ -32,6 +32,21 @@ class ScdnSsoServiceTest {
     }
 
     @Test
+    void eligibilityRejectsUsersInTheIndependentBanTable() {
+        SysUserService users = mock(SysUserService.class);
+        ScdnStateEventReconciler stateEvents = mock(ScdnStateEventReconciler.class);
+        ScdnSsoService service = service(users, mock(ScdnOneTimeCodeStore.class),
+                mock(ScdnAccessTokenIssuer.class), stateEvents);
+        when(users.queryCacheUserById(7L)).thenReturn(user(7L, UserStatus.CERTIFIED.getCode(), 2L));
+        when(stateEvents.isBanned(7L)).thenReturn(true);
+
+        ScdnContracts.UserEligibilityResponse response = service.eligibility(7L);
+
+        assertFalse(response.isEligible());
+        assertTrue(response.isRealNameVerified());
+    }
+
+    @Test
     void ssoCodeCanOnlyBeExchangedOnce() {
         SysUserService users = mock(SysUserService.class);
         ScdnOneTimeCodeStore codes = mock(ScdnOneTimeCodeStore.class);
@@ -51,14 +66,20 @@ class ScdnSsoServiceTest {
     }
 
     private ScdnSsoService service(SysUserService users) {
-        return service(users, mock(ScdnOneTimeCodeStore.class), mock(ScdnAccessTokenIssuer.class));
+        return service(users, mock(ScdnOneTimeCodeStore.class), mock(ScdnAccessTokenIssuer.class),
+                mock(ScdnStateEventReconciler.class));
     }
 
     private ScdnSsoService service(SysUserService users, ScdnOneTimeCodeStore codes, ScdnAccessTokenIssuer tokens) {
+        return service(users, codes, tokens, mock(ScdnStateEventReconciler.class));
+    }
+
+    private ScdnSsoService service(SysUserService users, ScdnOneTimeCodeStore codes,
+                                   ScdnAccessTokenIssuer tokens, ScdnStateEventReconciler stateEvents) {
         ScdnIntegrationProperties properties = new ScdnIntegrationProperties();
         properties.setEnabled(true);
         properties.setAccessTokenTtlSeconds(900);
-        return new ScdnSsoService(properties, users, new ObjectMapper(), codes, tokens);
+        return new ScdnSsoService(properties, users, new ObjectMapper(), codes, tokens, stateEvents);
     }
 
     private SysUser user(Long id, String status, Long roleId) {
