@@ -10,6 +10,7 @@ import com.kuocai.cdn.service.CdnDomainStatisticsService;
 import com.kuocai.cdn.service.domain.operation.TencentDomainServiceImpl;
 import com.kuocai.cdn.service.domain.statistics.TencentDomainStatisticsServiceImpl;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Disabled;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -18,6 +19,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @SpringBootTest
+@Disabled("Manual Tencent Cloud integration test; requires live credentials and infrastructure")
 public class TencentCreateTest {
 
     @Autowired

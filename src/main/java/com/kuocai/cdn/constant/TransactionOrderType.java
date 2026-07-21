@@ -62,4 +62,11 @@ public class TransactionOrderType {
     public static final String FLOW_PACKAGE_PROFIT = "flow_package_profit";
 
     public static final String EDGEONE_DOMAIN_QUOTA = "edgeone_domain_quota";
+    public static final String HTTPS_REQUEST_DEDUCTION = "https_request_deduction";
+
+    public static final String SCDN_PLAN = "scdn_plan";
+
+    public static final String SCDN_USAGE_DEDUCTION = "scdn_usage_deduction";
+
+    public static final String SCDN_REFUND = "scdn_refund";
 }

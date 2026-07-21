@@ -20,6 +20,7 @@ import com.kuocai.cdn.service.domain.statistics.QiNiuDomainStatisticsServiceImpl
 import com.kuocai.cdn.service.domain.statistics.VolCenGineDomainStatisticsServiceImpl;
 import com.tencentcloudapi.common.exception.TencentCloudSDKException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Disabled;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -30,6 +31,7 @@ import java.util.List;
 import static com.kuocai.cdn.constant.StatisticsType.RESOURCE;
 
 @SpringBootTest
+@Disabled("Requires live MySQL, Redis, MongoDB, MinIO, RabbitMQ, and vendor credentials")
 class KuocaiCdnBootApplicationTests {
 
     @Autowired

@@ -51,6 +51,20 @@ public class JwtUtil {
         return builder.sign(getAlgorithm());
     }
 
+    public static String getToken(Map<String, String> claims, String issuer, String audience, int expiresInSeconds) {
+        Date now = new Date();
+        Calendar expiresAt = Calendar.getInstance();
+        expiresAt.setTime(now);
+        expiresAt.add(Calendar.SECOND, expiresInSeconds);
+        JWTCreator.Builder builder = JWT.create()
+                .withIssuedAt(now)
+                .withExpiresAt(expiresAt.getTime())
+                .withIssuer(issuer)
+                .withAudience(audience);
+        claims.forEach(builder::withClaim);
+        return builder.sign(getAlgorithm());
+    }
+
     public static void validate(String token) {
         getVerifier().verify(token);
     }

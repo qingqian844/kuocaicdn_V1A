@@ -562,6 +562,13 @@
                         </a>
                     </div>
 
+                    <div class="nav-item" th:if="${scdnIntegrationEnabled}">
+                        <a class="nav-link" href="/scdn" data-placement="left">
+                            <i class="bi-shield-check nav-icon"></i>
+                            <span class="nav-link-title">SCDN 高防</span>
+                        </a>
+                    </div>
+
                     <!-- 折叠 -->
                     <div class="nav-item">
                         <a th:class="${curPage == 'user-info' or curPage == 'authentication-real-name' ? 'nav-link dropdown-toggle active':'nav-link dropdown-toggle'}"
@@ -812,6 +819,13 @@
                             <i class="bi-bar-chart nav-icon"></i>
                             <span class="nav-link-title">数据统计
                             </span>
+                        </a>
+                    </div>
+
+                    <div class="nav-item" th:if="${scdnIntegrationEnabled}">
+                        <a class="nav-link" href="/scdn" data-placement="left">
+                            <i class="bi-shield-check nav-icon"></i>
+                            <span class="nav-link-title">SCDN 高防</span>
                         </a>
                     </div>
 

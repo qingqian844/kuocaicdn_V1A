@@ -1,0 +1,281 @@
+openapi: 3.0.3
+info:
+  title: Kuocai CDN to SCDN Platform API
+  version: 1.0.0
+  description: >-
+    Versioned internal contract owned by Kuocai CDN. Requests are service-to-service
+    calls and must be sent over mTLS with the configured X-Scdn-Internal-Token.
+servers:
+  - url: https://cdn.example.internal
+    description: CDN platform internal address
+tags:
+  - name: sso
+  - name: eligibility
+  - name: orders
+  - name: wallet
+paths:
+  /internal/scdn/v1/sso/exchange:
+    post:
+      tags: [sso]
+      operationId: exchangeSsoCode
+      security: [{ scdnInternalToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SsoExchangeRequest' }
+      responses:
+        '200':
+          description: One-time access token issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SsoExchangeEnvelope'
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /internal/scdn/v1/users/{userId}/eligibility:
+    get:
+      tags: [eligibility]
+      operationId: getUserEligibility
+      security: [{ scdnInternalToken: [] }]
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Eligibility snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EligibilityEnvelope'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /internal/scdn/v1/orders:
+    post:
+      tags: [orders]
+      operationId: createOrder
+      security: [{ scdnInternalToken: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateOrderRequest' }
+      responses:
+        '200':
+          description: Existing or newly created order
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderEnvelope' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /internal/scdn/v1/orders/{externalOrderId}:
+    get:
+      tags: [orders]
+      operationId: getOrder
+      security: [{ scdnInternalToken: [] }]
+      parameters:
+        - $ref: '#/components/parameters/ExternalOrderId'
+      responses:
+        '200':
+          description: Order snapshot
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /internal/scdn/v1/wallet/debits:
+    post:
+      tags: [wallet]
+      operationId: debitWallet
+      security: [{ scdnInternalToken: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WalletOperationRequest' }
+      responses:
+        '200':
+          description: Idempotent wallet debit result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WalletEnvelope' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /internal/scdn/v1/wallet/refunds:
+    post:
+      tags: [wallet]
+      operationId: refundWallet
+      security: [{ scdnInternalToken: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WalletOperationRequest' }
+      responses:
+        '200':
+          description: Idempotent wallet refund result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WalletEnvelope' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+components:
+  securitySchemes:
+    scdnInternalToken:
+      type: apiKey
+      in: header
+      name: X-Scdn-Internal-Token
+      description: Service token used in addition to infrastructure mTLS.
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 8, maxLength: 128 }
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema: { type: integer, format: int64, minimum: 1 }
+    ExternalOrderId:
+      name: externalOrderId
+      in: path
+      required: true
+      schema: { type: string, minLength: 1, maxLength: 96 }
+  schemas:
+    Envelope:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string, example: SUCCESS }
+        message: { type: string, example: ok }
+    SsoExchangeRequest:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, minLength: 1 }
+    UserEligibility:
+      type: object
+      required: [userId, accountStatus, realNameVerified, eligible]
+      properties:
+        userId: { type: integer, format: int64 }
+        userName: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        role: { type: string, nullable: true }
+        agentUserId: { type: integer, format: int64, nullable: true }
+        accountStatus: { type: string }
+        realNameVerified: { type: boolean }
+        eligible: { type: boolean }
+    SsoExchangeResponse:
+      type: object
+      required: [accessToken, tokenType, expiresIn, user]
+      properties:
+        accessToken: { type: string }
+        tokenType: { type: string, example: Bearer }
+        expiresIn: { type: integer, format: int32, minimum: 1 }
+        user: { $ref: '#/components/schemas/UserEligibility' }
+    SsoExchangeEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/SsoExchangeResponse' }
+    EligibilityEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/UserEligibility' }
+    CreateOrderRequest:
+      type: object
+      required: [externalOrderId, userId, amount, title]
+      properties:
+        externalOrderId: { type: string, minLength: 1, maxLength: 96 }
+        userId: { type: integer, format: int64, minimum: 1 }
+        amount: { type: number, format: double, minimum: 0.01 }
+        title: { type: string, minLength: 1, maxLength: 255 }
+        detail: { type: string, nullable: true, maxLength: 1000 }
+        productCode: { type: string, nullable: true, maxLength: 64 }
+    Order:
+      type: object
+      required: [externalOrderId, userId, amount, status]
+      properties:
+        externalOrderId: { type: string }
+        platformOrderId: { type: integer, format: int64, nullable: true }
+        platformOrderNumber: { type: string, nullable: true }
+        userId: { type: integer, format: int64 }
+        amount: { type: number, format: double }
+        status: { type: string }
+    OrderEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/Order' }
+    WalletOperationRequest:
+      type: object
+      required: [businessReference, userId, amount]
+      properties:
+        businessReference: { type: string, minLength: 1, maxLength: 128 }
+        userId: { type: integer, format: int64, minimum: 1 }
+        amount: { type: number, format: double, exclusiveMinimum: 0 }
+        description: { type: string, nullable: true, maxLength: 255 }
+        originalBusinessReference: { type: string, nullable: true, maxLength: 128 }
+    WalletOperation:
+      type: object
+      required: [businessReference, userId, amount, operation, status]
+      properties:
+        businessReference: { type: string }
+        platformOrderId: { type: integer, format: int64, nullable: true }
+        userId: { type: integer, format: int64 }
+        amount: { type: number, format: double }
+        operation: { type: string, enum: [debit, refund] }
+        status: { type: string }
+    WalletEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/WalletOperation' }
+    ErrorEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            data: { nullable: true }
+  responses:
+    InvalidRequest:
+      description: Request validation failed
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Unauthorized:
+      description: Missing or invalid service token
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Forbidden:
+      description: User or operation is not allowed
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Conflict:
+      description: Idempotency or business conflict
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }

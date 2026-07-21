@@ -158,6 +158,25 @@ public class JedisUtil {
     }
 
     /**
+     * Atomically reads and removes a one-time value.
+     */
+    public static String getAndDeleteStr(String key) {
+        synchronized (JedisUtil.class) {
+            Jedis jedis = getJedis();
+            try {
+                Object value = jedis.eval(
+                        "local value = redis.call('GET', KEYS[1]); " +
+                                "if value then redis.call('DEL', KEYS[1]); end; return value",
+                        1,
+                        key);
+                return value == null ? null : value.toString();
+            } finally {
+                close(jedis);
+            }
+        }
+    }
+
+    /**
      * 设置字符串
      */
     public static String setStr(String key, String value) {
@@ -178,11 +197,7 @@ public class JedisUtil {
         synchronized (JedisUtil.class) {
             Jedis jedis = getJedis();
             try {
-                String result = setStr(key, value);
-                if (RETURN_OK.equals(result)) {
-                    jedis.expire(key, expire);
-                }
-                return result;
+                return jedis.setex(key, expire, value);
             } finally {
                 close(jedis);
             }
