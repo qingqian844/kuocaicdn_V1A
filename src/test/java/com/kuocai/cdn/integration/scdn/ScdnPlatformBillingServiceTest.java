@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -55,12 +56,15 @@ class ScdnPlatformBillingServiceTest {
         ScdnContracts.WalletOperationResponse first = service.debit("idem-debit-00000001", request);
         ScdnContracts.WalletOperationResponse replay = service.debit("idem-debit-00000001", request);
 
-        assertEquals(new BigDecimal("70.000000"), first.getBalanceAfter());
         assertEquals(first.getPlatformOrderId(), replay.getPlatformOrderId());
         assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM scdn_wallet_ledger", Integer.class));
         assertEquals(new BigDecimal("70.000000"), jdbc.queryForObject(
                 "SELECT account_balance FROM sys_user_account WHERE user_id=7", BigDecimal.class));
         assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM scdn_outbox_event", Integer.class));
+        assertFalse(jdbc.queryForObject("SELECT payload_json FROM scdn_outbox_event", String.class)
+                .contains("balanceAfter"));
+        assertFalse(jdbc.queryForObject("SELECT response_json FROM scdn_idempotency_record", String.class)
+                .contains("balanceAfter"));
     }
 
     @Test

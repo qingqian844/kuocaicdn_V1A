@@ -244,7 +244,6 @@ public class ScdnPlatformBillingService {
                 .platformOrderId(orderId)
                 .userId(request.getUserId())
                 .amount(amount)
-                .balanceAfter(balanceAfter)
                 .operation(operation)
                 .status("completed")
                 .build();
@@ -252,7 +251,7 @@ public class ScdnPlatformBillingService {
 
     private ScdnContracts.WalletOperationResponse existingLedger(String businessReference) {
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-                "SELECT business_reference,operation,transaction_order_id,user_id,amount,balance_after " +
+                "SELECT business_reference,operation,transaction_order_id,user_id,amount " +
                         "FROM scdn_wallet_ledger WHERE business_reference=? FOR UPDATE",
                 businessReference);
         if (rows.isEmpty()) {
@@ -264,7 +263,6 @@ public class ScdnPlatformBillingService {
                 .platformOrderId(number(row.get("transaction_order_id")).longValue())
                 .userId(number(row.get("user_id")).longValue())
                 .amount(decimal(row.get("amount")))
-                .balanceAfter(decimal(row.get("balance_after")))
                 .operation(string(row.get("operation")))
                 .status("completed")
                 .build();

@@ -125,7 +125,6 @@ public final class ScdnContracts {
         private Long platformOrderId;
         private Long userId;
         private BigDecimal amount;
-        private BigDecimal balanceAfter;
         private String operation;
         private String status;
     }

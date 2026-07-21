@@ -239,7 +239,6 @@ components:
         platformOrderId: { type: integer, format: int64, nullable: true }
         userId: { type: integer, format: int64 }
         amount: { type: number, format: double }
-        balanceAfter: { type: number, format: double, nullable: true }
         operation: { type: string, enum: [debit, refund] }
         status: { type: string }
     WalletEnvelope:

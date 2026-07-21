@@ -11,6 +11,7 @@ import java.nio.file.Paths;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -38,6 +39,9 @@ class ScdnOpenApiContractTest {
             Map<String, Object> schemes = map(components.get("securitySchemes"));
             assertEquals("X-Scdn-Internal-Token",
                     map(schemes.get("scdnInternalToken")).get("name"));
+            Map<String, Object> schemas = map(components.get("schemas"));
+            Map<String, Object> walletProperties = map(map(schemas.get("WalletOperation")).get("properties"));
+            assertFalse(walletProperties.containsKey("balanceAfter"));
         }
     }
 
