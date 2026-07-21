@@ -7,7 +7,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.HashMap;
-import java.util.List;
+import java.util.Collections;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -33,7 +33,7 @@ class ScdnOutboxPublisherTest {
         row.put("aggregate_id", "order-12");
         row.put("payload_json", "{\"externalOrderId\":\"order-12\"}");
         row.put("attempt_count", 0);
-        when(jdbc.queryForList(any(String.class))).thenReturn(List.of(row));
+        when(jdbc.queryForList(any(String.class))).thenReturn(Collections.singletonList(row));
 
         ScdnOutboxPublisher publisher = new ScdnOutboxPublisher(jdbc, sender, new ObjectMapper(), properties);
         publisher.publishPending();
