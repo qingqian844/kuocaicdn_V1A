@@ -1,6 +1,7 @@
 package com.kuocai.cdn.service.domain.operation;
 
 import com.kuocai.cdn.api.DomainCacheInfo;
+import com.kuocai.cdn.api.DomainVisitInfo;
 import com.kuocai.cdn.api.huawei.cdn.dto.CacheRuleDTO;
 import com.kuocai.cdn.api.huawei.cdn.dto.ErrorCodeCacheDTO;
 import com.kuocai.cdn.api.huawei.cdn.dto.UrlAuthDTO;
@@ -34,6 +35,7 @@ import com.tencentcloudapi.teo.v20220901.models.ModifyL7AccRuleRequest;
 import com.tencentcloudapi.teo.v20220901.models.ModifySecurityPolicyRequest;
 import com.tencentcloudapi.teo.v20220901.models.NoCache;
 import com.tencentcloudapi.teo.v20220901.models.OriginDetail;
+import com.tencentcloudapi.teo.v20220901.models.OriginInfo;
 import com.tencentcloudapi.teo.v20220901.models.RequestBodyTransferTimeout;
 import com.tencentcloudapi.teo.v20220901.models.RuleEngineItem;
 import com.tencentcloudapi.teo.v20220901.models.SecurityAction;
@@ -373,6 +375,58 @@ class TencentEdgeOneDomainServiceImplTest {
     }
 
     @Test
+    void edgeOneRefererWhitelistUsesSupportedLogicalNot() {
+        String denyEmpty = ReflectionTestUtils.invokeMethod(
+                service,
+                "buildRefererCondition",
+                2,
+                Collections.singletonList("*.baidu.com"),
+                false
+        );
+        String allowEmpty = ReflectionTestUtils.invokeMethod(
+                service,
+                "buildRefererCondition",
+                2,
+                Collections.singletonList("*.baidu.com"),
+                true
+        );
+
+        assertNotNull(denyEmpty);
+        assertFalse(denyEmpty.startsWith("not ("));
+        assertTrue(denyEmpty.contains("not ${http.request.headers['referer']} like ['*.baidu.com']"));
+        assertTrue(denyEmpty.contains("not ${http.request.headers['referer']} exists"));
+        assertNotNull(allowEmpty);
+        assertFalse(allowEmpty.startsWith("not ("));
+        assertTrue(allowEmpty.contains("${http.request.headers['referer']} exists"));
+        assertTrue(allowEmpty.contains("not ${http.request.headers['referer']} like ['*.baidu.com']"));
+        assertFalse(allowEmpty.contains("not ${http.request.headers['referer']} exists"));
+    }
+
+    @Test
+    void edgeOneRefererWhitelistCanBeReadBackWithEmptyRefererSetting() {
+        String condition = ReflectionTestUtils.invokeMethod(
+                service,
+                "buildRefererCondition",
+                2,
+                Collections.singletonList("*.baidu.com"),
+                true
+        );
+        CustomRule rule = new CustomRule();
+        rule.setName("kuocai_referer");
+        rule.setEnabled("on");
+        rule.setCondition(condition);
+        DomainVisitInfo visitInfo = new DomainVisitInfo();
+
+        ReflectionTestUtils.invokeMethod(service, "applyKuocaiRuleToVisitInfo", rule, visitInfo);
+
+        assertNotNull(visitInfo.getReferer());
+        assertEquals(2, visitInfo.getReferer().getReferer_type());
+        assertEquals("white", visitInfo.getReferer().getType());
+        assertTrue(visitInfo.getReferer().getInclude_empty());
+        assertEquals("*.baidu.com", visitInfo.getReferer().getValue());
+    }
+
+    @Test
     void edgeOneIpRuleUsesBasicAccessWithoutPriority() {
         CustomRule rule = ReflectionTestUtils.invokeMethod(
                 service,
@@ -547,6 +601,55 @@ class TencentEdgeOneDomainServiceImplTest {
         assertTrue(matched);
         assertNotNull(mismatched);
         assertFalse(mismatched);
+    }
+
+    @Test
+    void edgeOneOriginInfoIncludesConfiguredHostHeader() {
+        OriginInfo originInfo = ReflectionTestUtils.invokeMethod(
+                service,
+                "buildOriginInfo",
+                "domain",
+                "cc.shejiaodj.com",
+                null,
+                "super.huwfdv.cn"
+        );
+
+        assertNotNull(originInfo);
+        assertEquals("IP_DOMAIN", originInfo.getOriginType());
+        assertEquals("cc.shejiaodj.com", originInfo.getOrigin());
+        assertEquals("super.huwfdv.cn", originInfo.getHostHeader());
+    }
+
+    @Test
+    void edgeOneOriginHostChangeIsNotTreatedAsUnchangedConfig() {
+        OriginDetail current = new OriginDetail();
+        current.setOriginType("IP_DOMAIN");
+        current.setOrigin("cc.shejiaodj.com");
+        current.setHostHeader("old.example.com");
+
+        Boolean unchanged = ReflectionTestUtils.invokeMethod(
+                service,
+                "isSameOriginConfig",
+                current,
+                "IP_DOMAIN",
+                "cc.shejiaodj.com",
+                "",
+                "old.example.com"
+        );
+        Boolean hostChanged = ReflectionTestUtils.invokeMethod(
+                service,
+                "isSameOriginConfig",
+                current,
+                "IP_DOMAIN",
+                "cc.shejiaodj.com",
+                "",
+                "super.huwfdv.cn"
+        );
+
+        assertNotNull(unchanged);
+        assertTrue(unchanged);
+        assertNotNull(hostChanged);
+        assertFalse(hostChanged);
     }
 
     @Test

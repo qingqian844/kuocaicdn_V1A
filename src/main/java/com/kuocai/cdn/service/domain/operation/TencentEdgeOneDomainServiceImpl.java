@@ -339,7 +339,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         try {
             synchronized (createLock) {
                 return createDomainLocked(userId, normalizedDomain, businessType, serviceArea, originType, ipOrDomain,
-                        originProtocol, httpPort, httpsPort);
+                        originProtocol, httpPort, httpsPort, originHost);
             }
         } finally {
             domainCreateLocks.remove(normalizedDomain, createLock);
@@ -348,7 +348,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
 
     private CdnDomain createDomainLocked(Long userId, String domainName, String businessType, String serviceArea,
                                          String originType, String ipOrDomain, String originProtocol,
-                                         Integer httpPort, Integer httpsPort) throws BusinessException {
+                                         Integer httpPort, Integer httpsPort, String originHost) throws BusinessException {
         CdnDomain localDomain = findLocalEdgeOneDomain(domainName);
         if (localDomain != null && !userId.equals(localDomain.getUserId())) {
             throw new BusinessException("该加速域名已被其他用户添加，无法恢复到当前账号");
@@ -371,7 +371,8 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
 
             CreateAccelerationDomainResponse response;
             try {
-                response = createAccelerationDomain(domainName, originType, ipOrDomain, zoneId, originProtocol, httpPort, httpsPort);
+                response = createAccelerationDomain(domainName, originType, ipOrDomain, zoneId, originProtocol,
+                        httpPort, httpsPort, originHost);
             } catch (TencentCloudSDKException e) {
                 if (!isResourceNotFound(e)) {
                     throw e;
@@ -381,7 +382,8 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
                 TencentEdgeOneClient.ensureZoneBoundToConfiguredPlan(zoneId);
                 localDomain.setDomainId(zoneId);
                 localDomain = save(localDomain);
-                response = createAccelerationDomain(domainName, originType, ipOrDomain, zoneId, originProtocol, httpPort, httpsPort);
+                response = createAccelerationDomain(domainName, originType, ipOrDomain, zoneId, originProtocol,
+                        httpPort, httpsPort, originHost);
             }
             log.info("Create EdgeOne domain {} success: {}", domainName, CreateAccelerationDomainResponse.toJsonString(response));
             AccelerationDomain domain = tryGetAccelerationDomain(zoneId, domainName);
@@ -527,11 +529,13 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
     }
 
     private CreateAccelerationDomainResponse createAccelerationDomain(String domainName, String originType, String ipOrDomain, String zoneId,
-                                                                       String originProtocol, Integer httpPort, Integer httpsPort) throws TencentCloudSDKException, BusinessException {
+                                                                      String originProtocol, Integer httpPort, Integer httpsPort,
+                                                                      String originHost) throws TencentCloudSDKException, BusinessException {
         CreateAccelerationDomainRequest request = new CreateAccelerationDomainRequest();
         request.setZoneId(zoneId);
         request.setDomainName(domainName);
-        request.setOriginInfo(buildOriginInfo(originType, ipOrDomain, null));
+        request.setOriginInfo(buildOriginInfo(originType, ipOrDomain, null,
+                normalizeOriginHostHeader(originHost, domainName)));
         applyOriginProtocolAndPorts(request, originProtocol, httpPort, httpsPort);
         return TencentEdgeOneClient.getClient().CreateAccelerationDomain(request);
     }
@@ -676,7 +680,8 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         String originType = convertOriginType(main.getOriginType());
         String origin = firstOrigin(main.getIpOrDomain());
         String normalizedBackupOrigin = firstOriginOrEmpty(backupOrigin);
-        if (isSameOriginConfig(domain.getOriginDetail(), originType, origin, normalizedBackupOrigin)) {
+        String originHost = normalizeOriginHostHeader(main.getHostName(), cdnDomain.getDomainName());
+        if (isSameOriginConfig(domain.getOriginDetail(), originType, origin, normalizedBackupOrigin, originHost)) {
             log.info("Skip EdgeOne domain {} origin update because config is unchanged", cdnDomain.getDomainName());
             return;
         }
@@ -686,7 +691,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         if (Assert.notEmpty(normalizedBackupOrigin)) {
             modifyOriginWithGroups(cdnDomain, main, back);
         } else {
-            modifyOrigin(cdnDomain.getDomainName(), originType, origin, normalizedBackupOrigin);
+            modifyOrigin(cdnDomain.getDomainName(), originType, origin, normalizedBackupOrigin, originHost);
         }
     }
 
@@ -872,11 +877,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         CustomRule rule = null;
         if (type != 0) {
             boolean includeEmpty = referer.getInclude_empty() != null && referer.getInclude_empty();
-            String matched = buildHeaderLikeCondition("referer", values, true);
-            String empty = "(not ${http.request.headers['referer']} exists or ${http.request.headers['referer']} in [''])";
-            String condition = type == 2
-                    ? (includeEmpty ? "not (" + matched + " or " + empty + ")" : "not (" + matched + ")")
-                    : (includeEmpty ? "(" + matched + " or " + empty + ")" : matched);
+            String condition = buildRefererCondition(type, values, includeEmpty);
             rule = buildDenyRule(EO_RULE_REFERER, condition, 10L);
         }
         saveKuocaiSecurityRule(cdnDomain, EO_RULE_REFERER, rule);
@@ -1999,8 +2000,16 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
     }
 
     private String buildHeaderLikeCondition(String headerName, List<String> values, boolean wrapWithoutWildcard) {
+        return buildHeaderCondition(headerName, values, wrapWithoutWildcard, false);
+    }
+
+    private String buildHeaderNotLikeCondition(String headerName, List<String> values, boolean wrapWithoutWildcard) {
+        return buildHeaderCondition(headerName, values, wrapWithoutWildcard, true);
+    }
+
+    private String buildHeaderCondition(String headerName, List<String> values, boolean wrapWithoutWildcard,
+                                        boolean negate) {
         List<String> exactValues = new ArrayList<>();
-        List<String> containValues = new ArrayList<>();
         List<String> wildcardValues = new ArrayList<>();
         for (String value : values) {
             String item = normalize(value);
@@ -2013,13 +2022,31 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
             }
         }
         List<String> expressions = new ArrayList<>();
+        // EdgeOne negates an atomic expression with logical "not"; "not in" and "not like" are not operators.
         if (!exactValues.isEmpty()) {
-            expressions.add("${http.request.headers['" + headerName + "']} in " + toConditionList(exactValues));
+            expressions.add((negate ? "not " : "") + "${http.request.headers['" + headerName + "']} in "
+                    + toConditionList(exactValues));
         }
         if (!wildcardValues.isEmpty()) {
-            expressions.add("${http.request.headers['" + headerName + "']} like " + toConditionList(wildcardValues));
+            expressions.add((negate ? "not " : "") + "${http.request.headers['" + headerName + "']} like "
+                    + toConditionList(wildcardValues));
         }
-        return "(" + String.join(" or ", expressions) + ")";
+        return "(" + String.join(negate ? " and " : " or ", expressions) + ")";
+    }
+
+    private String buildRefererCondition(int type, List<String> values, boolean includeEmpty) {
+        String header = "${http.request.headers['referer']}";
+        String missing = "not " + header + " exists";
+        if (type != 2) {
+            String matched = buildHeaderLikeCondition("referer", values, true);
+            return includeEmpty ? "(" + matched + " or " + missing + ")" : matched;
+        }
+
+        String notMatched = buildHeaderNotLikeCondition("referer", values, true);
+        if (includeEmpty) {
+            return "(" + header + " exists and " + notMatched + ")";
+        }
+        return "(" + missing + " or " + notMatched + ")";
     }
 
     private String toConditionList(List<String> values) {
@@ -2061,7 +2088,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
                     .type(white ? "white" : "black")
                     .referer_type(white ? 2 : 1)
                     .value(String.join("\n", values))
-                    .include_empty(condition.contains("headers['referer']} in ['']"))
+                    .include_empty(isEmptyRefererIncluded(condition, white))
                     .build());
         } else if (EO_RULE_IP_ACL.equals(name)) {
             List<String> values = parseConditionValues(condition);
@@ -2082,7 +2109,24 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
     }
 
     private boolean isWhitelistCondition(String condition) {
-        return normalize(condition).startsWith("not (");
+        String normalized = normalize(condition).toLowerCase();
+        return normalized.startsWith("not (")
+                || normalized.contains("not ${http.request.headers['referer']} like ")
+                || normalized.contains("not ${http.request.headers['referer']} in ");
+    }
+
+    private boolean isEmptyRefererIncluded(String condition, boolean whitelist) {
+        String normalized = normalize(condition).toLowerCase();
+        if (!whitelist) {
+            return normalized.contains("headers['referer']} in ['']")
+                    || normalized.contains("not ${http.request.headers['referer']} exists");
+        }
+        if (normalized.startsWith("not (")) {
+            return normalized.contains("headers['referer']} in ['']")
+                    || normalized.contains("not ${http.request.headers['referer']} exists");
+        }
+        return normalized.contains("${http.request.headers['referer']} exists")
+                && !normalized.contains("not ${http.request.headers['referer']} exists");
     }
 
     private List<String> parseConditionValues(String condition) {
@@ -3503,12 +3547,13 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         return "set";
     }
 
-    private void modifyOrigin(String domainName, String originType, String origin, String backupOrigin) throws BusinessException {
+    private void modifyOrigin(String domainName, String originType, String origin, String backupOrigin,
+                              String originHost) throws BusinessException {
         try {
             ModifyAccelerationDomainRequest request = new ModifyAccelerationDomainRequest();
             request.setZoneId(TencentEdgeOneClient.resolveZoneId(domainName));
             request.setDomainName(domainName);
-            request.setOriginInfo(buildOriginInfo(originType, origin, backupOrigin));
+            request.setOriginInfo(buildOriginInfo(originType, origin, backupOrigin, originHost));
             ModifyAccelerationDomainResponse response = TencentEdgeOneClient.getClient().ModifyAccelerationDomain(request);
             log.info("Modify EdgeOne domain {} origin success: {}", domainName, ModifyAccelerationDomainResponse.toJsonString(response));
         } catch (BusinessException e) {
@@ -3542,7 +3587,7 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
 
     private String ensureOriginGroup(String zoneId, String groupName, CdnDomainSources source) throws BusinessException, TencentCloudSDKException {
         OriginRecord[] records = buildOriginRecords(source);
-        String hostHeader = Assert.notEmpty(source.getHostName()) ? source.getHostName().trim() : null;
+        String hostHeader = normalizeOriginHostHeader(source.getHostName(), null);
         OriginGroup existing = findOriginGroup(zoneId, groupName);
         if (existing != null && Assert.notEmpty(existing.getGroupId())) {
             ModifyOriginGroupRequest request = new ModifyOriginGroupRequest();
@@ -3631,12 +3676,17 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         return name.length() > 200 ? name.substring(0, 200) : name;
     }
 
-    private OriginInfo buildOriginInfo(String originType, String origin, String backupOrigin) throws BusinessException {
+    private OriginInfo buildOriginInfo(String originType, String origin, String backupOrigin,
+                                       String hostHeader) throws BusinessException {
         OriginInfo originInfo = new OriginInfo();
-        originInfo.setOriginType(convertOriginType(originType));
+        String convertedOriginType = convertOriginType(originType);
+        originInfo.setOriginType(convertedOriginType);
         originInfo.setOrigin(firstOrigin(origin));
         if (Assert.notEmpty(backupOrigin)) {
             originInfo.setBackupOrigin(firstOrigin(backupOrigin));
+        }
+        if ("IP_DOMAIN".equals(convertedOriginType) && Assert.notEmpty(hostHeader)) {
+            originInfo.setHostHeader(hostHeader);
         }
         return originInfo;
     }
@@ -3762,13 +3812,28 @@ public class TencentEdgeOneDomainServiceImpl extends AbstractUnsupportedCdnPlatf
         return "";
     }
 
-    private boolean isSameOriginConfig(OriginDetail current, String originType, String origin, String backupOrigin) {
+    private boolean isSameOriginConfig(OriginDetail current, String originType, String origin, String backupOrigin,
+                                       String hostHeader) {
         if (current == null) {
             return false;
         }
         return normalize(current.getOriginType()).equals(normalize(originType))
                 && normalize(current.getOrigin()).equals(normalize(origin))
-                && normalize(current.getBackupOrigin()).equals(normalize(backupOrigin));
+                && normalize(current.getBackupOrigin()).equals(normalize(backupOrigin))
+                && normalize(current.getHostHeader()).equalsIgnoreCase(normalize(hostHeader));
+    }
+
+    private String normalizeOriginHostHeader(String hostHeader, String defaultHost) throws BusinessException {
+        String normalized = normalize(Assert.notEmpty(hostHeader) ? hostHeader : defaultHost).toLowerCase();
+        if (Assert.isEmpty(normalized)) {
+            return null;
+        }
+        if (normalized.contains("://") || normalized.contains(":") || normalized.contains("/")
+                || normalized.contains("\\") || normalized.contains("?") || normalized.contains("#")
+                || normalized.matches(".*\\s+.*")) {
+            throw new BusinessException("回源 Host 只能填写主机名，不能包含协议、端口或路径");
+        }
+        return normalized;
     }
 
     private String normalize(String value) {
