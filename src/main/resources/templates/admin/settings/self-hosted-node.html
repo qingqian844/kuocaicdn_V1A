@@ -19,9 +19,27 @@
         .edge-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
         .edge-loading { min-height: 160px; display: flex; align-items: center; justify-content: center; }
         .edge-metric { min-width: 70px; }
+        .edge-live-indicator { width: 8px; height: 8px; border-radius: 50%; background: #00c9a7; display: inline-block; }
+        .edge-live-indicator.is-error { background: #ed4c78; }
+        .edge-detail-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid #e7eaf3; border-radius: .5rem; overflow: hidden; }
+        .edge-detail-metric { min-width: 0; padding: 1rem 1.25rem; background: #fff; border-right: 1px solid #e7eaf3; }
+        .edge-detail-metric:last-child { border-right: 0; }
+        .edge-detail-value { display: block; font-size: 1.25rem; font-weight: 600; color: #1e2022; overflow-wrap: anywhere; }
+        .edge-history-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+        .edge-history-panel { min-width: 0; border: 1px solid #e7eaf3; border-radius: .5rem; padding: 1rem 1.25rem; background: #fff; }
+        .edge-chart-shell { position: relative; height: 260px; }
+        .edge-chart-shell canvas { width: 100% !important; height: 260px !important; }
+        .edge-chart-empty { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; color: #8c98a4; background: rgba(255,255,255,.82); }
+        .edge-event-message { min-width: 180px; white-space: normal; }
+        .edge-table-rate { color: #1e2022; font-weight: 500; }
+        .spin-animation { animation: edge-spin .8s linear infinite; }
+        @keyframes edge-spin { to { transform: rotate(360deg); } }
         @media (max-width: 767px) {
             .edge-field-grid { grid-template-columns: 1fr; }
             .edge-toolbar { align-items: stretch !important; }
+            .edge-detail-summary, .edge-history-grid { grid-template-columns: 1fr; }
+            .edge-detail-metric { border-right: 0; border-bottom: 1px solid #e7eaf3; }
+            .edge-detail-metric:last-child { border-bottom: 0; }
         }
     </style>
 </head>
@@ -62,7 +80,11 @@
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h2 class="card-header-title">边缘节点</h2>
-                <button class="btn btn-ghost-secondary btn-sm" type="button" onclick="loadData()"><i class="bi-arrow-clockwise me-1"></i>刷新</button>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="small text-muted d-none d-sm-inline-flex align-items-center gap-2"><span class="edge-live-indicator" id="liveIndicator"></span><span id="lastRefreshText">准备刷新</span></span>
+                    <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="autoRefresh" checked onchange="toggleAutoRefresh(this.checked)"><label class="form-check-label small" for="autoRefresh">自动刷新</label></div>
+                    <button class="btn btn-ghost-secondary btn-icon btn-sm" type="button" onclick="loadNodes(false)" title="立即刷新"><i class="bi-arrow-clockwise"></i></button>
+                </div>
             </div>
             <div class="table-responsive">
                 <table class="table table-thead-bordered table-nowrap table-align-middle edge-table mb-0">
@@ -107,6 +129,44 @@
     </div></div>
 </div>
 
+<div class="modal fade" id="nodeDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+        <div class="modal-header">
+            <div class="min-w-0"><div class="d-flex align-items-center gap-2"><h3 class="modal-title mb-0" id="detailNodeName">节点详情</h3><span id="detailNodeStatus"></span></div><div class="text-muted small mt-1" id="detailNodeMeta">-</div></div>
+            <button class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+        </div>
+        <div class="modal-body">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+                <div class="btn-group btn-group-sm" role="group" aria-label="历史时间范围" id="historyRangeButtons">
+                    <button type="button" class="btn btn-white" data-range="1h" onclick="selectHistoryRange('1h')">1 小时</button>
+                    <button type="button" class="btn btn-white" data-range="6h" onclick="selectHistoryRange('6h')">6 小时</button>
+                    <button type="button" class="btn btn-primary" data-range="24h" onclick="selectHistoryRange('24h')">24 小时</button>
+                    <button type="button" class="btn btn-white" data-range="7d" onclick="selectHistoryRange('7d')">7 天</button>
+                    <button type="button" class="btn btn-white" data-range="30d" onclick="selectHistoryRange('30d')">30 天</button>
+                </div>
+                <span class="small text-muted" id="detailRefreshText">-</span>
+            </div>
+
+            <div class="edge-detail-summary mb-4">
+                <div class="edge-detail-metric"><span class="text-muted small">资源使用</span><span class="edge-detail-value" id="detailResources">-</span><span class="small text-muted" id="detailDisk">-</span></div>
+                <div class="edge-detail-metric"><span class="text-muted small">实时网络</span><span class="edge-detail-value" id="detailNetwork">-</span><span class="small text-muted" id="detailTrafficTotal">-</span></div>
+                <div class="edge-detail-metric"><span class="text-muted small">缓存占用</span><span class="edge-detail-value" id="detailCache">-</span><span class="small text-muted" id="detailAgent">-</span></div>
+                <div class="edge-detail-metric"><span class="text-muted small">配置状态</span><span class="edge-detail-value" id="detailConfig">-</span><span class="small text-muted" id="detailHeartbeat">-</span></div>
+            </div>
+
+            <div class="edge-history-grid mb-4">
+                <section class="edge-history-panel"><div class="d-flex justify-content-between align-items-center mb-3"><h4 class="mb-0">资源趋势</h4><span class="small text-muted">%</span></div><div class="edge-chart-shell"><canvas id="resourceHistoryChart"></canvas><div class="edge-chart-empty" id="resourceChartEmpty">暂无历史数据</div></div></section>
+                <section class="edge-history-panel"><div class="d-flex justify-content-between align-items-center mb-3"><h4 class="mb-0">网络与缓存</h4><span class="small text-muted">Mbps / GB</span></div><div class="edge-chart-shell"><canvas id="trafficHistoryChart"></canvas><div class="edge-chart-empty" id="trafficChartEmpty">暂无历史数据</div></div></section>
+            </div>
+
+            <section class="edge-history-panel p-0 overflow-hidden">
+                <div class="px-4 py-3 border-bottom"><h4 class="mb-0">状态记录</h4></div>
+                <div class="table-responsive"><table class="table table-thead-bordered table-nowrap table-align-middle mb-0"><thead class="thead-light"><tr><th>时间</th><th>状态</th><th>事件</th><th>详情</th></tr></thead><tbody id="eventRows"><tr><td colspan="4" class="text-center text-muted py-4">暂无状态记录</td></tr></tbody></table></div>
+            </section>
+        </div>
+    </div></div>
+</div>
+
 <div class="modal fade" id="groupModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
         <div class="modal-header"><h3 class="modal-title" id="groupModalTitle">新增节点组</h3><button class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button></div>
@@ -125,19 +185,32 @@
 <script th:src="@{dashboard/assets/vendor/jquery/dist/jquery.min.js}"></script>
 <script th:src="@{dashboard/assets/vendor/jquery-migrate/dist/jquery-migrate.min.js}"></script>
 <script th:src="@{dashboard/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{dashboard/assets/vendor/chart.js/dist/chart.js}"></script>
 <script th:src="@{dashboard/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside.min.js}"></script>
 <script th:src="@{dashboard/assets/js/theme.min.js}"></script>
 <script th:src="@{common/layer/layer.js}"></script>
 <script th:src="@{common/custom.js}"></script>
 <script th:inline="javascript">
     const selfHostedDnsDomain = /*[[${selfHostedDnsDomain}]]*/ 'kuocaidns.com';
-    let nodes = [], groups = [], nodeModal, groupModal;
+    const AUTO_REFRESH_MS = 10000;
+    let nodes = [], groups = [], nodeModal, groupModal, nodeDetailModal;
+    let refreshTimer = null, refreshInFlight = false, lastRefreshAt = null;
+    let detailNodeId = null, detailRange = '24h', detailTimer = null;
+    let detailRequestSequence = 0;
+    let resourceHistoryChart = null, trafficHistoryChart = null;
 
     document.addEventListener('DOMContentLoaded', function () {
         nodeModal = new bootstrap.Modal(document.getElementById('nodeModal'));
         groupModal = new bootstrap.Modal(document.getElementById('groupModal'));
+        nodeDetailModal = new bootstrap.Modal(document.getElementById('nodeDetailModal'));
+        document.getElementById('nodeDetailModal').addEventListener('hidden.bs.modal', closeNodeDetail);
         if (window.HSSideNav) new HSSideNav('.js-navbar-vertical-aside').init();
         loadData();
+        toggleAutoRefresh(true);
+        window.setInterval(updateRefreshText, 1000);
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden && document.getElementById('autoRefresh').checked) loadNodes(true);
+        });
     });
 
     async function request(url, options) {
@@ -152,7 +225,57 @@
             const result = await Promise.all([request('SelfHostedNode/list'), request('SelfHostedNode/groups')]);
             nodes = result[0].data || []; groups = result[1].data || [];
             renderSummary(); renderNodes(); renderGroups(); renderGroupOptions();
-        } catch (error) { layer.msg(error.message, {icon: 2}); }
+            markRefreshSuccess();
+        } catch (error) { markRefreshError(); layer.msg(error.message, {icon: 2}); }
+    }
+
+    async function loadNodes(silent) {
+        if (refreshInFlight) return;
+        refreshInFlight = true;
+        const refreshButton = document.querySelector('button[title="立即刷新"]');
+        if (!silent && refreshButton) refreshButton.querySelector('i').classList.add('spin-animation');
+        try {
+            const result = await request('SelfHostedNode/list');
+            nodes = result.data || [];
+            renderSummary(); renderNodes(); markRefreshSuccess();
+            if (detailNodeId && document.getElementById('nodeDetailModal').classList.contains('show')) {
+                renderDetailCurrent(nodes.find(node => String(node.id) === String(detailNodeId)));
+            }
+        } catch (error) {
+            markRefreshError();
+            if (!silent) layer.msg(error.message, {icon: 2});
+        } finally {
+            refreshInFlight = false;
+            if (refreshButton) refreshButton.querySelector('i').classList.remove('spin-animation');
+        }
+    }
+
+    function toggleAutoRefresh(enabled) {
+        if (refreshTimer) window.clearInterval(refreshTimer);
+        refreshTimer = enabled ? window.setInterval(function () {
+            if (!document.hidden) loadNodes(true);
+        }, AUTO_REFRESH_MS) : null;
+        updateRefreshText();
+    }
+
+    function markRefreshSuccess() {
+        lastRefreshAt = new Date();
+        document.getElementById('liveIndicator').classList.remove('is-error');
+        updateRefreshText();
+    }
+
+    function markRefreshError() {
+        document.getElementById('liveIndicator').classList.add('is-error');
+        document.getElementById('lastRefreshText').textContent = '刷新失败';
+    }
+
+    function updateRefreshText() {
+        const target = document.getElementById('lastRefreshText');
+        if (!target) return;
+        if (!document.getElementById('autoRefresh').checked) { target.textContent = '自动刷新已暂停'; return; }
+        if (!lastRefreshAt) { target.textContent = '准备刷新'; return; }
+        const seconds = Math.max(0, Math.floor((Date.now() - lastRefreshAt.getTime()) / 1000));
+        target.textContent = seconds < 2 ? '刚刚更新' : seconds + ' 秒前更新';
     }
 
     function renderSummary() {
@@ -171,10 +294,11 @@
                 '<td><span class="d-block">' + esc(node.groupName || '未分组') + '</span><span class="text-muted">' + esc(node.region || '-') + '</span></td>' +
                 '<td>' + statusBadge(node.status) + (enabled ? '' : '<span class="badge bg-soft-secondary text-secondary ms-1">已停用</span>') + '</td>' +
                 '<td><span class="edge-metric d-inline-block">CPU ' + metric(node.cpuUsage) + '</span><span class="edge-metric d-inline-block">内存 ' + metric(node.memoryUsage) + '</span><span class="edge-metric d-inline-block">磁盘 ' + metric(node.diskUsage) + '</span></td>' +
-                '<td><span class="d-block">↑ ' + bytes(node.txBytes) + '　↓ ' + bytes(node.rxBytes) + '</span><span class="text-muted">缓存 ' + bytes(node.cacheBytes) + '</span></td>' +
+                '<td><span class="d-block edge-table-rate">↑ ' + bytesRate(node.txRateBps) + '　↓ ' + bytesRate(node.rxRateBps) + '</span><span class="d-block small text-muted">累计 ↑ ' + bytes(node.txBytes) + ' / ↓ ' + bytes(node.rxBytes) + '</span><span class="small text-muted">缓存 ' + bytes(node.cacheBytes) + '</span></td>' +
                 '<td><span class="d-block">期望 ' + (node.desiredConfigVersion || 0) + '</span><span class="text-muted">已应用 ' + (node.appliedConfigVersion || 0) + '</span></td>' +
                 '<td>' + dateText(node.lastHeartbeat) + (node.lastError ? '<span class="d-block text-danger text-wrap" style="max-width:200px">' + esc(node.lastError) + '</span>' : '') + '</td>' +
-                '<td class="text-end edge-actions"><button class="btn btn-white btn-icon btn-sm" title="测试 SSH" onclick="testNode(\'' + node.id + '\')"><i class="bi-plug"></i></button> ' +
+                '<td class="text-end edge-actions"><button class="btn btn-white btn-icon btn-sm" title="状态与历史" onclick="openNodeDetail(\'' + node.id + '\')"><i class="bi-activity"></i></button> ' +
+                '<button class="btn btn-white btn-icon btn-sm" title="测试 SSH" onclick="testNode(\'' + node.id + '\')"><i class="bi-plug"></i></button> ' +
                 '<button class="btn btn-white btn-icon btn-sm" title="安装 Agent" onclick="installNode(\'' + node.id + '\', false)"><i class="bi-cloud-download"></i></button> ' +
                 '<button class="btn btn-white btn-icon btn-sm" title="编辑" onclick="editNode(\'' + node.id + '\')"><i class="bi-pencil"></i></button> ' +
                 '<div class="btn-group"><button class="btn btn-white btn-icon btn-sm dropdown-toggle dropdown-toggle-empty" data-bs-toggle="dropdown"></button><div class="dropdown-menu dropdown-menu-end">' +
@@ -268,9 +392,132 @@
     function deleteNode(id){layer.confirm('删除后该节点将不再接收配置，确定继续吗？',{title:'删除节点'},async function(index){layer.close(index);try{const r=await post('SelfHostedNode/delete',{id});layer.msg(r.message,{icon:1});await loadData();}catch(e){layer.msg(e.message,{icon:2});}});}
     async function syncDns(groupId){const loading=layer.load(2);try{const r=await post('SelfHostedNode/syncDns',{groupId});layer.msg(r.message,{icon:1});await loadData();}catch(e){layer.msg(e.message,{icon:2,time:6000});}finally{layer.close(loading);}}
 
+    async function openNodeDetail(id) {
+        const openedNodeId = String(id);
+        detailNodeId = openedNodeId; detailRange = '24h';
+        selectHistoryRange(detailRange, false);
+        renderDetailCurrent(nodes.find(node => String(node.id) === detailNodeId));
+        nodeDetailModal.show();
+        await loadNodeHistory(false);
+        if (detailNodeId !== openedNodeId) return;
+        if (detailTimer) window.clearInterval(detailTimer);
+        detailTimer = window.setInterval(function () { loadNodeHistory(true); }, 30000);
+    }
+
+    function closeNodeDetail() {
+        detailNodeId = null;
+        detailRequestSequence++;
+        if (detailTimer) window.clearInterval(detailTimer);
+        detailTimer = null;
+        destroyHistoryCharts();
+    }
+
+    function selectHistoryRange(range, shouldLoad) {
+        detailRange = range;
+        document.querySelectorAll('#historyRangeButtons [data-range]').forEach(button => {
+            const active = button.getAttribute('data-range') === range;
+            button.classList.toggle('btn-primary', active);
+            button.classList.toggle('btn-white', !active);
+        });
+        if (shouldLoad !== false && detailNodeId) loadNodeHistory(false);
+    }
+
+    async function loadNodeHistory(silent) {
+        if (!detailNodeId) return;
+        const requestedNodeId = detailNodeId;
+        const requestedRange = detailRange;
+        const requestSequence = ++detailRequestSequence;
+        document.getElementById('detailRefreshText').textContent = '正在更新';
+        try {
+            const result = await request('SelfHostedNode/history?id=' + encodeURIComponent(requestedNodeId) + '&range=' + encodeURIComponent(requestedRange));
+            if (detailNodeId !== requestedNodeId || detailRange !== requestedRange || requestSequence !== detailRequestSequence) return;
+            const data = result.data || {};
+            renderDetailCurrent(data.node);
+            renderHistoryCharts(data.points || []);
+            renderNodeEvents(data.events || []);
+            document.getElementById('detailRefreshText').textContent = '更新于 ' + timeText(data.serverTime || new Date());
+        } catch (error) {
+            if (requestSequence !== detailRequestSequence) return;
+            document.getElementById('detailRefreshText').textContent = '更新失败';
+            if (!silent) layer.msg(error.message, {icon: 2});
+        }
+    }
+
+    function renderDetailCurrent(node) {
+        if (!node) return;
+        document.getElementById('detailNodeName').textContent = node.nodeName || '节点详情';
+        document.getElementById('detailNodeStatus').innerHTML = statusBadge(node.status);
+        document.getElementById('detailNodeMeta').textContent = (node.host || '-') + ':' + (node.sshPort || 22) + ' · ' + (node.groupName || '未分组') + ' · ' + (node.region || '未设置区域');
+        document.getElementById('detailResources').textContent = 'CPU ' + metric(node.cpuUsage) + ' · 内存 ' + metric(node.memoryUsage);
+        document.getElementById('detailDisk').textContent = '磁盘 ' + metric(node.diskUsage);
+        document.getElementById('detailNetwork').textContent = '↑ ' + bytesRate(node.txRateBps) + ' / ↓ ' + bytesRate(node.rxRateBps);
+        document.getElementById('detailTrafficTotal').textContent = '累计 ↑ ' + bytes(node.txBytes) + ' / ↓ ' + bytes(node.rxBytes);
+        document.getElementById('detailCache').textContent = bytes(node.cacheBytes);
+        document.getElementById('detailAgent').textContent = 'Agent ' + (node.agentVersion || '-');
+        const configCurrent = Number(node.desiredConfigVersion || 0) === Number(node.appliedConfigVersion || 0);
+        document.getElementById('detailConfig').innerHTML = configCurrent ? '<span class="text-success">已同步</span>' : '<span class="text-warning">待下发</span>';
+        document.getElementById('detailHeartbeat').textContent = '期望 ' + (node.desiredConfigVersion || 0) + ' / 已应用 ' + (node.appliedConfigVersion || 0) + ' · 心跳 ' + dateText(node.lastHeartbeat);
+    }
+
+    function renderHistoryCharts(points) {
+        destroyHistoryCharts();
+        const hasData = points.length > 0;
+        document.getElementById('resourceChartEmpty').style.display = hasData ? 'none' : 'flex';
+        document.getElementById('trafficChartEmpty').style.display = hasData ? 'none' : 'flex';
+        if (!hasData || typeof Chart === 'undefined') return;
+        const labels = points.map(point => chartTime(point.recordedAt));
+        const baseOptions = {
+            responsive: true, maintainAspectRatio: false, animation: false,
+            interaction: {mode: 'index', intersect: false},
+            elements: {point: {radius: 0, hoverRadius: 3, hitRadius: 8}, line: {borderWidth: 2, tension: .22}},
+            plugins: {legend: {position: 'bottom', labels: {usePointStyle: true, boxWidth: 7, padding: 16}}},
+            scales: {x: {grid: {display: false}, ticks: {maxTicksLimit: 8}}, y: {beginAtZero: true, grid: {color: 'rgba(231,234,243,.7)'}}}
+        };
+        resourceHistoryChart = new Chart(document.getElementById('resourceHistoryChart').getContext('2d'), {
+            type: 'line',
+            data: {labels: labels, datasets: [
+                {label: 'CPU', data: points.map(point => chartNumber(point.cpuUsage)), borderColor: '#377dff', backgroundColor: '#377dff'},
+                {label: '内存', data: points.map(point => chartNumber(point.memoryUsage)), borderColor: '#00c9a7', backgroundColor: '#00c9a7'},
+                {label: '磁盘', data: points.map(point => chartNumber(point.diskUsage)), borderColor: '#f5ca99', backgroundColor: '#f5ca99'}
+            ]},
+            options: Object.assign({}, baseOptions, {scales: {x: baseOptions.scales.x, y: Object.assign({}, baseOptions.scales.y, {suggestedMax: 100, max: 100})}})
+        });
+        trafficHistoryChart = new Chart(document.getElementById('trafficHistoryChart').getContext('2d'), {
+            type: 'line',
+            data: {labels: labels, datasets: [
+                {label: '上行 Mbps', data: points.map(point => toMbps(point.txRateBps)), borderColor: '#377dff', backgroundColor: '#377dff', yAxisID: 'y'},
+                {label: '下行 Mbps', data: points.map(point => toMbps(point.rxRateBps)), borderColor: '#00c9a7', backgroundColor: '#00c9a7', yAxisID: 'y'},
+                {label: '缓存 GB', data: points.map(point => toGb(point.cacheBytes)), borderColor: '#ed4c78', backgroundColor: '#ed4c78', yAxisID: 'y1'}
+            ]},
+            options: Object.assign({}, baseOptions, {scales: {
+                x: baseOptions.scales.x,
+                y: Object.assign({}, baseOptions.scales.y, {position: 'left'}),
+                y1: {beginAtZero: true, position: 'right', grid: {drawOnChartArea: false}}
+            }})
+        });
+    }
+
+    function destroyHistoryCharts() {
+        if (resourceHistoryChart) resourceHistoryChart.destroy();
+        if (trafficHistoryChart) trafficHistoryChart.destroy();
+        resourceHistoryChart = null; trafficHistoryChart = null;
+    }
+
+    function renderNodeEvents(events) {
+        const body = document.getElementById('eventRows');
+        if (!events.length) { body.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">所选时间范围内暂无状态记录</td></tr>'; return; }
+        body.innerHTML = events.map(event => '<tr><td>' + dateText(event.createTime) + '</td><td>' + statusBadge(event.status) + '</td><td class="edge-event-message"><span class="fw-medium">' + esc(event.message || '-') + '</span></td><td class="edge-event-message text-muted">' + esc(event.details || '-') + '</td></tr>').join('');
+    }
+
     function statusBadge(status){const map={online:['success','在线'],pending:['warning','等待上线'],installing:['primary','安装中'],offline:['secondary','离线'],degraded:['warning','异常'],install_failed:['danger','安装失败'],disabled:['secondary','停用']};const item=map[status]||['secondary',status||'未知'];return '<span class="badge bg-soft-'+item[0]+' text-'+item[0]+'">'+esc(item[1])+'</span>';}
     function metric(value){return value==null?'-':Number(value).toFixed(1)+'%';}
     function bytes(value){let n=Number(value||0),units=['B','KB','MB','GB','TB'],i=0;while(n>=1024&&i<units.length-1){n/=1024;i++;}return n.toFixed(i?1:0)+' '+units[i];}
+    function bytesRate(value){return bytes(value) + '/s';}
+    function chartNumber(value){const number=Number(value);return Number.isFinite(number)?number:null;}
+    function toMbps(value){const number=Number(value);return Number.isFinite(number)?Number((number*8/1000000).toFixed(4)):null;}
+    function toGb(value){const number=Number(value);return Number.isFinite(number)?Number((number/1073741824).toFixed(4)):null;}
+    function chartTime(value){const d=new Date(value);if(Number.isNaN(d.getTime()))return '-';return detailRange.endsWith('d')?((d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')):(String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'));}
+    function timeText(value){const d=new Date(value);return Number.isNaN(d.getTime())?'-':d.toLocaleTimeString('zh-CN',{hour12:false});}
     function dateText(value){if(!value)return '-';const d=new Date(value);return Number.isNaN(d.getTime())?'-':d.toLocaleString('zh-CN',{hour12:false});}
     function value(id){return document.getElementById(id).value.trim();} function numberValue(id){const n=Number(document.getElementById(id).value);return Number.isFinite(n)?n:null;}
     function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}

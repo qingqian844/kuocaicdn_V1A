@@ -38,6 +38,7 @@ import com.kuocai.cdn.util.ConfigureRsaUtils;
 import com.kuocai.cdn.util.SelfHostedDomainValidator;
 import com.kuocai.cdn.util.SelfHostedOriginValidator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -84,6 +85,7 @@ public class SelfHostedCdnService {
     private final CdnDomainDao cdnDomainDao;
     private final SelfHostedPortForwardDao portForwardDao;
     private final SecureRandom secureRandom = new SecureRandom();
+    private SelfHostedNodeTelemetryService telemetryService;
 
     public SelfHostedCdnService(SelfHostedNodeDao nodeDao,
                                 SelfHostedNodeGroupDao groupDao,
@@ -103,6 +105,11 @@ public class SelfHostedCdnService {
         this.portForwardDao = portForwardDao;
     }
 
+    @Autowired
+    public void setTelemetryService(SelfHostedNodeTelemetryService telemetryService) {
+        this.telemetryService = telemetryService;
+    }
+
     public List<SelfHostedNode> listNodes() {
         List<SelfHostedNode> nodes = nodeDao.selectList(new QueryWrapper<SelfHostedNode>().orderByDesc("id"));
         Date now = new Date();
@@ -112,6 +119,8 @@ public class SelfHostedCdnService {
             } else if (node.getLastHeartbeat() != null
                     && now.getTime() - node.getLastHeartbeat().getTime() > OFFLINE_AFTER_MS) {
                 node.setStatus("offline");
+                node.setRxRateBps(0L);
+                node.setTxRateBps(0L);
             }
         }
         return nodes;
@@ -120,31 +129,48 @@ public class SelfHostedCdnService {
     public List<JSONObject> listNodeViews() {
         List<JSONObject> result = new ArrayList<>();
         for (SelfHostedNode node : listNodes()) {
-            JSONObject item = (JSONObject) JSON.toJSON(node);
-            item.remove("sshPasswordCipher");
-            item.remove("agentTokenHash");
-            item.put("passwordConfigured", !Assert.isEmpty(node.getSshPasswordCipher()));
-            List<SelfHostedGroupNode> relations = groupNodeDao.selectList(
-                    new QueryWrapper<SelfHostedGroupNode>().eq("node_id", node.getId()).orderByAsc("id"));
-            List<Long> groupIds = new ArrayList<>();
-            List<String> groupNames = new ArrayList<>();
-            if (!relations.isEmpty()) {
-                for (SelfHostedGroupNode relation : relations) {
-                    SelfHostedNodeGroup group = groupDao.selectById(relation.getGroupId());
-                    if (group != null) {
-                        groupIds.add(group.getId());
-                        groupNames.add(group.getGroupName());
-                    }
-                }
-                if (!groupIds.isEmpty()) {
-                    item.put("groupId", groupIds.get(0));
-                    item.put("groupIds", groupIds);
-                    item.put("groupName", String.join("、", groupNames));
-                }
-            }
-            result.add(item);
+            result.add(toNodeView(node));
         }
         return result;
+    }
+
+    public JSONObject nodeView(Long id) throws BusinessException {
+        SelfHostedNode node = getNode(id);
+        if (node.getEnabled() != null && node.getEnabled() == 0) {
+            node.setStatus("disabled");
+        } else if (node.getLastHeartbeat() != null
+                && System.currentTimeMillis() - node.getLastHeartbeat().getTime() > OFFLINE_AFTER_MS) {
+            node.setStatus("offline");
+            node.setRxRateBps(0L);
+            node.setTxRateBps(0L);
+        }
+        return toNodeView(node);
+    }
+
+    private JSONObject toNodeView(SelfHostedNode node) {
+        JSONObject item = (JSONObject) JSON.toJSON(node);
+        item.remove("sshPasswordCipher");
+        item.remove("agentTokenHash");
+        item.put("passwordConfigured", !Assert.isEmpty(node.getSshPasswordCipher()));
+        List<SelfHostedGroupNode> relations = groupNodeDao.selectList(
+                new QueryWrapper<SelfHostedGroupNode>().eq("node_id", node.getId()).orderByAsc("id"));
+        List<Long> groupIds = new ArrayList<>();
+        List<String> groupNames = new ArrayList<>();
+        if (!relations.isEmpty()) {
+            for (SelfHostedGroupNode relation : relations) {
+                SelfHostedNodeGroup group = groupDao.selectById(relation.getGroupId());
+                if (group != null) {
+                    groupIds.add(group.getId());
+                    groupNames.add(group.getGroupName());
+                }
+            }
+            if (!groupIds.isEmpty()) {
+                item.put("groupId", groupIds.get(0));
+                item.put("groupIds", groupIds);
+                item.put("groupName", String.join("、", groupNames));
+            }
+        }
+        return item;
     }
 
     public List<SelfHostedNodeGroup> listGroups() {
@@ -203,6 +229,8 @@ public class SelfHostedCdnService {
             node.setAppliedConfigVersion(0L);
             node.setRxBytes(0L);
             node.setTxBytes(0L);
+            node.setRxRateBps(0L);
+            node.setTxRateBps(0L);
             node.setCacheBytes(0L);
         }
         node.setNodeName(request.getNodeName().trim());
@@ -330,6 +358,7 @@ public class SelfHostedCdnService {
         node.setStatus(enabled ? "pending" : "disabled");
         node.setUpdateTime(new Date());
         nodeDao.updateById(node);
+        recordStatusEventSafely(node.getId(), node.getStatus(), null);
         bumpNodeGroups(id);
     }
 
@@ -341,6 +370,7 @@ public class SelfHostedCdnService {
         List<SelfHostedGroupNode> relations = groupNodeDao.selectList(
                 new QueryWrapper<SelfHostedGroupNode>().eq("node_id", id));
         groupNodeDao.delete(new QueryWrapper<SelfHostedGroupNode>().eq("node_id", id));
+        deleteTelemetrySafely(id);
         nodeDao.deleteById(id);
         for (SelfHostedGroupNode relation : relations) {
             bumpGroupVersion(relation.getGroupId());
@@ -386,19 +416,30 @@ public class SelfHostedCdnService {
     }
 
     public JSONObject heartbeat(SelfHostedNode node, SelfHostedHeartbeatRequest request) {
+        String previousStatus = node.getStatus();
+        String previousError = node.getLastError();
+        Date previousHeartbeat = node.getLastHeartbeat();
+        long previousRx = valueOrZero(node.getRxBytes());
+        long previousTx = valueOrZero(node.getTxBytes());
+        Date heartbeatAt = new Date();
+        long currentRx = valueOrZero(request.getRxBytes());
+        long currentTx = valueOrZero(request.getTxBytes());
         node.setStatus(Assert.isEmpty(request.getLastError()) ? "online" : "degraded");
-        node.setLastHeartbeat(new Date());
+        node.setLastHeartbeat(heartbeatAt);
         node.setAgentVersion(trim(request.getAgentVersion()));
         node.setAppliedConfigVersion(request.getAppliedConfigVersion() == null ? node.getAppliedConfigVersion() : request.getAppliedConfigVersion());
         node.setCpuUsage(request.getCpuUsage());
         node.setMemoryUsage(request.getMemoryUsage());
         node.setDiskUsage(request.getDiskUsage());
-        node.setRxBytes(valueOrZero(request.getRxBytes()));
-        node.setTxBytes(valueOrZero(request.getTxBytes()));
+        node.setRxBytes(currentRx);
+        node.setTxBytes(currentTx);
+        node.setRxRateBps(calculateRate(previousRx, currentRx, previousHeartbeat, heartbeatAt));
+        node.setTxRateBps(calculateRate(previousTx, currentTx, previousHeartbeat, heartbeatAt));
         node.setCacheBytes(valueOrZero(request.getCacheBytes()));
         node.setLastError(trim(request.getLastError()));
-        node.setUpdateTime(new Date());
+        node.setUpdateTime(heartbeatAt);
         nodeDao.updateById(node);
+        recordHeartbeatSafely(node, previousStatus, previousError);
         boolean configCurrent = isNodeConfigCurrent(node);
         if (configCurrent) {
             reconcileAppliedDomains(node);
@@ -526,6 +567,8 @@ public class SelfHostedCdnService {
     }
 
     public void applyResult(SelfHostedNode node, SelfHostedApplyResultRequest request) {
+        String previousStatus = node.getStatus();
+        String previousError = node.getLastError();
         if (Boolean.TRUE.equals(request.getSuccess())) {
             node.setAppliedConfigVersion(request.getVersion());
             node.setStatus("online");
@@ -542,6 +585,10 @@ public class SelfHostedCdnService {
             node.setLastError(trim(request.getError()));
             node.setUpdateTime(new Date());
             nodeDao.updateById(node);
+        }
+        if (!java.util.Objects.equals(previousStatus, node.getStatus())
+                || !java.util.Objects.equals(previousError, node.getLastError())) {
+            recordStatusEventSafely(node.getId(), node.getStatus(), node.getLastError());
         }
         if (Boolean.TRUE.equals(request.getSuccess()) && isNodeConfigCurrent(node)) {
             reconcileAppliedDomains(node);
@@ -596,6 +643,28 @@ public class SelfHostedCdnService {
             job.setStatus("failed");
             job.setUpdateTime(new Date());
             cacheJobDao.updateById(job);
+        }
+    }
+
+    public void markStaleNodesOffline() {
+        Date cutoff = new Date(System.currentTimeMillis() - OFFLINE_AFTER_MS);
+        List<SelfHostedNode> staleNodes = nodeDao.selectList(new QueryWrapper<SelfHostedNode>()
+                .eq("enabled", 1)
+                .lt("last_heartbeat", cutoff)
+                .ne("status", "offline"));
+        for (SelfHostedNode node : staleNodes) {
+            node.setStatus("offline");
+            node.setRxRateBps(0L);
+            node.setTxRateBps(0L);
+            node.setUpdateTime(new Date());
+            nodeDao.updateById(node);
+            recordStatusEventSafely(node.getId(), "offline", node.getLastError());
+        }
+    }
+
+    public void purgeNodeTelemetry() {
+        if (telemetryService != null) {
+            telemetryService.purgeExpired();
         }
     }
 
@@ -1023,6 +1092,7 @@ public class SelfHostedCdnService {
         nodeDao.update(null, new UpdateWrapper<SelfHostedNode>().eq("id", node.getId())
                 .set("status", "pending").set("ssh_password_cipher", null)
                 .set("last_error", null).set("update_time", new Date()));
+        recordStatusEventSafely(node.getId(), "pending", null);
         bumpNodeGroups(node.getId());
     }
 
@@ -1037,6 +1107,53 @@ public class SelfHostedCdnService {
         node.setLastError(error == null ? null : error.substring(0, Math.min(error.length(), 1000)));
         node.setUpdateTime(new Date());
         nodeDao.updateById(node);
+        recordStatusEventSafely(node.getId(), "install_failed", node.getLastError());
+    }
+
+    private long calculateRate(long previous, long current, Date previousTime, Date currentTime) {
+        if (previousTime == null || current < previous) {
+            return 0L;
+        }
+        long elapsedMs = currentTime.getTime() - previousTime.getTime();
+        if (elapsedMs < 1000L) {
+            return 0L;
+        }
+        double rate = (current - previous) * 1000.0d / elapsedMs;
+        return rate >= Long.MAX_VALUE ? Long.MAX_VALUE : Math.max(0L, Math.round(rate));
+    }
+
+    private void recordHeartbeatSafely(SelfHostedNode node, String previousStatus, String previousError) {
+        if (telemetryService == null) {
+            return;
+        }
+        try {
+            telemetryService.recordHeartbeat(node, previousStatus, previousError);
+        } catch (Exception e) {
+            log.warn("Unable to record self-hosted node heartbeat telemetry, nodeId={}: {}",
+                    node.getId(), e.getMessage());
+        }
+    }
+
+    private void recordStatusEventSafely(Long nodeId, String status, String details) {
+        if (telemetryService == null) {
+            return;
+        }
+        try {
+            telemetryService.recordStatusEvent(nodeId, status, details);
+        } catch (Exception e) {
+            log.warn("Unable to record self-hosted node status event, nodeId={}: {}", nodeId, e.getMessage());
+        }
+    }
+
+    private void deleteTelemetrySafely(Long nodeId) {
+        if (telemetryService == null) {
+            return;
+        }
+        try {
+            telemetryService.deleteForNode(nodeId);
+        } catch (Exception e) {
+            log.warn("Unable to delete self-hosted node telemetry, nodeId={}: {}", nodeId, e.getMessage());
+        }
     }
 
     private void validateNode(SelfHostedNodeSaveRequest request) throws BusinessException {

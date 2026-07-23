@@ -17,6 +17,7 @@ RELEASE_ROOT = "/etc/kuocai-edge/releases"
 ACTIVE_LINK = "/etc/nginx/kuocai-edge"
 STREAM_ACTIVE_LINK = "/etc/nginx/kuocai-edge-stream"
 CACHE_DIR = "/var/cache/kuocai-cdn"
+_CPU_SAMPLE = None
 
 
 def load_agent_config():
@@ -845,12 +846,49 @@ def memory_percent():
         return 0
 
 
+def cpu_percent():
+    global _CPU_SAMPLE
+    try:
+        with open("/proc/stat", "r", encoding="utf-8") as stream:
+            fields = [int(value) for value in stream.readline().split()[1:]]
+        if len(fields) < 4:
+            return 0
+        idle = fields[3] + (fields[4] if len(fields) > 4 else 0)
+        total = sum(fields)
+        previous = _CPU_SAMPLE
+        _CPU_SAMPLE = (total, idle)
+        if previous is None or total <= previous[0]:
+            return 0
+        total_delta = total - previous[0]
+        idle_delta = max(0, idle - previous[1])
+        return round(max(0.0, min(100.0, (total_delta - idle_delta) * 100.0 / total_delta)), 2)
+    except Exception:
+        return 0
+
+
+def default_route_interfaces():
+    interfaces = set()
+    try:
+        with open("/proc/net/route", "r", encoding="utf-8") as stream:
+            for line in stream.readlines()[1:]:
+                fields = line.split()
+                if len(fields) > 3 and fields[1] == "00000000" and int(fields[3], 16) & 2:
+                    interfaces.add(fields[0])
+    except Exception:
+        pass
+    return interfaces
+
+
 def network_bytes():
     rx = tx = 0
     try:
+        default_interfaces = default_route_interfaces()
         with open("/proc/net/dev", "r", encoding="utf-8") as stream:
             for line in stream.readlines()[2:]:
-                _, data = line.split(":", 1)
+                interface, data = line.split(":", 1)
+                interface = interface.strip()
+                if interface == "lo" or (default_interfaces and interface not in default_interfaces):
+                    continue
                 fields = data.split()
                 rx += int(fields[0])
                 tx += int(fields[8])
@@ -862,9 +900,9 @@ def network_bytes():
 def heartbeat(config, applied, last_error):
     rx, tx = network_bytes()
     return api_request(config, "POST", "/api/self-hosted/agent/heartbeat", {
-        "agentVersion": "1.2.0",
+        "agentVersion": "1.3.0",
         "appliedConfigVersion": applied,
-        "cpuUsage": 0,
+        "cpuUsage": cpu_percent(),
         "memoryUsage": memory_percent(),
         "diskUsage": read_percent("/", 0),
         "rxBytes": rx,

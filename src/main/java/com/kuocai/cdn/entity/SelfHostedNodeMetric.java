@@ -3,7 +3,6 @@ package com.kuocai.cdn.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.AllArgsConstructor;
@@ -19,30 +18,17 @@ import java.util.Date;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("self_hosted_node")
-public class SelfHostedNode implements Serializable {
+@TableName("self_hosted_node_metric")
+public class SelfHostedNodeMetric implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @TableId(type = IdType.AUTO)
     @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
-    private String nodeName;
-    private String host;
-    private Integer sshPort;
-    private String sshUsername;
-    @JsonIgnore
-    private String sshPasswordCipher;
-    private String sshHostKey;
-    @JsonIgnore
-    private String agentTokenHash;
-    private String region;
-    private Integer weight;
-    private Integer enabled;
+    @JsonSerialize(using = ToStringSerializer.class)
+    private Long nodeId;
+    private Date recordedAt;
     private String status;
-    private Date lastHeartbeat;
-    private String agentVersion;
-    private Long desiredConfigVersion;
-    private Long appliedConfigVersion;
     private BigDecimal cpuUsage;
     private BigDecimal memoryUsage;
     private BigDecimal diskUsage;
@@ -51,8 +37,6 @@ public class SelfHostedNode implements Serializable {
     private Long rxRateBps;
     private Long txRateBps;
     private Long cacheBytes;
-    private String lastError;
-    private String remark;
-    private Date createTime;
-    private Date updateTime;
+    private Long desiredConfigVersion;
+    private Long appliedConfigVersion;
 }

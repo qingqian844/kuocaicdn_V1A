@@ -28,9 +28,25 @@ public class SelfHostedCdnSchemaInitializer {
                 "last_heartbeat DATETIME NULL,agent_version VARCHAR(64) NULL,desired_config_version BIGINT NOT NULL DEFAULT 0," +
                 "applied_config_version BIGINT NOT NULL DEFAULT 0,cpu_usage DECIMAL(6,2) NULL,memory_usage DECIMAL(6,2) NULL," +
                 "disk_usage DECIMAL(6,2) NULL,rx_bytes BIGINT NOT NULL DEFAULT 0,tx_bytes BIGINT NOT NULL DEFAULT 0," +
+                "rx_rate_bps BIGINT NOT NULL DEFAULT 0,tx_rate_bps BIGINT NOT NULL DEFAULT 0," +
                 "cache_bytes BIGINT NOT NULL DEFAULT 0,last_error VARCHAR(1000) NULL,remark VARCHAR(512) NULL," +
                 "create_time DATETIME DEFAULT CURRENT_TIMESTAMP,update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
                 "UNIQUE KEY uk_self_hosted_node_endpoint (host,ssh_port),KEY idx_self_hosted_node_status (enabled,status,last_heartbeat)" +
+                ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        execute("CREATE TABLE IF NOT EXISTS self_hosted_node_metric (" +
+                "id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,node_id BIGINT NOT NULL,recorded_at DATETIME NOT NULL," +
+                "status VARCHAR(32) NOT NULL,cpu_usage DECIMAL(6,2) NULL,memory_usage DECIMAL(6,2) NULL," +
+                "disk_usage DECIMAL(6,2) NULL,rx_bytes BIGINT NOT NULL DEFAULT 0,tx_bytes BIGINT NOT NULL DEFAULT 0," +
+                "rx_rate_bps BIGINT NOT NULL DEFAULT 0,tx_rate_bps BIGINT NOT NULL DEFAULT 0," +
+                "cache_bytes BIGINT NOT NULL DEFAULT 0,desired_config_version BIGINT NOT NULL DEFAULT 0," +
+                "applied_config_version BIGINT NOT NULL DEFAULT 0," +
+                "KEY idx_self_hosted_metric_node_time (node_id,recorded_at),KEY idx_self_hosted_metric_time (recorded_at)" +
+                ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        execute("CREATE TABLE IF NOT EXISTS self_hosted_node_event (" +
+                "id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,node_id BIGINT NOT NULL,event_type VARCHAR(32) NOT NULL," +
+                "status VARCHAR(32) NULL,severity VARCHAR(16) NOT NULL DEFAULT 'info',message VARCHAR(255) NOT NULL," +
+                "details VARCHAR(1000) NULL,create_time DATETIME DEFAULT CURRENT_TIMESTAMP," +
+                "KEY idx_self_hosted_event_node_time (node_id,create_time),KEY idx_self_hosted_event_time (create_time)" +
                 ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
         execute("CREATE TABLE IF NOT EXISTS self_hosted_node_group (" +
                 "id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,group_name VARCHAR(128) NOT NULL,cname_label VARCHAR(64) NOT NULL," +
@@ -101,6 +117,10 @@ public class SelfHostedCdnSchemaInitializer {
                 "ALTER TABLE self_hosted_domain_config ADD COLUMN https_config_json LONGTEXT NULL AFTER advanced_config_json");
         addColumnIfAbsent("self_hosted_domain_config", "ipv6_enabled",
                 "ALTER TABLE self_hosted_domain_config ADD COLUMN ipv6_enabled TINYINT NOT NULL DEFAULT 0 AFTER https_config_json");
+        addColumnIfAbsent("self_hosted_node", "rx_rate_bps",
+                "ALTER TABLE self_hosted_node ADD COLUMN rx_rate_bps BIGINT NOT NULL DEFAULT 0 AFTER tx_bytes");
+        addColumnIfAbsent("self_hosted_node", "tx_rate_bps",
+                "ALTER TABLE self_hosted_node ADD COLUMN tx_rate_bps BIGINT NOT NULL DEFAULT 0 AFTER rx_rate_bps");
         execute("INSERT INTO self_hosted_node_group (group_name,cname_label,coverage,is_default,status) " +
                 "SELECT '默认节点组','edge','legacy',1,'enabled' WHERE NOT EXISTS (SELECT 1 FROM self_hosted_node_group WHERE is_default=1)");
     }

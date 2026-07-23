@@ -288,6 +288,32 @@ class SelfHostedCdnRouteTest {
     }
 
     @Test
+    void heartbeatCalculatesNetworkRatesAndRecordsTelemetry() {
+        SelfHostedNodeDao nodeDao = mock(SelfHostedNodeDao.class);
+        SelfHostedNodeTelemetryService telemetryService = mock(SelfHostedNodeTelemetryService.class);
+        SelfHostedCdnService service = new SelfHostedCdnService(nodeDao,
+                mock(SelfHostedNodeGroupDao.class), mock(SelfHostedGroupNodeDao.class),
+                mock(SelfHostedDomainConfigDao.class), mock(SelfHostedCacheJobDao.class),
+                mock(SelfHostedCacheJobNodeDao.class), mock(CdnDomainDao.class),
+                mock(SelfHostedPortForwardDao.class));
+        service.setTelemetryService(telemetryService);
+        SelfHostedNode node = SelfHostedNode.builder().id(1L).status("online")
+                .lastHeartbeat(new java.util.Date(System.currentTimeMillis() - 30_000L))
+                .rxBytes(1_000L).txBytes(2_000L).desiredConfigVersion(8L)
+                .appliedConfigVersion(7L).enabled(1).build();
+        SelfHostedHeartbeatRequest request = new SelfHostedHeartbeatRequest();
+        request.setAppliedConfigVersion(7L);
+        request.setRxBytes(31_000L);
+        request.setTxBytes(62_000L);
+
+        service.heartbeat(node, request);
+
+        assertTrue(node.getRxRateBps() >= 950L && node.getRxRateBps() <= 1_050L);
+        assertTrue(node.getTxRateBps() >= 1_900L && node.getTxRateBps() <= 2_100L);
+        verify(telemetryService).recordHeartbeat(node, "online", null);
+    }
+
+    @Test
     void heartbeatMarksConfiguredDomainOnlineAfterNodeAppliesLatestVersion() {
         SelfHostedNodeDao nodeDao = mock(SelfHostedNodeDao.class);
         SelfHostedGroupNodeDao groupNodeDao = mock(SelfHostedGroupNodeDao.class);
@@ -344,7 +370,9 @@ class SelfHostedCdnRouteTest {
 
         assertTrue(source.indexOf("applied = apply_config(config, desired)")
                 < source.indexOf("process_cache_jobs(config, response.get(\"cacheJobs\"))"));
-        assertTrue(source.contains("\"agentVersion\": \"1.2.0\""));
+        assertTrue(source.contains("\"agentVersion\": \"1.3.0\""));
+        assertTrue(source.contains("def cpu_percent()"));
+        assertTrue(source.contains("default_route_interfaces"));
         assertTrue(source.contains("listen 80 default_server"));
         assertTrue(source.contains("return 444"));
         assertTrue(source.contains("remove_distribution_default_server"));

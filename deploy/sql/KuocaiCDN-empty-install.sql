@@ -660,6 +660,8 @@ CREATE TABLE `self_hosted_node` (
   `disk_usage` decimal(6,2) DEFAULT NULL,
   `rx_bytes` bigint(20) NOT NULL DEFAULT '0',
   `tx_bytes` bigint(20) NOT NULL DEFAULT '0',
+  `rx_rate_bps` bigint(20) NOT NULL DEFAULT '0',
+  `tx_rate_bps` bigint(20) NOT NULL DEFAULT '0',
   `cache_bytes` bigint(20) NOT NULL DEFAULT '0',
   `last_error` varchar(1000) DEFAULT NULL,
   `remark` varchar(512) DEFAULT NULL,
@@ -674,6 +676,56 @@ CREATE TABLE `self_hosted_node` (
 LOCK TABLES `self_hosted_node` WRITE;
 /*!40000 ALTER TABLE `self_hosted_node` DISABLE KEYS */;
 /*!40000 ALTER TABLE `self_hosted_node` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `self_hosted_node_event`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `self_hosted_node_event` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `node_id` bigint(20) NOT NULL,
+  `event_type` varchar(32) NOT NULL,
+  `status` varchar(32) DEFAULT NULL,
+  `severity` varchar(16) NOT NULL DEFAULT 'info',
+  `message` varchar(255) NOT NULL,
+  `details` varchar(1000) DEFAULT NULL,
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_self_hosted_event_node_time` (`node_id`,`create_time`),
+  KEY `idx_self_hosted_event_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `self_hosted_node_event` WRITE;
+/*!40000 ALTER TABLE `self_hosted_node_event` DISABLE KEYS */;
+/*!40000 ALTER TABLE `self_hosted_node_event` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `self_hosted_node_metric`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `self_hosted_node_metric` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `node_id` bigint(20) NOT NULL,
+  `recorded_at` datetime NOT NULL,
+  `status` varchar(32) NOT NULL,
+  `cpu_usage` decimal(6,2) DEFAULT NULL,
+  `memory_usage` decimal(6,2) DEFAULT NULL,
+  `disk_usage` decimal(6,2) DEFAULT NULL,
+  `rx_bytes` bigint(20) NOT NULL DEFAULT '0',
+  `tx_bytes` bigint(20) NOT NULL DEFAULT '0',
+  `rx_rate_bps` bigint(20) NOT NULL DEFAULT '0',
+  `tx_rate_bps` bigint(20) NOT NULL DEFAULT '0',
+  `cache_bytes` bigint(20) NOT NULL DEFAULT '0',
+  `desired_config_version` bigint(20) NOT NULL DEFAULT '0',
+  `applied_config_version` bigint(20) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `idx_self_hosted_metric_node_time` (`node_id`,`recorded_at`),
+  KEY `idx_self_hosted_metric_time` (`recorded_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `self_hosted_node_metric` WRITE;
+/*!40000 ALTER TABLE `self_hosted_node_metric` DISABLE KEYS */;
+/*!40000 ALTER TABLE `self_hosted_node_metric` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `self_hosted_node_group`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;

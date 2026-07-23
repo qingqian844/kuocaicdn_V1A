@@ -1,5 +1,6 @@
 package com.kuocai.cdn.controller.rest;
 
+import com.alibaba.fastjson.JSONObject;
 import com.kuocai.cdn.annotation.AuthorLimiter;
 import com.kuocai.cdn.annotation.RateLimiter;
 import com.kuocai.cdn.annotation.SysLog;
@@ -10,6 +11,7 @@ import com.kuocai.cdn.dto.resp.RespResult;
 import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.service.SelfHostedCdnService;
 import com.kuocai.cdn.service.SelfHostedNodeInstallService;
+import com.kuocai.cdn.service.SelfHostedNodeTelemetryService;
 import org.springframework.context.annotation.Scope;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,11 +27,14 @@ import javax.servlet.http.HttpServletRequest;
 public class SelfHostedNodeController extends BaseController {
     private final SelfHostedCdnService selfHostedCdnService;
     private final SelfHostedNodeInstallService installService;
+    private final SelfHostedNodeTelemetryService telemetryService;
 
     public SelfHostedNodeController(SelfHostedCdnService selfHostedCdnService,
-                                    SelfHostedNodeInstallService installService) {
+                                    SelfHostedNodeInstallService installService,
+                                    SelfHostedNodeTelemetryService telemetryService) {
         this.selfHostedCdnService = selfHostedCdnService;
         this.installService = installService;
+        this.telemetryService = telemetryService;
     }
 
     @AuthorLimiter
@@ -42,6 +47,21 @@ public class SelfHostedNodeController extends BaseController {
     @GetMapping("groups")
     public RespResult groups() {
         return RespResult.success("查询成功", selfHostedCdnService.listGroups());
+    }
+
+    @AuthorLimiter
+    @GetMapping("history")
+    public RespResult history(Long id, String range) {
+        if (id == null) {
+            return RespResult.fail("节点 ID 不能为空");
+        }
+        try {
+            JSONObject data = telemetryService.history(selfHostedCdnService.getNode(id), range);
+            data.put("node", selfHostedCdnService.nodeView(id));
+            return RespResult.success("查询成功", data);
+        } catch (BusinessException e) {
+            return RespResult.fail(e.getMessage());
+        }
     }
 
     @AuthorLimiter
