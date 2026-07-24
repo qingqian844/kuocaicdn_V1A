@@ -18,7 +18,6 @@ else
     mysqldump -h "$DB_IMPORT_HOST" -P "$DB_PORT" -u "$DB_USERNAME" --single-transaction --routines --events "$MYSQL_DATABASE" >"$target/database.sql"
 fi
 cp -p "$INSTALL_DIR/packages/kuocai-cdn.jar" "$target/"
-cp -p "$INSTALL_DIR/packages/license.key" "$target/"
 cp -p "$APP_ENV" "$STATE_FILE" "$target/"
 [ ! -d "$INSTALL_DIR/secrets" ] || cp -pr "$INSTALL_DIR/secrets" "$target/"
 tar -C "$INSTALL_DIR/backups" -czf "$INSTALL_DIR/backups/kuocai-backup-$timestamp.tar.gz" "$timestamp"

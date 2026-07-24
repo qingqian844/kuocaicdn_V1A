@@ -52,11 +52,6 @@ public class SysUserAccount implements Serializable {
     private BigDecimal amassRecharge;
 
     /**
-     * 分润金额
-     */
-    private BigDecimal bonus;
-
-    /**
      * 账户状态
      */
     private Integer status;
@@ -90,10 +85,6 @@ public class SysUserAccount implements Serializable {
 
     public BigDecimal getAmassRecharge() {
         return amassRecharge;
-    }
-
-    public BigDecimal getBonus() {
-        return bonus;
     }
 
     public Integer getStatus() {
@@ -138,14 +129,6 @@ public class SysUserAccount implements Serializable {
 
     public void reduceAccountBalance(BigDecimal accountBalance) {
         this.accountBalance = Assert.isEmpty(getAccountBalance()) ? accountBalance : getAccountBalance().subtract(accountBalance);
-    }
-
-    public void addBonus(BigDecimal bonus) {
-        this.bonus = Assert.isEmpty(getBonus()) ? bonus : getBonus().add(bonus);
-    }
-
-    public void reduceBonus(BigDecimal bonus) {
-        this.bonus = Assert.isEmpty(getBonus()) ? bonus : getBonus().subtract(bonus);
     }
 
     public void addAmassRecharge(BigDecimal amassRecharge) {

@@ -28,7 +28,7 @@ class ServiceAreaConfigurationTemplateTest {
 
         assertTrue(template.contains("overseasEnabledTarget"));
         assertTrue(template.contains("globalEnabledTarget"));
-        assertTrue(template.contains("平台账号标识"));
+        assertFalse(template.contains("平台账号标识"));
         assertTrue(template.contains("${serviceAreaOptions}"));
         assertTrue(template.contains("option.fixedArea == 'outside_mainland_china'"));
         assertTrue(template.contains("option.fixedArea == 'global'"));
@@ -103,28 +103,23 @@ class ServiceAreaConfigurationTemplateTest {
     }
 
     @Test
-    void accountAndSelfHostedRowsRenderWithExpectedIdentifiers() throws IOException {
+    void vendorAndSelfHostedRowsRenderWithoutAccountIdentifiers() throws IOException {
         String template = read("src/main/resources/templates/admin/settings/website-setting.html");
         String row = between(template,
                 "<tr th:each=\"option : ${serviceAreaOptions}\">", "</tr>") + "</tr>";
         Context context = new Context();
         context.setVariable("serviceAreaOptions", Arrays.asList(
                 CdnServiceAreaOptionVo.builder()
-                        .targetKey("account:101")
+                        .targetKey("route:tencent_edgeone")
                         .routeName("腾讯云 EdgeOne")
-                        .accountId(101L)
-                        .accountName("EO主账号")
-                        .defaultAccount(true)
-                        .accountStatus("enabled")
                         .selectable(true)
                         .overseasEnabled(true)
                         .globalEnabled(false)
                         .build(),
                 CdnServiceAreaOptionVo.builder()
+                        .targetKey("route:self_hosted_overseas")
                         .routeName("海外自建 CDN")
-                        .accountName("自建节点组")
-                        .accountStatus("enabled")
-                        .selectable(false)
+                        .selectable(true)
                         .fixedArea(CdnServiceAreaPolicyService.OVERSEAS)
                         .overseasEnabled(true)
                         .globalEnabled(false)
@@ -133,10 +128,8 @@ class ServiceAreaConfigurationTemplateTest {
         String rendered = templateEngine().process(row, context);
 
         assertTrue(rendered.contains("腾讯云 EdgeOne"));
-        assertTrue(rendered.contains("EO主账号"));
-        assertTrue(rendered.contains("ID 101"));
         assertTrue(rendered.contains("海外自建 CDN"));
-        assertTrue(rendered.contains("自建节点组"));
+        assertFalse(rendered.contains("ID 101"));
     }
 
     @Test

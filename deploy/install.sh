@@ -49,12 +49,10 @@ install_docker() {
 }
 
 copy_delivery() {
-  local jar key sql
+  local jar sql
   jar="$(find "$SOURCE_DIR/packages" -maxdepth 1 -type f -name '*.jar' | head -1 || true)"
-  key="$SOURCE_DIR/packages/license.key"
   sql="$SOURCE_DIR/sql/KuocaiCDN-empty-install.sql"
-  [ -s "$jar" ] || die "请先把授权版 JAR 放入 $SOURCE_DIR/packages/"
-  [ -s "$key" ] || die "缺少 $key"
+  [ -s "$jar" ] || die "请先把开源版 JAR 放入 $SOURCE_DIR/packages/"
   [ -s "$sql" ] || die "缺少空数据库文件 $sql"
 
   mkdir -p "$INSTALL_DIR"/{packages,env,caddy,scripts,sql,backups,secrets}
@@ -70,15 +68,9 @@ copy_delivery() {
         cp -f "$jar" "$INSTALL_DIR/packages/kuocai-cdn.jar"
       fi
     fi
-    if [ ! -s "$STATE_FILE" ] || [ ! -s "$INSTALL_DIR/packages/license.key" ]; then
-      if [ "$(readlink -f "$key")" != "$(readlink -f "$INSTALL_DIR/packages/license.key" 2>/dev/null || true)" ]; then
-        cp -f "$key" "$INSTALL_DIR/packages/license.key"
-      fi
-    fi
   fi
   chmod 700 "$INSTALL_DIR"/*.sh "$INSTALL_DIR/scripts/lib.sh"
   chmod 700 "$INSTALL_DIR/secrets"
-  chmod 600 "$INSTALL_DIR/packages/license.key"
 }
 
 generate_rsa_pair() {
@@ -186,7 +178,7 @@ write_runtime_files() {
     env_line MINIO_ROOT_USER "$MINIO_ACCESS_KEY"; env_line MINIO_ROOT_PASSWORD "$MINIO_SECRET_KEY"
     env_line JWT_PUBLIC_KEY "$JWT_PUBLIC_KEY"; env_line JWT_PRIVATE_KEY "$JWT_PRIVATE_KEY"; env_line CONFIG_RSA_PUBLIC_KEY "$CONFIG_RSA_PUBLIC_KEY"; env_line CONFIG_RSA_PRIVATE_KEY "$CONFIG_RSA_PRIVATE_KEY"
     env_line PASSWORD_LEGACY_AES_KEY "$PASSWORD_LEGACY_AES_KEY"; env_line BILLING_API_TOKEN "$BILLING_API_TOKEN"
-    env_line LICENSE_FILE /app/license.key; env_line INSTALLATION_BOOTSTRAP_PASSWORD "$INSTALLATION_BOOTSTRAP_PASSWORD"; env_line INSTALLATION_PUBLIC_IP "$INSTALLATION_PUBLIC_IP"; env_line INSTALLATION_SECRETS_DIR /app/secrets
+    env_line INSTALLATION_BOOTSTRAP_PASSWORD "$INSTALLATION_BOOTSTRAP_PASSWORD"; env_line INSTALLATION_PUBLIC_IP "$INSTALLATION_PUBLIC_IP"; env_line INSTALLATION_SECRETS_DIR /app/secrets
     env_line CADDY_ADMIN_URL http://caddy:2019; env_line CADDY_UPSTREAM app:8000
   } >"$APP_ENV"
   chmod 600 "$APP_ENV" "$INSTALL_DIR/.env"

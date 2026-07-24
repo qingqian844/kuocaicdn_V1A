@@ -9,25 +9,21 @@ import com.kuocai.cdn.dto.SetupModuleRequest;
 import com.kuocai.cdn.dto.SetupWebsiteRequest;
 import com.kuocai.cdn.dto.resp.RespResult;
 import com.kuocai.cdn.entity.SysUser;
+import com.kuocai.cdn.enumeration.domainmerage.CdnRoute;
 import com.kuocai.cdn.exception.BusinessException;
-import com.kuocai.cdn.license.LicenseService;
-import com.kuocai.cdn.license.LicenseState;
-import com.kuocai.cdn.license.HostLicenseValidator;
-import com.kuocai.cdn.license.LicenseVendorOption;
 import com.kuocai.cdn.service.InstallationStateService;
 import com.kuocai.cdn.service.SetupDiagnosticsService;
 import com.kuocai.cdn.service.SetupDomainService;
 import com.kuocai.cdn.service.SetupModuleService;
 import com.kuocai.cdn.service.SysConfigService;
 import com.kuocai.cdn.service.SysUserService;
-import com.kuocai.cdn.service.VendorAccountService;
 import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.util.JedisUtil;
 import com.kuocai.cdn.util.JwtUtil;
 import com.kuocai.cdn.util.PasswordUtils;
+import com.kuocai.cdn.util.SupportedVendorUtils;
 import com.kuocai.cdn.vo.InstallationStateVo;
 import com.kuocai.cdn.vo.WebsiteBaseConfigVo;
-import com.kuocai.cdn.service.vendor.VendorAccountSupport;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -49,30 +45,21 @@ public class SetupController {
     private final SetupDiagnosticsService diagnosticsService;
     private final SetupDomainService domainService;
     private final SetupModuleService moduleService;
-    private final LicenseService licenseService;
     private final SysUserService userService;
     private final SysConfigService sysConfigService;
-    private final HostLicenseValidator hostLicenseValidator;
-    private final VendorAccountService vendorAccountService;
 
     public SetupController(InstallationStateService installationStateService,
                            SetupDiagnosticsService diagnosticsService,
                            SetupDomainService domainService,
                            SetupModuleService moduleService,
-                           LicenseService licenseService,
                            SysUserService userService,
-                           SysConfigService sysConfigService,
-                           HostLicenseValidator hostLicenseValidator,
-                           VendorAccountService vendorAccountService) {
+                           SysConfigService sysConfigService) {
         this.installationStateService = installationStateService;
         this.diagnosticsService = diagnosticsService;
         this.domainService = domainService;
         this.moduleService = moduleService;
-        this.licenseService = licenseService;
         this.userService = userService;
         this.sysConfigService = sysConfigService;
-        this.hostLicenseValidator = hostLicenseValidator;
-        this.vendorAccountService = vendorAccountService;
     }
 
     @GetMapping("/status")
@@ -82,21 +69,12 @@ public class SetupController {
             completed.put("installation", installationStateService.getState());
             return RespResult.success("系统已经完成初始化", completed);
         }
-        LicenseState license = licenseService.getState();
         JSONObject data = new JSONObject(true);
         data.put("installation", installationStateService.getState());
         data.put("diagnostics", diagnosticsService.diagnose());
-        JSONObject licenseData = new JSONObject(true);
-        licenseData.put("valid", license.isValid());
-        licenseData.put("code", license.getCode());
-        licenseData.put("message", license.getMessage());
-        licenseData.put("domains", license.getAuthorizedDomains());
-        List<LicenseVendorOption> vendors = licenseService.getAuthorizedVendorOptions();
-        licenseData.put("vendors", vendors);
-        licenseData.put("accountVendors", vendors.stream()
-                .filter(item -> VendorAccountSupport.supports(item.getCode()))
+        data.put("vendors", SupportedVendorUtils.allVendorOptions().stream()
+                .filter(item -> isSelectableDefaultRoute(item.get("code")))
                 .collect(Collectors.toList()));
-        data.put("license", licenseData);
         WebsiteBaseConfigVo website = sysConfigService.getConfigContentVo(
                 WebsiteBaseConfigVo.class, ConfigBizTypeConstants.WEBSITE_BASE_CONFIG);
         if (website != null) {
@@ -162,7 +140,7 @@ public class SetupController {
     public RespResult applyDomain(@RequestBody SetupDomainRequest request, HttpServletRequest servletRequest) {
         try {
             Long adminId = requirePendingAdmin(servletRequest);
-            String domain = domainService.normalizeAndAuthorize(request == null ? null : request.getDomain());
+            String domain = domainService.normalizeDomain(request == null ? null : request.getDomain());
             InstallationStateVo state = installationStateService.getState();
             if (!Boolean.TRUE.equals(state.getDomainVerified()) || !domain.equals(state.getDomain())) {
                 return RespResult.fail("请先重新验证当前域名的 DNS 解析");
@@ -190,13 +168,11 @@ public class SetupController {
             if (request.getDefaultFlowPrice() == null || request.getDefaultFlowPrice().compareTo(BigDecimal.ZERO) < 0) {
                 return RespResult.fail("默认流量单价不能小于 0");
             }
-            if (request.getMaxDomainCount() == null || request.getMaxDomainCount() < 1
-                    || request.getMaxDomainCountProxy() == null || request.getMaxDomainCountProxy() < 1) {
-                return RespResult.fail("普通用户和代理用户的域名数量必须大于 0");
+            if (request.getMaxDomainCount() == null || request.getMaxDomainCount() < 1) {
+                return RespResult.fail("普通用户域名数量必须大于 0");
             }
-            if (Assert.isEmpty(request.getDefaultUserRoute())
-                    || !licenseService.isVendorAuthorized(request.getDefaultUserRoute())) {
-                return RespResult.fail("默认厂商不在当前授权范围内");
+            if (!isSelectableDefaultRoute(request.getDefaultUserRoute())) {
+                return RespResult.fail("默认厂商不在开源版支持范围内");
             }
             WebsiteBaseConfigVo config = sysConfigService.getConfigContentVo(
                     WebsiteBaseConfigVo.class, ConfigBizTypeConstants.WEBSITE_BASE_CONFIG);
@@ -209,7 +185,7 @@ public class SetupController {
             config.setIcpNumber(trimToNull(request.getIcpNumber()));
             config.setDefaultFlowPrice(request.getDefaultFlowPrice());
             config.setMaxDomainCount(request.getMaxDomainCount());
-            config.setMaxDomainCountProxy(request.getMaxDomainCountProxy());
+            config.setMaxDomainCountProxy(0);
             config.setDefaultUserRoute(request.getDefaultUserRoute());
             applyWebsiteDefaults(config);
             sysConfigService.saveConfig(config, ConfigBizTypeConstants.WEBSITE_BASE_CONFIG, adminId);
@@ -251,10 +227,6 @@ public class SetupController {
     public RespResult complete(HttpServletRequest servletRequest) {
         try {
             Long adminId = requirePendingAdmin(servletRequest);
-            LicenseState license = licenseService.getState();
-            if (!license.isValid()) {
-                return RespResult.fail("授权文件检查未通过：" + license.getMessage());
-            }
             JSONObject diagnostics = diagnosticsService.diagnose();
             for (String service : diagnostics.keySet()) {
                 JSONObject item = diagnostics.getJSONObject(service);
@@ -268,10 +240,7 @@ public class SetupController {
                 currentHost = servletRequest.getHeader("Host");
             }
             String configuredDomain = installationStateService.getState().getDomain();
-            if (!licenseService.isHostAuthorized(configuredDomain)) {
-                return RespResult.fail("初始化域名已不在当前授权范围内，请重新验证域名");
-            }
-            if (!hostLicenseValidator.normalizeHost(currentHost).equals(configuredDomain)) {
+            if (!domainService.normalizeHost(currentHost).equals(configuredDomain)) {
                 return RespResult.fail("请先通过 https://" + configuredDomain + "/kuocaiadmin 登录，再完成初始化");
             }
             WebsiteBaseConfigVo website = sysConfigService.getConfigContentVo(
@@ -279,10 +248,8 @@ public class SetupController {
             if (website == null || Assert.isEmpty(website.getDefaultUserRoute())) {
                 return RespResult.fail("请先配置网站默认厂商");
             }
-            if (VendorAccountSupport.supports(website.getDefaultUserRoute())
-                    && vendorAccountService.getDefaultAccount(website.getDefaultUserRoute()) == null) {
-                return RespResult.fail("请先测试并保存默认厂商账号："
-                        + VendorAccountSupport.name(website.getDefaultUserRoute()));
+            if (!isSelectableDefaultRoute(website.getDefaultUserRoute())) {
+                return RespResult.fail("网站默认厂商配置无效");
             }
             installationStateService.complete(adminId);
             JSONObject result = new JSONObject(true);
@@ -318,15 +285,23 @@ public class SetupController {
         if (Assert.isEmpty(config.getDefaultAvatarImg())) config.setDefaultAvatarImg("/common/default-avatar.png");
         if (Assert.isEmpty(config.getAdminPath())) config.setAdminPath("kuocaiadmin");
         if (config.getExpireTime() == null) config.setExpireTime(30);
-        if (config.getInviteRewardGb() == null) config.setInviteRewardGb(0);
-        if (config.getInvitedRewardGb() == null) config.setInvitedRewardGb(0);
-        if (config.getMonthGiftGb() == null) config.setMonthGiftGb(0);
-        if (config.getEdgeoneDomainQuotaEnabled() == null) config.setEdgeoneDomainQuotaEnabled(false);
-        if (config.getEdgeoneFreeDomainQuota() == null) config.setEdgeoneFreeDomainQuota(1);
-        if (config.getEdgeoneDomainQuotaPrice() == null) config.setEdgeoneDomainQuotaPrice(new BigDecimal("30"));
-        if (config.getEdgeoneDomainQuotaValidDays() == null) config.setEdgeoneDomainQuotaValidDays(30);
+        config.setMaxDomainCountProxy(0);
+        config.setInviteRewardGb(0);
+        config.setInvitedRewardGb(0);
+        config.setMonthGiftGb(0);
+        config.setEdgeoneDomainQuotaEnabled(false);
+        config.setEdgeoneFreeDomainQuota(0);
+        config.setEdgeoneDomainQuotaPrice(BigDecimal.ZERO);
+        config.setEdgeoneDomainQuotaValidDays(0);
         if (config.getHttpsRequestFeeEnabled() == null) config.setHttpsRequestFeeEnabled(false);
         if (config.getHttpsRequestFeeUnitCount() == null) config.setHttpsRequestFeeUnitCount(10000L);
         if (config.getHttpsRequestFeeUnitPrice() == null) config.setHttpsRequestFeeUnitPrice(BigDecimal.ZERO);
+    }
+
+    private static boolean isSelectableDefaultRoute(String route) {
+        return Assert.notEmpty(route)
+                && SupportedVendorUtils.allVendorCodes().contains(route)
+                && !CdnRoute.MULTI_CDN.getCode().equals(route)
+                && !CdnRoute.SELF_HOSTED.getCode().equals(route);
     }
 }

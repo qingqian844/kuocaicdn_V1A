@@ -3,41 +3,27 @@ package com.kuocai.cdn.service;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.kuocai.cdn.component.EmailClient;
-import com.kuocai.cdn.api.wechat.pay.WechatPayApi;
 import com.kuocai.cdn.constant.ConfigBizTypeConstants;
 import com.kuocai.cdn.dto.SetupModuleRequest;
-import com.kuocai.cdn.dto.VendorAccountSaveRequest;
-import com.kuocai.cdn.entity.CdnVendorAccount;
 import com.kuocai.cdn.exception.BusinessException;
 import com.kuocai.cdn.util.Assert;
-import com.kuocai.cdn.vo.AliPayConfigVo;
 import com.kuocai.cdn.vo.AlipayAuthenticationConfigVo;
 import com.kuocai.cdn.vo.DnsConfigVo;
 import com.kuocai.cdn.vo.EmailConfigVo;
 import com.kuocai.cdn.vo.SmsConfigVo;
-import com.kuocai.cdn.vo.WeChatConfigVo;
 import com.tencentcloudapi.common.Credential;
 import com.tencentcloudapi.common.profile.ClientProfile;
 import com.tencentcloudapi.common.profile.HttpProfile;
 import com.tencentcloudapi.dnspod.v20210323.DnspodClient;
 import com.tencentcloudapi.dnspod.v20210323.models.DescribeDomainListRequest;
 import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Value;
-
-import com.wechat.pay.java.core.RSAAutoCertificateConfig;
 
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -45,27 +31,18 @@ import java.util.Set;
 public class SetupModuleService {
 
     private static final Set<String> MODULES = new HashSet<>(Arrays.asList(
-            "vendor", "dns", "alipay", "wechat", "email", "sms", "realname"));
+            "dns", "email", "sms", "realname"));
 
     private final SysConfigService sysConfigService;
-    private final VendorAccountService vendorAccountService;
-    private final VendorAccountConnectionService vendorConnectionService;
     private final InstallationStateService installationStateService;
     private final EmailClient emailClient;
-    private final Path secretsDirectory;
 
     public SetupModuleService(SysConfigService sysConfigService,
-                              VendorAccountService vendorAccountService,
-                              VendorAccountConnectionService vendorConnectionService,
                               InstallationStateService installationStateService,
-                              EmailClient emailClient,
-                              @Value("${installation.secrets-dir:/app/secrets}") String secretsDirectory) {
+                              EmailClient emailClient) {
         this.sysConfigService = sysConfigService;
-        this.vendorAccountService = vendorAccountService;
-        this.vendorConnectionService = vendorConnectionService;
         this.installationStateService = installationStateService;
         this.emailClient = emailClient;
-        this.secretsDirectory = Paths.get(secretsDirectory).toAbsolutePath().normalize();
     }
 
     public String test(String module, SetupModuleRequest request, Long userId) throws BusinessException {
@@ -77,9 +54,6 @@ public class SetupModuleService {
         validate(module, config);
         String message;
         switch (module) {
-            case "vendor":
-                message = vendorConnectionService.test(vendorRequest(config));
-                break;
             case "email":
                 testEmail(config);
                 message = "SMTP 连接和账号认证成功";
@@ -88,14 +62,9 @@ public class SetupModuleService {
                 testDnsPod(config);
                 message = "DNSPod API 连接和账号认证成功";
                 break;
-            case "alipay":
             case "realname":
                 testUrl(defaultText(config.getString("gatewayUrlAlipay"), "https://openapi.alipay.com/gateway.do"));
                 message = "支付宝网关连接正常，配置格式有效";
-                break;
-            case "wechat":
-                testWechat(config);
-                message = "微信支付 API 连接和商户凭证验证成功";
                 break;
             case "sms":
                 testUrl("https://sms.tencentcloudapi.com");
@@ -120,7 +89,7 @@ public class SetupModuleService {
                 throw new BusinessException("配置已变化，请重新测试连接后再保存");
             }
             saveEnabled(module, config, userId);
-        } else if (!"vendor".equals(module)) {
+        } else {
             saveDisabled(module, userId);
         }
         installationStateService.update(state -> {
@@ -131,28 +100,8 @@ public class SetupModuleService {
 
     private void saveEnabled(String module, JSONObject config, Long userId) throws BusinessException {
         switch (module) {
-            case "vendor":
-                CdnVendorAccount saved = vendorAccountService.saveAccount(vendorRequest(config));
-                if (saved.getIsDefault() == null || saved.getIsDefault() != 1) {
-                    vendorAccountService.setDefault(saved.getId());
-                }
-                break;
             case "dns":
                 sysConfigService.saveConfig(config.toJavaObject(DnsConfigVo.class), ConfigBizTypeConstants.DNS_CONFIG, userId);
-                break;
-            case "alipay":
-                config.put("alipayStatus", 1);
-                putDefault(config, "gatewayUrlAlipay", "https://openapi.alipay.com/gateway.do");
-                putDefault(config, "signTypeAlipay", "RSA2");
-                putDefault(config, "charsetAlipay", "utf-8");
-                sysConfigService.saveConfig(config.toJavaObject(AliPayConfigVo.class), ConfigBizTypeConstants.ALIPAY_CONFIG, userId);
-                break;
-            case "wechat":
-                config.put("wechatStatus", 1);
-                WeChatConfigVo wechatConfig = config.toJavaObject(WeChatConfigVo.class);
-                wechatConfig.setPrivateKeyPathWechat(saveWechatPrivateKey(config.getString("privateKeyWechat")));
-                WechatPayApi.applyConfiguration(wechatConfig);
-                sysConfigService.saveConfig(wechatConfig, ConfigBizTypeConstants.WECHAT_CONFIG, userId);
                 break;
             case "email":
                 sysConfigService.saveConfig(config.toJavaObject(EmailConfigVo.class), ConfigBizTypeConstants.EMAIL_CONFIG, userId);
@@ -178,12 +127,6 @@ public class SetupModuleService {
             case "dns":
                 sysConfigService.saveConfig(new DnsConfigVo(), ConfigBizTypeConstants.DNS_CONFIG, userId);
                 break;
-            case "alipay":
-                sysConfigService.saveConfig(AliPayConfigVo.builder().alipayStatus(0).build(), ConfigBizTypeConstants.ALIPAY_CONFIG, userId);
-                break;
-            case "wechat":
-                sysConfigService.saveConfig(WeChatConfigVo.builder().wechatStatus(0).build(), ConfigBizTypeConstants.WECHAT_CONFIG, userId);
-                break;
             case "email":
                 sysConfigService.saveConfig(new EmailConfigVo(), ConfigBizTypeConstants.EMAIL_CONFIG, userId);
                 break;
@@ -201,22 +144,8 @@ public class SetupModuleService {
 
     private void validate(String module, JSONObject config) throws BusinessException {
         switch (module) {
-            case "vendor":
-                VendorAccountSaveRequest vendor = vendorRequest(config);
-                if (Assert.isEmpty(vendor.getVendorCode()) || Assert.isEmpty(vendor.getAccountName())
-                        || vendor.getConfig() == null) {
-                    throw new BusinessException("厂商、账号名称和账号凭证不能为空");
-                }
-                break;
             case "dns":
                 required(config, "primaryDomain", "selectDns", "secretId", "secretKey");
-                break;
-            case "alipay":
-                required(config, "appIdAlipay", "privateKeyAlipay", "publicKeyAlipay", "notifyUrlAlipay");
-                break;
-            case "wechat":
-                required(config, "appIdWechat", "merchantIdWechat", "wechatKeyWechat",
-                        "merchantSerialNumberWechat", "notifyUrlWechat", "privateKeyWechat");
                 break;
             case "email":
                 required(config, "smtpServer", "senderMailbox", "senderTitle", "authorizationPassword", "serverPort");
@@ -230,18 +159,6 @@ public class SetupModuleService {
             default:
                 throw new BusinessException("不支持的初始化模块：" + module);
         }
-    }
-
-    private VendorAccountSaveRequest vendorRequest(JSONObject config) {
-        VendorAccountSaveRequest request = new VendorAccountSaveRequest();
-        request.setId(config.getLong("id"));
-        request.setVendorCode(config.getString("vendorCode"));
-        request.setAccountName(config.getString("accountName"));
-        request.setConfig(config.getJSONObject("credentials"));
-        request.setIsDefault(1);
-        request.setStatus(VendorAccountService.STATUS_ENABLED);
-        request.setRemark("首次初始化创建");
-        return request;
     }
 
     private JSONObject requireConfig(SetupModuleRequest request) throws BusinessException {
@@ -311,40 +228,6 @@ public class SetupModuleService {
             emailClient.getJavaMailSender(emailConfig).testConnection();
         } catch (Exception e) {
             throw new BusinessException("SMTP 登录验证失败：" + compactMessage(e));
-        }
-    }
-
-    private void testWechat(JSONObject config) throws BusinessException {
-        try {
-            new RSAAutoCertificateConfig.Builder()
-                    .merchantId(config.getString("merchantIdWechat"))
-                    .privateKey(config.getString("privateKeyWechat"))
-                    .merchantSerialNumber(config.getString("merchantSerialNumberWechat"))
-                    .apiV3Key(config.getString("wechatKeyWechat"))
-                    .build();
-        } catch (Exception e) {
-            throw new BusinessException("微信商户凭证验证失败：" + compactMessage(e));
-        }
-    }
-
-    private String saveWechatPrivateKey(String privateKey) throws BusinessException {
-        try {
-            Files.createDirectories(secretsDirectory);
-            Path target = secretsDirectory.resolve("wechat-merchant-private-key.pem").normalize();
-            if (!target.startsWith(secretsDirectory)) {
-                throw new IllegalStateException("私钥保存路径无效");
-            }
-            Files.write(target, privateKey.trim().getBytes(StandardCharsets.UTF_8),
-                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
-            try {
-                Files.setPosixFilePermissions(target, EnumSet.of(
-                        PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
-            } catch (UnsupportedOperationException ignored) {
-                // Windows development environments do not expose POSIX permissions.
-            }
-            return target.toString();
-        } catch (Exception e) {
-            throw new BusinessException("保存微信商户私钥失败：" + compactMessage(e));
         }
     }
 

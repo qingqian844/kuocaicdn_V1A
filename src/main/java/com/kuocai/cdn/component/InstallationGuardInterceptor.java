@@ -32,7 +32,7 @@ public class InstallationGuardInterceptor implements HandlerInterceptor {
 
         if (isStatic(uri) || "/health".equals(uri) || "/api/setup/status".equals(uri)
                 || "/kuocaiadmin".equals(uri) || "/login/loginAdmin".equals(uri)
-                || "/logout".equals(uri) || uri.startsWith("/license-error")) {
+                || "/logout".equals(uri)) {
             return true;
         }
         if ("/setup".equals(uri) || uri.startsWith("/api/setup/")) {

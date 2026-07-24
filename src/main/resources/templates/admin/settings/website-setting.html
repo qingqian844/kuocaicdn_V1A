@@ -404,7 +404,6 @@
                                                 <thead class="thead-light">
                                                 <tr>
                                                     <th class="ps-3">CDN线路</th>
-                                                    <th>平台账号标识</th>
                                                     <th class="text-center">中国大陆</th>
                                                     <th class="text-center">中国境外</th>
                                                     <th class="text-center">全球</th>
@@ -413,23 +412,12 @@
                                                 <tbody>
                                                 <tr th:each="option : ${serviceAreaOptions}">
                                                     <td class="ps-3" th:text="${option.routeName}"></td>
-                                                    <td>
-                                                        <span class="fw-semibold" th:text="${option.accountName}"></span>
-                                                        <span class="badge bg-soft-primary text-primary ms-1"
-                                                              th:if="${option.defaultAccount}">默认</span>
-                                                        <span class="badge bg-soft-danger text-danger ms-1"
-                                                              th:if="${option.accountStatus == 'disabled'}">已停用</span>
-                                                        <span class="badge bg-soft-warning text-warning ms-1"
-                                                              th:if="${option.accountStatus == 'missing'}">未配置</span>
-                                                        <span class="d-block small text-muted" th:if="${option.accountId != null}"
-                                                              th:text="|ID ${option.accountId}|"></span>
-                                                    </td>
                                                     <td class="text-center">
                                                         <input th:if="${option.fixedArea == null or option.fixedArea == 'mainland_china'}"
                                                                class="form-check-input mainlandEnabledTarget" type="checkbox"
                                                                th:value="${option.targetKey}"
                                                                th:disabled="${!option.selectable}"
-                                                               th:aria-label="|将${option.routeName} ${option.accountName}加入中国大陆线路组|"
+                                                               th:aria-label="|将${option.routeName}加入中国大陆线路组|"
                                                                th:checked="${option.mainlandEnabled}">
                                                         <span th:if="${option.fixedArea != null and option.fixedArea != 'mainland_china'}">-</span>
                                                     </td>
@@ -438,7 +426,7 @@
                                                                class="form-check-input overseasEnabledTarget" type="checkbox"
                                                                th:value="${option.targetKey}"
                                                                th:disabled="${!option.selectable}"
-                                                               th:aria-label="|将${option.routeName} ${option.accountName}加入中国境外线路组|"
+                                                               th:aria-label="|将${option.routeName}加入中国境外线路组|"
                                                                th:checked="${option.overseasEnabled}">
                                                         <span th:if="${option.fixedArea != null and option.fixedArea != 'outside_mainland_china'}">-</span>
                                                     </td>
@@ -447,7 +435,7 @@
                                                                class="form-check-input globalEnabledTarget" type="checkbox"
                                                                th:value="${option.targetKey}"
                                                                th:disabled="${!option.selectable}"
-                                                               th:aria-label="|将${option.routeName} ${option.accountName}加入全球线路组|"
+                                                               th:aria-label="|将${option.routeName}加入全球线路组|"
                                                                th:checked="${option.globalEnabled}">
                                                         <span th:if="${option.fixedArea != null and option.fixedArea != 'global'}">-</span>
                                                     </td>

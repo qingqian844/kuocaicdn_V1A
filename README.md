@@ -4,7 +4,7 @@ KuocaiCDN Open Source Edition is a Spring Boot based CDN management platform for
 
 括彩 CDN 开源版是一套基于 Spring Boot 的 CDN 管理系统，适合需要自建 CDN 管理平台的企业、服务商和技术团队使用。系统可用于统一管理 CDN 域名、厂商账号、证书、源站配置、缓存规则、流量统计和余额计费。
 
-当前版本：`K2.1.3.0`，详细变更见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本：`K2.1.4.0`，详细变更见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 界面截图 / Screenshots
 
@@ -25,14 +25,13 @@ KuocaiCDN Open Source Edition is a Spring Boot based CDN management platform for
 ---
 官网：[https://www.kuocai.net/](https://www.kuocai.net/) 
 
-## K2.1.3.0 更新重点
+## K2.1.4.0 更新重点
 
-- 完善腾讯云 EdgeOne 缓存、访问控制、安全策略、IPv6、响应头、URL 鉴权和统计能力。
-- 增加腾讯云 EdgeOne 创建中断恢复、默认回源跟随重定向和缓存规则回显修复。
-- 增加自建 CDN 节点、节点组、线路、域名、健康检查、故障调度、统计、缓存刷新/预热和 TCP/UDP 端口转发。
-- 工单支持图片与文件附件，并补充详情和附件权限校验。
-- 支持系统 Logo 链接并修复后台主题白屏、退出登录重复点击等问题。
-- 修复阿里云、火山引擎等无独立 `domainId` 域名不参与统计的问题，并采用十进制单位展示云厂商流量。
+- 增加中国大陆、境外和全球三类区域线路配置，并支持多 CDN 线路组、优先级和负载权重分配。
+- 自建 CDN 增加 DNS 分片与流量均衡、节点实时/历史监控、缓存磁盘管理和 TCP/UDP 端口转发。
+- 腾讯云 EdgeOne 增加回源 Host、Referer 白名单和配置失败原因展示。
+- 修复域名状态同步，节点 Agent 更新配置时无需重启进程。
+- 支持默认用户头像、自定义后台访问路径、一键部署和首次初始化向导。
 - 保持开源边界：不引入商业授权、在线支付、代理分销、流量包、EdgeOne 付费额度或厂商多账号绑定。
 
 ## 中文说明
@@ -120,11 +119,11 @@ target/
 - 使用 `root` 用户安装
 - 安全组开放 TCP `80/443` 和 UDP `443`
 - 确认 Nginx、Apache、宝塔网站或其他程序没有占用 `80/443`
-- 准备一个授权文件中允许的域名，并将其 A 记录解析到服务器公网 IPv4
+- 准备一个站点域名，并将其 A 记录解析到服务器公网 IPv4
 
 #### 2. 准备交付目录
 
-从项目中取得完整的 `deploy/` 目录，并将经销商提供的最新 JAR 和 `license.key` 放入 `packages/`：
+从项目中取得完整的 `deploy/` 目录，并将最新开源版 JAR 放入 `packages/`：
 
 ```text
 deploy/
@@ -136,13 +135,12 @@ deploy/
 ├── caddy/
 ├── env/
 ├── packages/
-│   ├── KuocaiCDN-V2.x.x.x.jar
-│   └── license.key
+│   └── KuocaiCDN-K2.1.4.0.jar
 ├── scripts/
 └── sql/
 ```
 
-JAR 文件名不限，但授权文件必须命名为 `license.key`。不要把 `app.env`、客户授权文件或任何私钥提交到 Git。
+JAR 文件名不限。不要把 `app.env` 或任何运行时私钥提交到 Git。
 
 #### 3. 上传并执行安装
 
@@ -177,13 +175,13 @@ cat /opt/kuocai-cdn/env/first-login.txt
 
 登录后系统会自动进入 `/setup`，依次完成：
 
-1. 检查 MySQL、Redis、MongoDB、RabbitMQ、MinIO 和授权文件。
+1. 检查 MySQL、Redis、MongoDB、RabbitMQ 和 MinIO。
 2. 修改管理员账号、邮箱和永久密码。
-3. 填写授权域名，验证 DNS 和服务器 `80` 端口。
+3. 填写站点域名，验证 DNS 和服务器 `80` 端口。
 4. 由 Caddy 自动配置反向代理并申请 HTTPS 证书。
 5. 配置网站名称、Logo、图标、备案号和业务默认值。
 6. 配置 CDN 厂商账号、DNS 和默认厂商；启用的配置必须测试通过。
-7. 按需配置支付宝、微信、邮件、短信和实名认证。
+7. 按需配置邮件、短信、微信登录和支付宝实名认证。
 8. 通过最终检查后完成初始化。
 
 HTTPS 生效后，需要点击向导中的链接，通过正式域名重新登录，再执行“完成初始化”。完成后建议删除临时密码文件：
@@ -198,17 +196,15 @@ rm -f /opt/kuocai-cdn/env/first-login.txt
 # 查看容器状态、健康状态和最近日志
 bash /opt/kuocai-cdn/status.sh
 
-# 备份数据库、JAR、授权、环境配置和运行私钥
+# 备份数据库、JAR、环境配置和运行私钥
 bash /opt/kuocai-cdn/backup.sh
 
 # 更新 JAR
 bash /opt/kuocai-cdn/upgrade.sh /root/KuocaiCDN-new.jar
 
-# 同时更新 JAR 和授权文件
-bash /opt/kuocai-cdn/upgrade.sh /root/KuocaiCDN-new.jar /root/license.key
 ```
 
-升级脚本会先备份。新版本健康检查失败时会自动恢复旧 JAR 和授权文件，默认仅保留最近三份备份。
+升级脚本会先备份。新版本健康检查失败时会自动恢复旧 JAR，默认仅保留最近三份备份。
 
 #### 7. 常见问题
 
@@ -402,11 +398,11 @@ The one-click installer sets up Docker, application dependencies, the empty data
 - Run installation as `root`.
 - Open TCP `80/443` and UDP `443`.
 - Make sure no existing web server occupies `80/443`.
-- Point an authorized domain A record to the server public IPv4 address.
+- Point a site domain A record to the server public IPv4 address.
 
 #### 2. Prepare and upload the delivery folder
 
-Put the licensed JAR and customer license in `deploy/packages/`. The JAR filename can be arbitrary, but the license must be named `license.key`.
+Put the open-source JAR in `deploy/packages/`. The JAR filename can be arbitrary.
 
 ```bash
 scp -r deploy root@SERVER_IP:/root/kuocai-deploy
@@ -435,7 +431,7 @@ rm -f /opt/kuocai-cdn/env/first-login.txt
 ```bash
 bash /opt/kuocai-cdn/status.sh
 bash /opt/kuocai-cdn/backup.sh
-bash /opt/kuocai-cdn/upgrade.sh /root/KuocaiCDN-new.jar [/root/license.key]
+bash /opt/kuocai-cdn/upgrade.sh /root/KuocaiCDN-new.jar
 ```
 
 See [deploy/README.en.md](deploy/README.en.md) for the delivery-package instructions.

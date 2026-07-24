@@ -133,15 +133,10 @@
         </header>
         <div class="content">
             <section class="section" data-step="1">
-                <div class="section-head"><h1>环境与授权</h1><p>确认运行依赖和授权文件均可用。</p></div>
+                <div class="section-head"><h1>运行环境</h1><p>确认系统依赖服务均可用。</p></div>
                 <div class="panel">
                     <h2 class="panel-title">基础服务 <button class="btn btn-secondary" onclick="loadStatus(true)"><i class="bi bi-arrow-clockwise"></i>重新检测</button></h2>
                     <div id="diagnostics" class="status-list"></div>
-                </div>
-                <div class="panel">
-                    <h2 class="panel-title">授权状态 <span id="licenseBadge" class="badge warn">检测中</span></h2>
-                    <div id="licenseMessage" class="hint"></div>
-                    <div id="licenseDomains" class="hint"></div>
                 </div>
                 <div class="actions right"><button class="btn btn-primary" onclick="goStep(2)">下一步 <i class="bi bi-arrow-right"></i></button></div>
             </section>
@@ -159,7 +154,7 @@
             </section>
 
             <section class="section" data-step="3">
-                <div class="section-head"><h1>网站域名</h1><p>域名必须属于授权范围并已解析到当前服务器。</p></div>
+                <div class="section-head"><h1>网站域名</h1><p>域名必须已解析到当前服务器。</p></div>
                 <div class="panel">
                     <div class="field"><label>访问域名</label><input id="setupDomain" placeholder="cdn.example.com" autocomplete="off"><div class="hint" id="domainHint"></div></div>
                     <div id="domainResult" class="domain-result"></div>
@@ -187,13 +182,12 @@
                     <div class="field"><label>默认流量单价</label><input id="defaultFlowPrice" type="number" min="0" step="0.000001" value="0"></div>
                     <div class="field"><label>默认厂商</label><select id="defaultUserRoute"></select></div>
                     <div class="field"><label>普通用户域名上限</label><input id="maxDomainCount" type="number" min="1" value="10"></div>
-                    <div class="field"><label>代理用户域名上限</label><input id="maxDomainCountProxy" type="number" min="1" value="100"></div>
                 </div>
                 <div class="actions"><button class="btn btn-secondary" onclick="goStep(4)"><i class="bi bi-arrow-left"></i>上一步</button><button class="btn btn-primary" onclick="saveWebsite()">保存并继续</button></div>
             </section>
 
             <section class="section" data-step="6">
-                <div class="section-head"><h1>厂商与 DNS</h1><p>启用后必须先测试连接，再保存为系统默认配置。</p></div>
+                <div class="section-head"><h1>DNS 服务</h1><p>可选配置 DNSPod，启用后需先测试连接再保存。</p></div>
                 <div class="panel" id="coreModules"></div>
                 <div class="actions"><button class="btn btn-secondary" onclick="goStep(5)"><i class="bi bi-arrow-left"></i>上一步</button><button class="btn btn-primary" onclick="goStep(7)">下一步 <i class="bi bi-arrow-right"></i></button></div>
             </section>
@@ -207,7 +201,7 @@
             <section class="section" data-step="8">
                 <div class="section-head"><h1>完成初始化</h1><p>核心项目全部通过后才能开放系统。</p></div>
                 <div class="panel"><div id="review" class="review"></div></div>
-                <div class="notice">完成后将立即恢复授权域名校验，并开放用户登录、注册和业务接口。</div>
+                <div class="notice">完成后将开放用户登录、注册和业务接口。</div>
                 <div class="actions"><button class="btn btn-secondary" onclick="goStep(7)"><i class="bi bi-arrow-left"></i>上一步</button><button id="completeBtn" class="btn btn-primary" onclick="completeSetup()"><i class="bi bi-check2-circle"></i>完成并进入系统</button></div>
             </section>
         </div>
@@ -218,31 +212,21 @@
 <div id="busy" class="busy"><div class="busy-box"><div class="spinner"></div><strong id="busyText">处理中</strong></div></div>
 
 <script>
-    const stepNames = ['环境诊断', '管理员账号', '网站域名', 'HTTPS 配置', '网站信息', '厂商与 DNS', '可选服务', '完成初始化'];
-    const moduleNames = {vendor: 'CDN 厂商账号', dns: '腾讯云 DNSPod', alipay: '支付宝支付', wechat: '微信支付', email: '邮件服务', sms: '短信服务', realname: '支付宝实名认证'};
+    const stepNames = ['环境诊断', '管理员账号', '网站域名', 'HTTPS 配置', '网站信息', 'DNS 服务', '可选服务', '完成初始化'];
+    const moduleNames = {dns: '腾讯云 DNSPod', email: '邮件服务', sms: '短信服务', realname: '支付宝实名认证'};
     const schemas = {
         dns: [['primaryDomain','主域名'],['domainTtl','DNS TTL'],['selectDns','DNS 类型'],['secretId','SecretId','password'],['secretKey','SecretKey','password']],
-        alipay: [['appIdAlipay','支付宝 APPID'],['privateKeyAlipay','应用私钥','textarea'],['publicKeyAlipay','支付宝公钥','textarea'],['notifyUrlAlipay','支付回调地址'],['gatewayUrlAlipay','网关地址']],
-        wechat: [['appIdWechat','应用 ID'],['merchantIdWechat','商户号'],['wechatKeyWechat','APIv3 密钥','password'],['merchantSerialNumberWechat','证书序列号'],['notifyUrlWechat','支付回调地址'],['privateKeyWechat','商户私钥 PEM','textarea']],
         email: [['smtpServer','SMTP 服务器'],['serverPort','SMTP 端口','number'],['senderMailbox','发件邮箱'],['senderTitle','发件人名称'],['authorizationPassword','邮箱授权密码','password']],
         sms: [['sdkAppId','腾讯云短信应用 ID','number'],['secretId','SecretId','password'],['secretKey','SecretKey','password'],['smsSign','短信签名']],
         realname: [['appIdAlipay','支付宝 APPID'],['privateKeyAlipay','应用私钥','textarea'],['publicKeyAlipay','支付宝公钥','textarea'],['alipayCertificationUrl','认证完成跳转地址'],['gatewayUrlAlipay','网关地址']]
-    };
-    const vendorSchemas = {
-        tencent: [['tencentCloudProjectName','项目名称'],['tencentCloudSecretId','SecretId','password'],['tencentCloudSecretKey','SecretKey','password']],
-        tencent_edgeone: [['projectName','项目名称'],['tagValue','资源标签'],['secretId','SecretId','password'],['secretKey','SecretKey','password'],['planId','套餐 PlanId'],['zoneId','默认 ZoneId']],
-        aliyun: [['projectName','项目名称'],['accessKeyId','AccessKey ID','password'],['accessKeySecret','AccessKey Secret','password']],
-        volcengine: [['volcanicCloudProjectName','项目名称'],['volcanicCloudAk','Access Key','password'],['volcanicCloudSk','Secret Key','password']],
-        kingsoft: [['accessKey','Access Key','password'],['secretKey','Secret Key','password'],['endpoint','Endpoint'],['region','区域'],['serviceName','服务名'],['projectId','项目 ID']]
     };
     let statusData = null;
     let activeStep = 1;
 
     document.addEventListener('DOMContentLoaded', async () => {
         renderSteps();
-        renderModule('vendor', 'coreModules');
         renderModule('dns', 'coreModules');
-        ['alipay','wechat','email','sms','realname'].forEach(name => renderModule(name, 'optionalModules'));
+        ['email','sms','realname'].forEach(name => renderModule(name, 'optionalModules'));
         await loadStatus(false);
     });
 
@@ -281,21 +265,14 @@
             const item = diagnostics[key] || {ok:false,message:'未检测'};
             return `<div class="status-item ${item.ok?'ok':'fail'}"><i class="status-icon bi ${item.ok?'bi-check-circle-fill':'bi-x-circle-fill'}"></i><div><strong>${labels[key]}</strong><small>${escapeHtml(item.message)}</small></div></div>`;
         }).join('');
-        const license = statusData.license || {};
-        const badge = document.getElementById('licenseBadge');
-        badge.className = `badge ${license.valid?'ok':'fail'}`;
-        badge.textContent = license.valid ? '授权有效' : '授权异常';
-        document.getElementById('licenseMessage').textContent = license.message || '';
-        const domains = Array.from(license.domains || []);
-        document.getElementById('licenseDomains').textContent = domains.length ? `授权域名：${domains.join('、')}` : '未读取到授权域名';
-        document.getElementById('domainHint').textContent = domains.length ? `可使用 ${domains.join('、')} 或其子域名` : '';
+        document.getElementById('domainHint').textContent = '请确保域名 A/AAAA 记录已指向当前服务器';
         const state = statusData.installation || {};
         if (state.domain) {
             document.getElementById('setupDomain').value = state.domain;
             document.getElementById('httpsDomain').textContent = state.domain;
         }
         hydrateWebsite(statusData.website || {});
-        hydrateVendors(license.vendors || [], license.accountVendors || []);
+        hydrateVendors(statusData.vendors || []);
         Object.entries(state.modules || {}).forEach(([name, enabled]) => {
             const input = document.getElementById(`${name}Enabled`);
             if (input) {
@@ -308,16 +285,14 @@
     }
 
     function hydrateWebsite(value) {
-        const mapping = ['websiteName','websiteLogoImg','websiteIconImg','icpNumber','defaultFlowPrice','maxDomainCount','maxDomainCountProxy'];
+        const mapping = ['websiteName','websiteLogoImg','websiteIconImg','icpNumber','defaultFlowPrice','maxDomainCount'];
         mapping.forEach(key => { if (value[key] !== undefined && value[key] !== null) document.getElementById(key).value = value[key]; });
     }
 
-    function hydrateVendors(vendors, accountVendors) {
+    function hydrateVendors(vendors) {
         const options = vendors.map(v => `<option value="${escapeHtml(v.code)}">${escapeHtml(v.name)}</option>`).join('');
         document.getElementById('defaultUserRoute').innerHTML = options;
-        document.getElementById('vendorCode').innerHTML = accountVendors.map(v => `<option value="${escapeHtml(v.code)}">${escapeHtml(v.name)}</option>`).join('');
         if (statusData.website && statusData.website.defaultUserRoute) document.getElementById('defaultUserRoute').value = statusData.website.defaultUserRoute;
-        renderVendorFields();
     }
 
     async function saveAdmin() {
@@ -344,13 +319,13 @@
             const target = result.data.url.replace('/setup', '/kuocaiadmin?setup=1');
             const box = document.getElementById('httpsContinue');
             box.style.display = 'block';
-            box.innerHTML = `HTTPS 已生效。<a href="${escapeHtml(target)}">通过授权域名重新登录并继续</a>`;
+            box.innerHTML = `HTTPS 已生效。<a href="${escapeHtml(target)}">通过新域名重新登录并继续</a>`;
             toast(result.message); await loadStatus(false); goStep(5);
         } catch (error) { toast(error.message, true); } finally { busy(false); }
     }
 
     async function saveWebsite() {
-        const payload = {websiteName:val('websiteName'),websiteLogoImg:val('websiteLogoImg'),websiteIconImg:val('websiteIconImg'),icpNumber:val('icpNumber'),defaultFlowPrice:Number(val('defaultFlowPrice')),maxDomainCount:Number(val('maxDomainCount')),maxDomainCountProxy:Number(val('maxDomainCountProxy')),defaultUserRoute:val('defaultUserRoute')};
+        const payload = {websiteName:val('websiteName'),websiteLogoImg:val('websiteLogoImg'),websiteIconImg:val('websiteIconImg'),icpNumber:val('icpNumber'),defaultFlowPrice:Number(val('defaultFlowPrice')),maxDomainCount:Number(val('maxDomainCount')),maxDomainCountProxy:0,defaultUserRoute:val('defaultUserRoute')};
         await runAction('/api/setup/website', payload, '网站配置已保存', 6);
     }
 
@@ -360,14 +335,8 @@
         row.className = 'module-row'; row.id = `module-${name}`;
         row.innerHTML = `<div class="module-head"><strong>${moduleNames[name]}</strong><label class="switch"><input id="${name}Enabled" type="checkbox" onchange="toggleModule('${name}')"><span></span></label></div><div class="module-body"><div class="grid" id="${name}Fields"></div><div class="actions right"><button class="btn btn-secondary" onclick="testModule('${name}')"><i class="bi bi-plug"></i>测试连接</button><button class="btn btn-primary" onclick="saveModule('${name}')">保存配置</button></div></div>`;
         parent.appendChild(row);
-        if (name === 'vendor') renderVendorBase(); else renderFields(name, schemas[name]);
+        renderFields(name, schemas[name]);
     }
-
-    function renderVendorBase() {
-        document.getElementById('vendorFields').innerHTML = `<div class="field"><label>厂商</label><select id="vendorCode" onchange="renderVendorFields()"></select></div><div class="field"><label>账号名称</label><input id="vendorAccountName" value="默认账号"></div><div class="field full"><div class="grid" id="vendorCredentials"></div></div>`;
-    }
-
-    function renderVendorFields() { const root=document.getElementById('vendorCredentials'); if(root) renderFieldsInto(root, 'vendorCredential', vendorSchemas[val('vendorCode')] || []); }
     function renderFields(name, schema) { renderFieldsInto(document.getElementById(`${name}Fields`), name, schema); }
     function renderFieldsInto(root, prefix, schema) {
         root.innerHTML = schema.map(item => { const [key,label,type='text']=item; const id=`${prefix}_${key}`; return `<div class="field ${type==='textarea'?'full':''}"><label>${label}</label>${type==='textarea'?`<textarea id="${id}"></textarea>`:`<input id="${id}" type="${type}">`}</div>`; }).join('');
@@ -381,7 +350,6 @@
     function modulePayload(name) {
         const enabled = document.getElementById(`${name}Enabled`).checked;
         if (!enabled) return {enabled:false,config:{}};
-        if (name === 'vendor') return {enabled:true,config:{vendorCode:val('vendorCode'),accountName:val('vendorAccountName'),credentials:readFields('vendorCredential', vendorSchemas[val('vendorCode')] || [])}};
         return {enabled:true,config:readFields(name, schemas[name])};
     }
     function readFields(prefix, schema) { const data={}; schema.forEach(item => data[item[0]]=val(`${prefix}_${item[0]}`)); return data; }
@@ -398,8 +366,8 @@
     function renderReview() {
         if (!statusData) return;
         const state=statusData.installation || {}, diagnostics=statusData.diagnostics || {};
-        const allServices=Object.values(diagnostics).every(item=>item.ok), license=statusData.license && statusData.license.valid;
-        const rows=[['运行依赖',allServices],['授权文件',license],['管理员账号',state.adminConfigured],['域名解析',state.domainVerified],['HTTPS 访问',state.proxyConfigured],['网站基础配置',state.websiteConfigured]];
+        const allServices=Object.values(diagnostics).every(item=>item.ok);
+        const rows=[['运行依赖',allServices],['管理员账号',state.adminConfigured],['域名解析',state.domainVerified],['HTTPS 访问',state.proxyConfigured],['网站基础配置',state.websiteConfigured]];
         document.getElementById('review').innerHTML=rows.map(([name,ok])=>`<div class="review-row"><span>${name}</span><span class="badge ${ok?'ok':'fail'}">${ok?'已完成':'未完成'}</span></div>`).join('');
         const complete=rows.every(row=>row[1]); document.getElementById('completeBtn').disabled=!complete;
     }

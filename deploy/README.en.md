@@ -4,20 +4,19 @@
 
 - An x86_64 server running Ubuntu, Debian, CentOS, Rocky Linux, or AlmaLinux.
 - Run the installer as `root`.
-- Point an authorized domain to the server IPv4 address and open TCP `80/443` plus UDP `443`.
-- Put the licensed JAR and customer `license.key` in `packages/`.
+- Point a site domain to the server IPv4 address and open TCP `80/443` plus UDP `443`.
+- Put the open-source JAR in `packages/`.
 - Allow outbound access to Docker Hub, GitHub, and public HTTPS certificate authorities.
 
 ## Install
 
-Put the licensed JAR and customer license in:
+Put the open-source JAR in:
 
 ```text
-packages/KuocaiCDN-V2.x.x.x.jar
-packages/license.key
+packages/KuocaiCDN-K2.1.4.0.jar
 ```
 
-The JAR filename can be arbitrary. The license must be named `license.key`. Do not create `env/app.env` manually; the installer generates it.
+The JAR filename can be arbitrary. Do not create `env/app.env` manually; the installer generates it.
 
 ```bash
 cd /root/kuocai-deploy
@@ -39,16 +38,16 @@ After installation:
 rm -f /opt/kuocai-cdn/env/first-login.txt
 ```
 
-Runtime secrets are stored in `/opt/kuocai-cdn/env/app.env` with mode `600`. The WeChat merchant private key is stored under `/opt/kuocai-cdn/secrets/`, not in the database. Never commit these files, the licensed JAR, or the customer license to Git.
+Runtime secrets are stored in `/opt/kuocai-cdn/env/app.env` with mode `600`. Never commit this file or the deployment JAR to Git.
 
 ## Operations
 
 ```bash
 bash /opt/kuocai-cdn/status.sh
 bash /opt/kuocai-cdn/backup.sh
-bash /opt/kuocai-cdn/upgrade.sh /path/to/new.jar [/path/to/new-license.key]
+bash /opt/kuocai-cdn/upgrade.sh /path/to/new.jar
 ```
 
-Upgrades create a backup first. A failed health check restores the previous JAR and license automatically; the database backup remains available for manual recovery. The three newest backups are retained.
+Upgrades create a backup first. A failed health check restores the previous JAR automatically; the database backup remains available for manual recovery. The three newest backups are retained.
 
 The application port `8000` and Caddy admin port `2019` are internal-only. Do not expose either port publicly.

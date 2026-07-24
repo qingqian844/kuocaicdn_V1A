@@ -1,9 +1,7 @@
 package com.kuocai.cdn.service;
 
-import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.kuocai.cdn.constant.BonusRecordStatus;
 import com.kuocai.cdn.constant.TransactionOrderPayType;
 import com.kuocai.cdn.constant.TransactionOrderStatus;
 import com.kuocai.cdn.constant.TransactionOrderType;
@@ -15,14 +13,12 @@ import com.kuocai.cdn.util.Assert;
 import com.kuocai.cdn.util.PayUtils;
 import com.kuocai.cdn.vo.SysUserAccountVo;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -47,14 +43,6 @@ public class SysUserAccountService extends BaseService<SysUserAccount> {
     @Resource
     private TransactionOrderService transactionOrderService;
 
-    @Resource
-    private AgentLevelService agentLevelService;
-
-    @Resource
-    @Lazy
-    private BonusRecordService bonusRecordService;
-
-
     /**
      * description: 根据用户id获取用户账户
      */
@@ -67,36 +55,6 @@ public class SysUserAccountService extends BaseService<SysUserAccount> {
      */
     public List<SysUserAccount> getSysUserAccountsByUserIds(List<Long> userIds) {
         return dao.selectList(new QueryWrapper<SysUserAccount>().in("user_id", userIds));
-    }
-
-    /**
-     * description: 用户充值
-     */
-    @Transactional(rollbackFor = Exception.class)
-    public void userRecharge(Map params) {
-        // 验签成功后,根据订单id查询到TransactionOrder
-        TransactionOrder transactionOrder = transactionOrderService.queryTransactionOrderByOrderNo(MapUtil.getStr(params, "out_trade_no"));
-        if (Assert.isEmpty(transactionOrder)) {
-            log.error("Alipay recharge notify order not found, outTradeNo: {}", params.get("out_trade_no"));
-            return;
-        }
-        // 订单不为空且订单状态不为支付成功
-        if (!Assert.isEmpty(transactionOrder) && !TransactionOrderStatus.TRADE_SUCCESS.equals(transactionOrder.getStatus())) {
-            transactionOrder.setStatus(MapUtil.getStr(params, "trade_status"));
-            // 这里去支付宝返回的用户支付金额(非实付),防止在创建订单的时候前端窜改金额
-            BigDecimal totalAmount = BigDecimal.valueOf(MapUtil.getDouble(params, "total_amount"));
-            transactionOrder.setAmount(totalAmount);
-            transactionOrder.setPayTime(MapUtil.getDate(params, "gmt_payment"));
-            transactionOrderService.save(transactionOrder);
-            SysUserAccount sysUserAccount = getSysUserAccountByUserId(transactionOrder.getUserId());
-            sysUserAccount = Assert.isEmpty(sysUserAccount) ? new SysUserAccount() : sysUserAccount;
-            sysUserAccount.addAccountBalance(totalAmount);
-            sysUserAccount.addAmassRecharge(totalAmount);
-            sysUserAccount.setUserName(transactionOrder.getUserName());
-            // 这里没可以直接不判定上面的sysUserAccount是否为null，是与不是都set
-            sysUserAccount.setUserId(transactionOrder.getUserId());
-            save(sysUserAccount);
-        }
     }
 
     /**
@@ -189,55 +147,7 @@ public class SysUserAccountService extends BaseService<SysUserAccount> {
      */
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void userAgentCommission(Long userId, BigDecimal money, String orderType, Long transactionOrderId) {
-        /* if (orderType.equals(TransactionOrderType.FLOW_PACKAGE)) {
-            log.info("该订单编号{}，流量包跳过分润", transactionOrderId);
-            return;
-        } */
-        // 订单金额少于 15 不分润
-        BigDecimal noMoney = new BigDecimal("15");
-        if (noMoney.compareTo(money) > 0) {
-            log.info("该订单编号{}，金额少于 15 跳过分润", transactionOrderId);
-            return;
-        }
-        // 这里对所有对象都进行非null校验，防止出现业务之外的异常
-        SysUser sysUser = sysUserDao.selectById(userId);
-        Long agentUserId = sysUser.getAgentUserId();
-        // 判断此用户是否有代理人
-        if (!Assert.isEmpty(agentUserId)) {
-            SysUser agentUser = sysUserDao.selectById(agentUserId);
-            // 判断推荐人是否是代理用户
-            if (!Assert.isEmpty(agentUser) && !Assert.isEmpty(agentUser.getAgentLevelId())) {
-                AgentLevel agentLevel = agentLevelService.queryById(agentUser.getAgentLevelId());
-                // 判断代理等级是否存在
-                if (!Assert.isEmpty(agentLevel)) {
-                    SysUserAccount sysUserAccount = getSysUserAccountByUserId(agentUserId);
-                    //  判断推荐人是否存在余额账户
-                    if (!Assert.isEmpty(sysUserAccount)) {
-                        // 判断是流量订单还是流量包订单
-                        boolean orderTypeOld = orderType.equals(TransactionOrderType.FLOW);
-                        BigDecimal orderMoney = orderTypeOld
-                                ? money.multiply(agentLevel.getFlowOrderRate())
-                                : money.multiply(agentLevel.getPackageRate());
-                        // sysUserAccount.addBonus(orderMoney);
-                        // save(sysUserAccount);
-                        // 分润订单真正的类型
-                        String orderTypeRel = orderTypeOld ? TransactionOrderType.FLOW_ORDER_PROFIT : TransactionOrderType.FLOW_PACKAGE_PROFIT;
-                        // 分润订单标题
-                        String title = orderTypeOld ? "流量订单分润" : "流量包分润";
-                        // 分润订单明细
-                        String detail = orderTypeOld ? (sysUser.getUserName() + "支付流量订单" + money + "元" + "分润" + orderMoney + "元") : (sysUser.getUserName() + "购买流量包" + money + "元" + "分润" + orderMoney.setScale(2, RoundingMode.HALF_UP) + "元");
-                        TransactionOrder transactionOrder = TransactionOrder.builder().orderType(orderTypeRel).orderNum(PayUtils.getOutTradeNo()).amount(orderMoney).title(title).detail(detail).createBy(agentUserId).payType(TransactionOrderPayType.BALANCE_PAY).userId(agentUserId).payTime(new Date()).status(TransactionOrderStatus.TRADE_SUCCESS).userName(agentUser.getUserName()).build();
-                        // 保存分润订单
-                        transactionOrderService.save(transactionOrder);
-                        // 分润记录新增
-                        BonusRecord bonusRecord = BonusRecord.builder().transactionOrderId(transactionOrderId).userId(sysUser.getId()).agentUserId(agentUserId).title(title).amount(money).bonus(orderMoney).bonusType(orderTypeRel).status(BonusRecordStatus.WAITING).createTime(new Date()).build();
-                        bonusRecordService.save(bonusRecord);
-                        log.info("推荐人{}因{}下单{}，获得佣金{}", agentUser.getUserName(), sysUser.getUserName(), orderType, orderMoney);
-                    }
-                }
-            }
-
-        }
+        log.debug("开源版不执行代理分润，订单ID：{}", transactionOrderId);
     }
 
     /**
@@ -250,13 +160,4 @@ public class SysUserAccountService extends BaseService<SysUserAccount> {
         save(userAccount);
     }
 
-    /**
-     * 分润扣除
-     */
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void shareProfitDeduct(Long userId, BigDecimal rechargeAmount) {
-        SysUserAccount userAccount = getSysUserAccountByUserId(userId);
-        userAccount.reduceBonus(rechargeAmount);
-        save(userAccount);
-    }
 }

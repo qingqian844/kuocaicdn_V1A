@@ -9,7 +9,6 @@ services:
     command: ["java", "-XX:+UseG1GC", "-XX:MaxRAMPercentage=75", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/kuocai-cdn.jar"]
     volumes:
       - ./packages/kuocai-cdn.jar:/app/kuocai-cdn.jar:ro
-      - ./packages/license.key:/app/license.key:ro
       - ./secrets:/app/secrets
       - app_logs:/app/logs
     expose:

@@ -5,21 +5,20 @@
 - x86_64 服务器，支持 Ubuntu、Debian、CentOS、Rocky Linux、AlmaLinux。
 - 使用 `root` 执行安装。
 - 域名已解析到服务器公网 IPv4，并开放 TCP `80/443` 和 UDP `443`。
-- `packages/` 中放入授权版 JAR（文件名不限）和客户的 `license.key`。
+- `packages/` 中放入开源版 JAR（文件名不限）。
 - 服务器需要访问 Docker Hub、GitHub 和 HTTPS 证书签发服务。
 
 ## 首次安装
 
 ### 1. 放置交付文件
 
-将整个 `deploy/` 目录上传到服务器。把经销商提供的最新授权版 JAR 和客户授权文件放入：
+将整个 `deploy/` 目录上传到服务器，并把最新开源版 JAR 放入：
 
 ```text
-deploy/packages/KuocaiCDN-V2.x.x.x.jar
-deploy/packages/license.key
+deploy/packages/KuocaiCDN-K2.1.4.0.jar
 ```
 
-JAR 文件名不限，授权文件必须命名为 `license.key`。不需要手动创建 `env/app.env`，安装器会自动生成。
+JAR 文件名不限。不需要手动创建 `env/app.env`，安装器会自动生成。
 
 ### 2. 执行安装
 
@@ -50,13 +49,13 @@ cat /opt/kuocai-cdn/env/first-login.txt
 
 登录后自动进入 `/setup`：
 
-1. 检查数据库、缓存、消息队列、对象存储和授权文件。
+1. 检查数据库、缓存、消息队列和对象存储。
 2. 修改管理员资料和永久密码。
-3. 验证授权域名的 DNS 和 `80` 端口。
+3. 验证站点域名的 DNS 和 `80` 端口。
 4. 自动配置 Caddy 并申请 HTTPS 证书。
 5. 配置网站名称、Logo、图标、备案号和默认参数。
 6. 配置 CDN 厂商账号、DNS 和默认厂商。
-7. 按需配置支付、邮件、短信和实名认证。
+7. 按需配置邮件、短信和实名认证。
 8. 通过正式域名重新登录并完成初始化。
 
 初始化完成后删除临时密码文件：
@@ -65,7 +64,7 @@ cat /opt/kuocai-cdn/env/first-login.txt
 rm -f /opt/kuocai-cdn/env/first-login.txt
 ```
 
-运行时密钥保存在 `/opt/kuocai-cdn/env/app.env`，权限为 `600`。微信商户私钥由向导写入 `/opt/kuocai-cdn/secrets/`，不写入数据库。以上文件、客户 JAR 和授权文件均不得提交 Git。
+运行时密钥保存在 `/opt/kuocai-cdn/env/app.env`，权限为 `600`。该文件和部署用 JAR 均不得提交 Git。
 
 ## 重复执行与恢复
 
@@ -77,14 +76,14 @@ rm -f /opt/kuocai-cdn/env/first-login.txt
 # 查看容器状态和最近日志
 bash /opt/kuocai-cdn/status.sh
 
-# 立即备份数据库、JAR、授权、环境文件和运行私钥
+# 立即备份数据库、JAR、环境文件和运行私钥
 bash /opt/kuocai-cdn/backup.sh
 
-# 升级 JAR，可同时替换授权文件
-bash /opt/kuocai-cdn/upgrade.sh /path/to/new.jar [/path/to/new-license.key]
+# 升级 JAR
+bash /opt/kuocai-cdn/upgrade.sh /path/to/new.jar
 ```
 
-升级前会自动备份。新版本健康检查失败时自动恢复旧 JAR 和授权文件；数据库备份保留供人工恢复。默认仅保留最近三份备份。
+升级前会自动备份。新版本健康检查失败时自动恢复旧 JAR；数据库备份保留供人工恢复。默认仅保留最近三份备份。
 
 ## 常用排查
 

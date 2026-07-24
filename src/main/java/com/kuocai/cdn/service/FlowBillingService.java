@@ -307,9 +307,11 @@ public class FlowBillingService {
     }
 
     private boolean isBilling(Long userId, DateTime start, DateTime end) {
-        QueryWrapper<PurchasedFlowDetail> wrapper = new QueryWrapper<>();
-        wrapper.eq("user_id", userId).between("create_time", start, end);
-        return !purchasedFlowDetailService.queryByWrapper(wrapper).isEmpty();
+        QueryWrapper<TransactionOrder> wrapper = new QueryWrapper<>();
+        wrapper.eq("user_id", userId)
+                .eq("order_type", TransactionOrderType.FLOW_DEDUCTION)
+                .like("title", start.toString("yyyy-MM-dd HH:mm:ss"));
+        return !transactionOrderService.queryByWrapper(wrapper).isEmpty();
     }
 
     public void flowBillingLastHour() {
@@ -607,7 +609,13 @@ public class FlowBillingService {
      */
     private Set<Long> getUsersWithFlowDetailInPeriod(Date startDate, Date endDate) {
         try {
-            Set<Long> userIds = purchasedFlowDetailService.getUsersWithRecordsInPeriod(startDate, endDate);
+            QueryWrapper<TransactionOrder> wrapper = new QueryWrapper<>();
+            wrapper.eq("order_type", TransactionOrderType.FLOW_DEDUCTION)
+                    .between("create_time", startDate, endDate);
+            Set<Long> userIds = transactionOrderService.queryByWrapper(wrapper).stream()
+                    .map(TransactionOrder::getUserId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
             log.debug("查询到在时间段[{} -> {}]内有消费记录的用户: {}", startDate, endDate, userIds);
             return userIds;
         } catch (Exception e) {

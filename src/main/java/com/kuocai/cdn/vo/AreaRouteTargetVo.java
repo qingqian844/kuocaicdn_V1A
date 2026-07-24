@@ -9,5 +9,4 @@ public class AreaRouteTargetVo {
     private String targetKey;
     private String route;
     private String routeName;
-    private String accountName;
 }

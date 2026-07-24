@@ -129,7 +129,7 @@ public class CdnAreaRouteService {
             List<AreaRouteTargetVo> targets = resolveConfiguredTargets(serviceArea);
             List<String> names = new ArrayList<>();
             for (AreaRouteTargetVo target : targets) {
-                names.add(target.getAccountName());
+                names.add(target.getRouteName());
             }
             return String.join("、", names);
         } catch (BusinessException e) {
@@ -170,7 +170,6 @@ public class CdnAreaRouteService {
                 .targetKey(CdnServiceAreaPolicyService.routeTarget(route))
                 .route(route)
                 .routeName(vendorName(route))
-                .accountName(vendorName(route))
                 .build();
     }
 

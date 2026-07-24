@@ -1,4 +1,4 @@
--- KuocaiCDN V2.1.2.2 customer clean installation database
+-- KuocaiCDN K2.1.4.0 open source clean installation database
 -- Schema plus required initial settings only; no production business data or credentials.
 
 
@@ -13,42 +13,6 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
-DROP TABLE IF EXISTS `agent_config`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `agent_config` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `user_id` bigint(20) DEFAULT NULL,
-  `website_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `website_keyword` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `website_description` text COLLATE utf8mb4_unicode_ci,
-  `about` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `cname` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `logo` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `logo_dashboard` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `icon` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `address` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `phone` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `email` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `company` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `icp` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `domain` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `title` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `licence` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `licence_url` text COLLATE utf8mb4_unicode_ci,
-  `wechat_service_url` text COLLATE utf8mb4_unicode_ci,
-  `email_config` text COLLATE utf8mb4_unicode_ci,
-  `email_template_config` text COLLATE utf8mb4_unicode_ci,
-  `sms_config` text COLLATE utf8mb4_unicode_ci,
-  `sms_template_config` text COLLATE utf8mb4_unicode_ci,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
-LOCK TABLES `agent_config` WRITE;
-/*!40000 ALTER TABLE `agent_config` DISABLE KEYS */;
-/*!40000 ALTER TABLE `agent_config` ENABLE KEYS */;
-UNLOCK TABLES;
 DROP TABLE IF EXISTS `cdn_domain_route_binding`;
 CREATE TABLE `cdn_domain_route_binding` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -57,7 +21,6 @@ CREATE TABLE `cdn_domain_route_binding` (
   `domain_name` varchar(255) NOT NULL,
   `service_area` varchar(64) NOT NULL,
   `route` varchar(64) NOT NULL,
-  `vendor_account_id` bigint(20) DEFAULT NULL,
   `target_key` varchar(128) NOT NULL,
   `upstream_domain_id` varchar(255) DEFAULT NULL,
   `upstream_cname` varchar(255) DEFAULT NULL,
@@ -71,28 +34,8 @@ CREATE TABLE `cdn_domain_route_binding` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_domain_route_target` (`domain_id`,`target_key`),
   KEY `idx_route_binding_domain` (`domain_id`,`status`),
-  KEY `idx_route_binding_account` (`route`,`vendor_account_id`),
   KEY `idx_route_binding_user` (`user_id`,`service_area`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-DROP TABLE IF EXISTS `agent_level`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `agent_level` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `flow_order_rate` decimal(20,6) DEFAULT NULL,
-  `package_rate` decimal(20,6) DEFAULT NULL,
-  `remark` text COLLATE utf8mb4_unicode_ci,
-  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
-  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
-LOCK TABLES `agent_level` WRITE;
-/*!40000 ALTER TABLE `agent_level` DISABLE KEYS */;
-/*!40000 ALTER TABLE `agent_level` ENABLE KEYS */;
-UNLOCK TABLES;
 DROP TABLE IF EXISTS `announcement`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -112,28 +55,6 @@ LOCK TABLES `announcement` WRITE;
 /*!40000 ALTER TABLE `announcement` DISABLE KEYS */;
 /*!40000 ALTER TABLE `announcement` ENABLE KEYS */;
 UNLOCK TABLES;
-DROP TABLE IF EXISTS `bonus_record`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `bonus_record` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `transaction_order_id` bigint(20) DEFAULT NULL,
-  `user_id` bigint(20) DEFAULT NULL,
-  `agent_user_id` bigint(20) DEFAULT NULL,
-  `title` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `amount` decimal(20,6) DEFAULT NULL,
-  `bonus` decimal(20,6) DEFAULT NULL,
-  `bonus_type` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `status` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
-LOCK TABLES `bonus_record` WRITE;
-/*!40000 ALTER TABLE `bonus_record` DISABLE KEYS */;
-/*!40000 ALTER TABLE `bonus_record` ENABLE KEYS */;
-UNLOCK TABLES;
 DROP TABLE IF EXISTS `cache_task`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -146,9 +67,7 @@ CREATE TABLE `cache_task` (
   `user_id` bigint(20) DEFAULT NULL,
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `vendor_account_id` bigint(20) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_cache_task_vendor_account` (`vendor_account_id`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -182,60 +101,13 @@ CREATE TABLE `cdn_domain` (
   `cname_kingsoft` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `vendor_account_id` bigint(20) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_cdn_domain_vendor_account` (`vendor_account_id`),
-  KEY `idx_cdn_domain_route_account` (`route`,`vendor_account_id`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `cdn_domain` WRITE;
 /*!40000 ALTER TABLE `cdn_domain` DISABLE KEYS */;
 /*!40000 ALTER TABLE `cdn_domain` ENABLE KEYS */;
-UNLOCK TABLES;
-DROP TABLE IF EXISTS `cdn_vendor_account`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `cdn_vendor_account` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `vendor_code` varchar(64) NOT NULL,
-  `account_name` varchar(128) NOT NULL,
-  `config_json` longtext NOT NULL,
-  `is_default` tinyint(4) NOT NULL DEFAULT '0',
-  `status` varchar(32) NOT NULL DEFAULT 'enabled',
-  `remark` varchar(512) DEFAULT NULL,
-  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
-  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_vendor_account_default` (`vendor_code`,`is_default`,`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
-LOCK TABLES `cdn_vendor_account` WRITE;
-/*!40000 ALTER TABLE `cdn_vendor_account` DISABLE KEYS */;
-/*!40000 ALTER TABLE `cdn_vendor_account` ENABLE KEYS */;
-UNLOCK TABLES;
-DROP TABLE IF EXISTS `edgeone_domain_quota_order`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `edgeone_domain_quota_order` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `user_id` bigint(20) NOT NULL,
-  `transaction_order_id` bigint(20) NOT NULL,
-  `quota_count` int(11) DEFAULT '1',
-  `deadline` datetime NOT NULL,
-  `status` varchar(32) DEFAULT 'active',
-  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
-  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_edgeone_quota_order_transaction` (`transaction_order_id`),
-  KEY `idx_edgeone_quota_user_deadline` (`user_id`,`deadline`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
-LOCK TABLES `edgeone_domain_quota_order` WRITE;
-/*!40000 ALTER TABLE `edgeone_domain_quota_order` DISABLE KEYS */;
-/*!40000 ALTER TABLE `edgeone_domain_quota_order` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `edgeone_root_domain_record`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -302,80 +174,6 @@ LOCK TABLES `face_certify_verify` WRITE;
 /*!40000 ALTER TABLE `face_certify_verify` DISABLE KEYS */;
 /*!40000 ALTER TABLE `face_certify_verify` ENABLE KEYS */;
 UNLOCK TABLES;
-DROP TABLE IF EXISTS `flow_donate`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `flow_donate` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `user_id` bigint(20) DEFAULT NULL,
-  `flow_package_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `flow_package_size` decimal(20,6) DEFAULT NULL,
-  `deadline` datetime DEFAULT NULL,
-  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
-  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `status` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `purchased_flow_id` bigint(20) DEFAULT NULL,
-  `edgeone_domain_quota` int(11) DEFAULT '0',
-  `https_request_quota` bigint(20) DEFAULT '0',
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
-LOCK TABLES `flow_donate` WRITE;
-/*!40000 ALTER TABLE `flow_donate` DISABLE KEYS */;
-/*!40000 ALTER TABLE `flow_donate` ENABLE KEYS */;
-UNLOCK TABLES;
-DROP TABLE IF EXISTS `flow_package`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `flow_package` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `package_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `remark` text COLLATE utf8mb4_unicode_ci,
-  `status` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `charge_type` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `package_type` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `day_limit` int(11) DEFAULT NULL,
-  `user_limit` int(11) DEFAULT NULL,
-  `buyer_rule` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `size` bigint(20) DEFAULT NULL,
-  `price` decimal(20,6) DEFAULT NULL,
-  `price3` decimal(20,6) DEFAULT NULL,
-  `price12` decimal(20,6) DEFAULT NULL,
-  `buy_count` int(11) DEFAULT NULL,
-  `sort` int(11) DEFAULT NULL,
-  `edgeone_domain_quota` int(11) DEFAULT '0',
-  `https_request_quota` bigint(20) DEFAULT '0',
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
-LOCK TABLES `flow_package` WRITE;
-/*!40000 ALTER TABLE `flow_package` DISABLE KEYS */;
-/*!40000 ALTER TABLE `flow_package` ENABLE KEYS */;
-UNLOCK TABLES;
-DROP TABLE IF EXISTS `gift`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `gift` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `flow_package_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `flow_package_size` bigint(20) DEFAULT NULL,
-  `deadline` datetime DEFAULT NULL,
-  `expire_time` datetime DEFAULT NULL,
-  `size` int(11) DEFAULT '1' COMMENT '????',
-  `code` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `purchased_record` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
-  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
-LOCK TABLES `gift` WRITE;
-/*!40000 ALTER TABLE `gift` DISABLE KEYS */;
-/*!40000 ALTER TABLE `gift` ENABLE KEYS */;
-UNLOCK TABLES;
 DROP TABLE IF EXISTS `login_device`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -439,53 +237,6 @@ CREATE TABLE `operation_log` (
 LOCK TABLES `operation_log` WRITE;
 /*!40000 ALTER TABLE `operation_log` DISABLE KEYS */;
 /*!40000 ALTER TABLE `operation_log` ENABLE KEYS */;
-UNLOCK TABLES;
-DROP TABLE IF EXISTS `purchased_flow`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `purchased_flow` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `user_id` bigint(20) DEFAULT NULL,
-  `transaction_order_id` bigint(20) DEFAULT NULL,
-  `flow_package_id` bigint(20) DEFAULT NULL,
-  `flow_package_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `flow_package_size` bigint(20) DEFAULT NULL,
-  `used_flow` bigint(20) DEFAULT NULL,
-  `deadline` datetime DEFAULT NULL,
-  `status` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
-  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `baned_reason` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `edgeone_domain_quota` int(11) DEFAULT '0',
-  `https_request_quota` bigint(20) DEFAULT '0',
-  `used_https_requests` bigint(20) DEFAULT '0',
-  PRIMARY KEY (`id`),
-  KEY `idx_purchased_flow_user_status_deadline` (`user_id`,`status`,`deadline`),
-  KEY `idx_purchased_flow_status_create_time` (`status`,`create_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
-LOCK TABLES `purchased_flow` WRITE;
-/*!40000 ALTER TABLE `purchased_flow` DISABLE KEYS */;
-/*!40000 ALTER TABLE `purchased_flow` ENABLE KEYS */;
-UNLOCK TABLES;
-DROP TABLE IF EXISTS `purchased_flow_detail`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `purchased_flow_detail` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `user_id` bigint(20) DEFAULT NULL,
-  `purchased_flow_id` bigint(20) DEFAULT NULL,
-  `consume` bigint(20) DEFAULT NULL,
-  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
-  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
-LOCK TABLES `purchased_flow_detail` WRITE;
-/*!40000 ALTER TABLE `purchased_flow_detail` DISABLE KEYS */;
-/*!40000 ALTER TABLE `purchased_flow_detail` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `real_name_authentication`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -784,9 +535,6 @@ INSERT INTO `sys_config` (`id`, `biz_type`, `config_content`, `create_by`, `upda
 INSERT INTO `sys_config` (`id`, `biz_type`, `config_content`, `create_by`, `update_by`, `create_time`, `update_time`) VALUES (6,'website_seo_config','{}',1,1,'2026-07-17 23:38:33','2026-07-17 23:38:33');
 INSERT INTO `sys_config` (`id`, `biz_type`, `config_content`, `create_by`, `update_by`, `create_time`, `update_time`) VALUES (7,'website_contact_config','{}',1,1,'2026-07-17 23:38:33','2026-07-17 23:38:33');
 INSERT INTO `sys_config` (`id`, `biz_type`, `config_content`, `create_by`, `update_by`, `create_time`, `update_time`) VALUES (8,'website_access_config','{}',1,1,'2026-07-17 23:38:33','2026-07-17 23:38:33');
-INSERT INTO `sys_config` (`id`, `biz_type`, `config_content`, `create_by`, `update_by`, `create_time`, `update_time`) VALUES (9,'wechat_config','{}',1,1,'2026-07-17 23:38:33','2026-07-17 23:38:33');
-INSERT INTO `sys_config` (`id`, `biz_type`, `config_content`, `create_by`, `update_by`, `create_time`, `update_time`) VALUES (10,'alipay_config','{}',1,1,'2026-07-17 23:38:33','2026-07-17 23:38:33');
-INSERT INTO `sys_config` (`id`, `biz_type`, `config_content`, `create_by`, `update_by`, `create_time`, `update_time`) VALUES (11,'ali_withdraw_config','{}',1,1,'2026-07-17 23:38:33','2026-07-17 23:38:33');
 INSERT INTO `sys_config` (`id`, `biz_type`, `config_content`, `create_by`, `update_by`, `create_time`, `update_time`) VALUES (12,'alipay_authentication_config','{}',1,1,'2026-07-17 23:38:33','2026-07-17 23:38:33');
 INSERT INTO `sys_config` (`id`, `biz_type`, `config_content`, `create_by`, `update_by`, `create_time`, `update_time`) VALUES (13,'tencent_face_config','{}',1,1,'2026-07-17 23:38:33','2026-07-17 23:38:33');
 INSERT INTO `sys_config` (`id`, `biz_type`, `config_content`, `create_by`, `update_by`, `create_time`, `update_time`) VALUES (14,'email_config','{}',1,1,'2026-07-17 23:38:33','2026-07-17 23:38:33');
@@ -827,8 +575,6 @@ CREATE TABLE `sys_menu` (
 
 LOCK TABLES `sys_menu` WRITE;
 /*!40000 ALTER TABLE `sys_menu` DISABLE KEYS */;
-INSERT INTO `sys_menu` (`id`, `name`, `level`, `url`, `type`, `priority`, `create_time`, `update_time`) VALUES (2069465359553048578,'新客特惠','1','/buy-flow-packages','only-main',100,'2026-06-24 00:59:25','2026-06-24 00:59:25');
-INSERT INTO `sys_menu` (`id`, `name`, `level`, `url`, `type`, `priority`, `create_time`, `update_time`) VALUES (2069465863137964033,'开通套餐','1','/buy-flow-packages-customize','only-main',98,'2026-06-24 01:01:25','2026-06-24 01:01:25');
 INSERT INTO `sys_menu` (`id`, `name`, `level`, `url`, `type`, `priority`, `create_time`, `update_time`) VALUES (2069465934986391554,'添加域名','1','/domain-list','only-main',96,'2026-06-24 01:01:42','2026-06-24 01:01:42');
 INSERT INTO `sys_menu` (`id`, `name`, `level`, `url`, `type`, `priority`, `create_time`, `update_time`) VALUES (2069469164797603841,'数据统计','2','/data-board','only-main',95,'2026-06-24 01:14:32','2026-06-24 01:14:32');
 INSERT INTO `sys_menu` (`id`, `name`, `level`, `url`, `type`, `priority`, `create_time`, `update_time`) VALUES (2069469285165740034,'操作日志','2','/operation-logs','only-main',94,'2026-06-24 01:15:01','2026-06-24 01:15:01');
@@ -910,7 +656,6 @@ CREATE TABLE `sys_user_account` (
   `user_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `account_balance` decimal(20,6) DEFAULT NULL,
   `amass_recharge` decimal(20,6) DEFAULT NULL,
-  `bonus` decimal(20,6) DEFAULT NULL,
   `status` int(11) DEFAULT NULL,
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -920,7 +665,7 @@ CREATE TABLE `sys_user_account` (
 
 LOCK TABLES `sys_user_account` WRITE;
 /*!40000 ALTER TABLE `sys_user_account` DISABLE KEYS */;
-INSERT INTO `sys_user_account` (`id`, `user_id`, `user_name`, `account_balance`, `amass_recharge`, `bonus`, `status`, `create_time`, `update_time`) VALUES (1,1,'admin',0.000000,0.000000,0.000000,1,'2026-07-17 23:38:33','2026-07-17 23:38:33');
+INSERT INTO `sys_user_account` (`id`, `user_id`, `user_name`, `account_balance`, `amass_recharge`, `status`, `create_time`, `update_time`) VALUES (1,1,'admin',0.000000,0.000000,1,'2026-07-17 23:38:33','2026-07-17 23:38:33');
 /*!40000 ALTER TABLE `sys_user_account` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `sys_user_banned`;
@@ -941,26 +686,6 @@ CREATE TABLE `sys_user_banned` (
 LOCK TABLES `sys_user_banned` WRITE;
 /*!40000 ALTER TABLE `sys_user_banned` DISABLE KEYS */;
 /*!40000 ALTER TABLE `sys_user_banned` ENABLE KEYS */;
-UNLOCK TABLES;
-DROP TABLE IF EXISTS `sys_user_vendor_account`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `sys_user_vendor_account` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `user_id` bigint(20) NOT NULL,
-  `vendor_code` varchar(64) NOT NULL,
-  `vendor_account_id` bigint(20) NOT NULL,
-  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
-  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_user_vendor_account` (`user_id`,`vendor_code`),
-  KEY `idx_user_vendor_account_id` (`vendor_account_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
-LOCK TABLES `sys_user_vendor_account` WRITE;
-/*!40000 ALTER TABLE `sys_user_vendor_account` DISABLE KEYS */;
-/*!40000 ALTER TABLE `sys_user_vendor_account` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `transaction_order`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -1009,27 +734,6 @@ CREATE TABLE `user_notice_settings` (
 LOCK TABLES `user_notice_settings` WRITE;
 /*!40000 ALTER TABLE `user_notice_settings` DISABLE KEYS */;
 /*!40000 ALTER TABLE `user_notice_settings` ENABLE KEYS */;
-UNLOCK TABLES;
-DROP TABLE IF EXISTS `withdraw_record`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `withdraw_record` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `user_id` bigint(20) DEFAULT NULL,
-  `amount` decimal(20,6) DEFAULT NULL,
-  `withdraw_type` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `withdraw_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `withdraw_account` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `status` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
-  `reject_reason` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
-LOCK TABLES `withdraw_record` WRITE;
-/*!40000 ALTER TABLE `withdraw_record` DISABLE KEYS */;
-/*!40000 ALTER TABLE `withdraw_record` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `work_order`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;

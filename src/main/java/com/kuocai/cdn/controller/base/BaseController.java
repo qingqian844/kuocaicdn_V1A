@@ -81,29 +81,17 @@ public class BaseController {
     @Resource
     protected SysConfigService sysConfigService;
     @Autowired
-    protected FlowPackageService flowPackageService;
-    @Autowired
-    protected PurchasedFlowService purchasedFlowService;
-    @Autowired
     protected WorkOrderMessageService workOrderMessageService;
-    @Autowired
-    protected PurchasedFlowDetailService purchasedFlowDetailService;
     @Autowired
     protected TransactionOrderService transactionOrderService;
     @Autowired
     protected AnnouncementService announcementService;
     @Autowired
-    protected AgentLevelService agentLevelService;
-    @Autowired
     protected RealNameAuthenticationService realNameAuthenticationService;
     @Autowired
     protected MessageService messageService;
     @Autowired
-    protected AgentConfigService agentConfigService;
-    @Autowired
     protected CacheTaskService cacheTaskService;
-    @Autowired
-    protected FlowDonateService flowDonateService;
     @Autowired
     protected SelfHostedPortForwardService selfHostedPortForwardService;
 

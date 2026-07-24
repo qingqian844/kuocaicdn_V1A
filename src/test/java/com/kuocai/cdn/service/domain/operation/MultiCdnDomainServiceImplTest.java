@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class MultiCdnDomainServiceImplTest {
 
     private final MultiCdnDomainServiceImpl service =
-            new MultiCdnDomainServiceImpl(null, null, null, null);
+            new MultiCdnDomainServiceImpl(null, null, null);
 
     @Test
     void allOnlineAggregatesToOnline() {

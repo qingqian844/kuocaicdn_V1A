@@ -12,14 +12,6 @@ public class CdnServiceAreaOptionVo {
 
     private String routeName;
 
-    private Long accountId;
-
-    private String accountName;
-
-    private Boolean defaultAccount;
-
-    private String accountStatus;
-
     private Boolean selectable;
 
     private String fixedArea;

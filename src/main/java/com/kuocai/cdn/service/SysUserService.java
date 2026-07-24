@@ -71,12 +71,6 @@ public class SysUserService extends BaseService<SysUser> {
     @Autowired
     private SysUserAccountService accountService;
 
-    @Autowired
-    private PurchasedFlowService purchasedFlowService;
-
-    @Autowired
-    private AgentConfigService agentConfigService;
-
     @Value("${minio.bucketName}")
     private String bucketName;
 
@@ -598,7 +592,7 @@ public class SysUserService extends BaseService<SysUser> {
         // 密码加密
         String pwdSalt = null;
         // 获取密码盐
-        SysUser user = SysUser.builder().userName(userName).agentUserId(agentUserId).userPwd(ciphertext).phone(phone).pwdSalt(pwdSalt).img(resolveDefaultAvatar()).status(UserConstants.STATUS).maxDomainCount(SystemConfig.websiteBaseConfig.getMaxDomainCount()).flowPrice(SystemConfig.websiteBaseConfig.getDefaultFlowPrice()).roleId(UserConstants.ROLE_ID).autoBalance(1).route(resolveDefaultUserRoute()).enableOverseas(0).enableGlobal(0).build();
+        SysUser user = SysUser.builder().userName(userName).userPwd(ciphertext).phone(phone).pwdSalt(pwdSalt).img(resolveDefaultAvatar()).status(UserConstants.STATUS).maxDomainCount(SystemConfig.websiteBaseConfig.getMaxDomainCount()).flowPrice(SystemConfig.websiteBaseConfig.getDefaultFlowPrice()).roleId(UserConstants.ROLE_ID).autoBalance(1).route(resolveDefaultUserRoute()).enableOverseas(0).enableGlobal(0).build();
         SysUser userInfo = save(user);
         // 新增一个账户表
         Long userId = userInfo.getId();
@@ -622,7 +616,7 @@ public class SysUserService extends BaseService<SysUser> {
         // 密码加密
         String pwdSalt = null;
         // 获取密码盐
-        SysUser user = SysUser.builder().route(resolveDefaultUserRoute()).userName(userName).agentUserId(agentUserId).userPwd(ciphertext).email(email).pwdSalt(pwdSalt).img(resolveDefaultAvatar()).status(UserConstants.STATUS).maxDomainCount(SystemConfig.websiteBaseConfig.getMaxDomainCount()).flowPrice(SystemConfig.websiteBaseConfig.getDefaultFlowPrice()).roleId(UserConstants.ROLE_ID).autoBalance(1).enableOverseas(0).enableGlobal(0).build();
+        SysUser user = SysUser.builder().route(resolveDefaultUserRoute()).userName(userName).userPwd(ciphertext).email(email).pwdSalt(pwdSalt).img(resolveDefaultAvatar()).status(UserConstants.STATUS).maxDomainCount(SystemConfig.websiteBaseConfig.getMaxDomainCount()).flowPrice(SystemConfig.websiteBaseConfig.getDefaultFlowPrice()).roleId(UserConstants.ROLE_ID).autoBalance(1).enableOverseas(0).enableGlobal(0).build();
         SysUser userInfo = save(user);
         // 新增一个账户表
         Long userId = userInfo.getId();
@@ -661,7 +655,7 @@ public class SysUserService extends BaseService<SysUser> {
 
         String ciphertext = PasswordUtils.hash(userPwd);
         String pwdSalt = null;
-        SysUser user = SysUser.builder().route(SupportedVendorUtils.defaultVendor()).userName(userName).img(path).userPwd(ciphertext).pwdSalt(pwdSalt).phone(phone).email(email).myWebsite(myWebSite).realName(realName).idCardNum(idCardNum).flowPrice(flowPrice).maxDomainCount(maxDomainCount).roleId(roleId).status(status).agentLevelId(agentLevelId).autoBalance(autoBalance).build();
+        SysUser user = SysUser.builder().route(SupportedVendorUtils.defaultVendor()).userName(userName).img(path).userPwd(ciphertext).pwdSalt(pwdSalt).phone(phone).email(email).myWebsite(myWebSite).realName(realName).idCardNum(idCardNum).flowPrice(flowPrice).maxDomainCount(maxDomainCount).roleId(roleId).status(status).autoBalance(autoBalance).build();
         SysUser userInfo = save(user);
         // 新增一个账户表
         Long userId = userInfo.getId();
@@ -678,10 +672,6 @@ public class SysUserService extends BaseService<SysUser> {
                               Integer autoBalance, Long agentUserId) throws BusinessException {
         ensureSingleAdmin(roleId, id);
         SysUser saveUser = queryById(id);
-        // 判断是否将等级置为无
-        if (Assert.isEmpty(agentLevelId)) {
-            dao.updateAgentLevelToNull(id);
-        }
         String path = saveUser.getImg();
         try {
             if (Assert.notEmpty(file)) {
@@ -702,7 +692,7 @@ public class SysUserService extends BaseService<SysUser> {
         }
         if (ObjectUtil.equal(type, "1")) {
             // 密码没有修改
-            SysUser sysUser = SysUser.builder().id(id).agentUserId(agentUserId).userName(userName).img(path).userPwd(saveUser.getUserPwd()).pwdSalt(saveUser.getPwdSalt()).phone(phone).email(email).myWebsite(myWebSite).realName(realName).idCardNum(idCardNum).flowPrice(flowPrice).roleId(roleId).status(status).agentLevelId(agentLevelId).autoBalance(autoBalance).build();
+            SysUser sysUser = SysUser.builder().id(id).userName(userName).img(path).userPwd(saveUser.getUserPwd()).pwdSalt(saveUser.getPwdSalt()).phone(phone).email(email).myWebsite(myWebSite).realName(realName).idCardNum(idCardNum).flowPrice(flowPrice).roleId(roleId).status(status).autoBalance(autoBalance).build();
             if (Assert.notEmpty(saveUser.getRealName()) && Assert.notEmpty(saveUser.getIdCardNum())) {
                 sysUser.setStatus(UserStatus.CERTIFIED.getCode());
             }
@@ -710,7 +700,7 @@ public class SysUserService extends BaseService<SysUser> {
         } else {
             String ciphertext = PasswordUtils.hash(userPwd);
             String pwdSalt = null;
-            SysUser sysUser = SysUser.builder().id(id).agentUserId(agentUserId).userName(userName).img(path).userPwd(ciphertext).pwdSalt(pwdSalt).phone(phone).email(email).myWebsite(myWebSite).realName(realName).idCardNum(idCardNum).flowPrice(flowPrice).roleId(roleId).status(status).agentLevelId(agentLevelId).autoBalance(autoBalance).build();
+            SysUser sysUser = SysUser.builder().id(id).userName(userName).img(path).userPwd(ciphertext).pwdSalt(pwdSalt).phone(phone).email(email).myWebsite(myWebSite).realName(realName).idCardNum(idCardNum).flowPrice(flowPrice).roleId(roleId).status(status).autoBalance(autoBalance).build();
             if (Assert.notEmpty(saveUser.getRealName()) && Assert.notEmpty(saveUser.getIdCardNum())) {
                 sysUser.setStatus(UserStatus.CERTIFIED.getCode());
             }
@@ -886,14 +876,7 @@ public class SysUserService extends BaseService<SysUser> {
      * @return 代理配置
      */
     public AgentConfig queryAgentConfigByJuniorUser(Long userId) {
-        SysUser sysUser = queryById(userId);
-        if (Assert.isEmpty(sysUser)) {
-            return null;
-        }
-        if (Assert.isEmpty(sysUser.getAgentUserId())) {
-            return null;
-        }
-        return agentConfigService.queryByUserId(sysUser.getAgentUserId());
+        return null;
     }
 
     public List<SysUser> queryByAccount(String account, Long roleId) {

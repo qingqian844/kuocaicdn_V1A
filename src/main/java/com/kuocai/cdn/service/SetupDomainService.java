@@ -2,14 +2,14 @@ package com.kuocai.cdn.service;
 
 import com.alibaba.fastjson.JSONObject;
 import com.kuocai.cdn.exception.BusinessException;
-import com.kuocai.cdn.license.HostLicenseValidator;
-import com.kuocai.cdn.license.LicenseService;
 import com.kuocai.cdn.util.Assert;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.IDN;
+import java.net.URI;
 import java.net.Socket;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -17,23 +17,17 @@ import java.util.Set;
 @Service
 public class SetupDomainService {
 
-    private final LicenseService licenseService;
-    private final HostLicenseValidator hostLicenseValidator;
     private final CaddyProvisioningService caddyProvisioningService;
     private final String publicIp;
 
-    public SetupDomainService(LicenseService licenseService,
-                              HostLicenseValidator hostLicenseValidator,
-                              CaddyProvisioningService caddyProvisioningService,
+    public SetupDomainService(CaddyProvisioningService caddyProvisioningService,
                               @Value("${installation.public-ip:}") String publicIp) {
-        this.licenseService = licenseService;
-        this.hostLicenseValidator = hostLicenseValidator;
         this.caddyProvisioningService = caddyProvisioningService;
         this.publicIp = publicIp == null ? "" : publicIp.trim();
     }
 
     public JSONObject verify(String rawDomain) throws BusinessException {
-        String domain = normalizeAndAuthorize(rawDomain);
+        String domain = normalizeDomain(rawDomain);
         Set<String> addresses = resolve(domain);
         if (!publicIp.isEmpty() && !addresses.contains(publicIp)) {
             throw new BusinessException("域名当前解析到 " + String.join(", ", addresses)
@@ -48,7 +42,7 @@ public class SetupDomainService {
     }
 
     public void apply(String rawDomain) throws BusinessException {
-        String domain = normalizeAndAuthorize(rawDomain);
+        String domain = normalizeDomain(rawDomain);
         verify(domain);
         caddyProvisioningService.provision(domain);
         if (!caddyProvisioningService.waitForHttps(domain, 90)) {
@@ -56,15 +50,62 @@ public class SetupDomainService {
         }
     }
 
-    public String normalizeAndAuthorize(String rawDomain) throws BusinessException {
-        String domain = hostLicenseValidator.normalizeHost(rawDomain);
+    public String normalizeDomain(String rawDomain) throws BusinessException {
+        String domain = normalizeHost(rawDomain);
         if (Assert.isEmpty(domain) || domain.matches("^[0-9a-fA-F:.]+$") || !isDnsName(domain)) {
             throw new BusinessException("请输入有效的网站域名，不能使用 IP 地址");
         }
-        if (!licenseService.isHostAuthorized(domain)) {
-            throw new BusinessException("域名不在当前授权范围内：" + domain);
-        }
         return domain;
+    }
+
+    public String normalizeHost(String value) {
+        if (value == null) {
+            return "";
+        }
+        String host = value.trim();
+        int comma = host.indexOf(',');
+        if (comma >= 0) {
+            host = host.substring(0, comma).trim();
+        }
+        try {
+            if (host.contains("://")) {
+                URI uri = URI.create(host);
+                host = uri.getHost() == null ? host : uri.getHost();
+            }
+        } catch (Exception ignored) {
+        }
+        if (host.startsWith("[")) {
+            int end = host.indexOf(']');
+            if (end > 0) {
+                host = host.substring(1, end);
+            }
+        } else {
+            int colon = host.lastIndexOf(':');
+            if (colon > -1 && host.indexOf(':') == colon && isPort(host.substring(colon + 1))) {
+                host = host.substring(0, colon);
+            }
+        }
+        host = host.trim().toLowerCase();
+        while (host.endsWith(".")) {
+            host = host.substring(0, host.length() - 1);
+        }
+        try {
+            return IDN.toASCII(host).toLowerCase();
+        } catch (Exception e) {
+            return host;
+        }
+    }
+
+    private boolean isPort(String value) {
+        if (Assert.isEmpty(value)) {
+            return false;
+        }
+        for (int index = 0; index < value.length(); index++) {
+            if (!Character.isDigit(value.charAt(index))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private boolean isDnsName(String domain) {

@@ -59,39 +59,25 @@ public class SystemSettingsPageController extends BaseController {
         List<CdnServiceAreaOptionVo> options = new ArrayList<>();
         for (Map<String, String> vendor : SupportedVendorUtils.allVendorOptions()) {
             String route = vendor.get("code");
-            String name = vendor.get("name");
-            String fixedArea = CdnRoute.selfHostedServiceArea(route);
-            if (fixedArea != null) {
-                options.add(option(config, route, name, null,
-                        "自建节点组", false, "enabled", fixedArea));
+            if (CdnRoute.MULTI_CDN.getCode().equals(route)
+                    || CdnRoute.SELF_HOSTED.getCode().equals(route)) {
                 continue;
             }
-            options.add(option(config, route, name, null,
-                    "系统默认配置", false, "enabled", null));
+            String name = vendor.get("name");
+            String fixedArea = CdnRoute.selfHostedServiceArea(route);
+            options.add(option(config, route, name, fixedArea));
         }
         return options;
     }
 
     private CdnServiceAreaOptionVo option(WebsiteBaseConfigVo config, String route, String routeName,
-                                          Long accountId, String accountName, boolean defaultAccount,
-                                          String accountStatus, String fixedArea) {
-        boolean fixed = fixedArea != null;
-        boolean selectable = !fixed && "enabled".equals(accountStatus);
-        String targetKey = accountId == null
-                ? CdnServiceAreaPolicyService.routeTarget(route)
-                : CdnServiceAreaPolicyService.accountTarget(accountId);
-        if (!selectable) {
-            targetKey = null;
-        }
+                                          String fixedArea) {
+        String targetKey = CdnServiceAreaPolicyService.routeTarget(route);
         return CdnServiceAreaOptionVo.builder()
                 .targetKey(targetKey)
                 .route(route)
                 .routeName(routeName)
-                .accountId(accountId)
-                .accountName(accountName)
-                .defaultAccount(defaultAccount)
-                .accountStatus(accountStatus)
-                .selectable(selectable)
+                .selectable(true)
                 .fixedArea(fixedArea)
                 .mainlandEnabled(configured(config, targetKey, route,
                         CdnServiceAreaPolicyService.MAINLAND))

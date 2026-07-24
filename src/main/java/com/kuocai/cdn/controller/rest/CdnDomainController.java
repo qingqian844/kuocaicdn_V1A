@@ -726,7 +726,7 @@ public class CdnDomainController extends BaseController {
             }
             JSONObject item = JSONObject.parseObject(JSONObject.toJSONString(info));
             item.put("targetKey", target.getTargetKey());
-            item.put("targetName", target.getAccountName());
+            item.put("targetName", target.getRouteName());
             records.add(item);
         }
         if (records.isEmpty()) {
@@ -759,7 +759,7 @@ public class CdnDomainController extends BaseController {
                 try {
                     ((ICdnDomainVerifyService) platform).verifyDomainRecord(strippedDomain, verifyType);
                 } catch (Exception e) {
-                    failures.add(target.getAccountName() + "：" + e.getMessage());
+                    failures.add(target.getRouteName() + "：" + e.getMessage());
                 }
             }
             if (verifiedTargets == 0) {

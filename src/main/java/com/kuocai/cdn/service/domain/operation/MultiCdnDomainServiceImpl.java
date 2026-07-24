@@ -82,7 +82,7 @@ public class MultiCdnDomainServiceImpl implements ICdnPlatformService {
                     throw new BusinessException("创建多 CDN 域名被中断");
                 }
                 if (child == null) {
-                    throw new BusinessException(target.getAccountName() + "未返回域名信息");
+                    throw new BusinessException(target.getRouteName() + "未返回域名信息");
                 }
                 child.setRoute(target.getRoute());
                 CreatedTarget createdTarget = new CreatedTarget(target, child, null);
@@ -91,7 +91,7 @@ public class MultiCdnDomainServiceImpl implements ICdnPlatformService {
                         ? ((SelfHostedDomainServiceImpl) platform).prepareForMultiCdn(child)
                         : extractUpstreamCname(child, target.getRoute());
                 if (Assert.isEmpty(upstreamCname)) {
-                    throw new BusinessException(target.getAccountName() + "尚未返回上游 CNAME");
+                    throw new BusinessException(target.getRouteName() + "尚未返回上游 CNAME");
                 }
                 createdTarget.upstreamCname = upstreamCname;
             }

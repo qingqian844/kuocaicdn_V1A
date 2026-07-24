@@ -15,8 +15,8 @@ public final class AdminPathUtils {
     private static final Pattern PATH_PATTERN = Pattern.compile("^[a-z0-9][a-z0-9_-]{2,31}$");
     private static final Set<String> RESERVED_PATHS = new HashSet<>(Arrays.asList(
             "api", "login", "logout", "health", "setup", "index", "user-login", "register",
-            "register-email", "forget", "dashboard", "website-setting", "license-error",
-            "license-issuer", "common", "front", "image", "alipay", "wechat", "sysconfig",
+            "register-email", "forget", "dashboard", "website-setting",
+            "common", "front", "image", "alipay", "wechat", "sysconfig",
             "sysuser", "cdndomain", "purchasedflow", "vendoraccount"));
 
     private AdminPathUtils() {

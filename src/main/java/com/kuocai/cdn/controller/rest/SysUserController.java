@@ -428,13 +428,10 @@ public class SysUserController extends BaseController {
     public RespResult forceDelete(Long id) {
         sysUserService.deleteById(id);
         sysUserAccountService.deleteByUserId(id);
-        agentConfigService.deleteByUserId(id);
         cdnDomainService.deleteByUserId(id);
         cacheTaskService.deleteByUserId(id);
-        flowDonateService.deleteByUserId(id);
         loginDeviceService.deleteByUserId(id);
         operationLogService.deleteByUserId(id);
-        purchasedFlowService.deleteByUserId(id);
         realNameAuthenticationService.deleteByUserId(id);
         transactionOrderService.deleteByUserId(id);
         workOrderService.deleteByUserId(id);
