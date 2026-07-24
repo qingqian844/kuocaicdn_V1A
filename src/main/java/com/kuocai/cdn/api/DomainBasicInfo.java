@@ -24,6 +24,11 @@ public class DomainBasicInfo {
     private String domainStatus;
 
     /**
+     * 供应商返回的配置失败原因。
+     */
+    private String failureReason;
+
+    /**
      * https是否开启状态 1/0
      */
     private String httpsStatus;

@@ -67,9 +67,7 @@ public class KingsoftApiService {
             signHeaders.put("host", CDN_API_HOST);
             signHeaders.put("x-amz-date", timestamp);
 
-            String canonicalQueryString = allParamsForSign.entrySet().stream()
-                    .map(e -> urlEncodeValue(e.getKey()) + "=" + urlEncodeValue(e.getValue()))
-                    .collect(Collectors.joining("&"));
+            String canonicalQueryString = buildEncodedQueryString(allParamsForSign);
 
             String canonicalHeaders = signHeaders.entrySet().stream()
                     .map(e -> e.getKey() + ":" + e.getValue().trim())
@@ -83,10 +81,7 @@ public class KingsoftApiService {
             String signature = KingsoftAwsSignatureUtil.sign(signingKey, stringToSign);
 
             allParamsForSign.put("X-Amz-Signature", signature);
-
-            URIBuilder uriBuilder = new URIBuilder().setScheme(CDN_API_SCHEME).setHost(CDN_API_HOST).setPath(path);
-            allParamsForSign.forEach(uriBuilder::addParameter);
-            URI uri = uriBuilder.build();
+            URI uri = buildEncodedGetUri(CDN_API_SCHEME, CDN_API_HOST, -1, path, allParamsForSign);
 
             try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
                 HttpGet httpGet = new HttpGet(uri);
@@ -95,8 +90,9 @@ public class KingsoftApiService {
                 httpGet.setHeader("X-Action", action);
                 httpGet.setHeader("X-Version", version);
 
-                log.info("Kingsoft CDN API GET Request URL: {}", uri);
-                return executeRequest(httpClient, httpGet, uri.toString(), "");
+                String requestTarget = CDN_API_SCHEME + "://" + CDN_API_HOST + path;
+                log.info("Kingsoft CDN API GET Request: action={}, target={}", action, requestTarget);
+                return executeRequest(httpClient, httpGet, requestTarget, "");
             }
         } catch (Exception e) {
             log.error("An unknown error occurred while calling Kingsoft CDN GET API", e);
@@ -309,21 +305,45 @@ public class KingsoftApiService {
         }
     }
 
-    private String urlEncodePath(String path) {
+    static URI buildEncodedGetUri(String scheme, String host, int port, String path, Map<String, String> params) {
+        String authority = host;
+        if (port > 0 && !("https".equalsIgnoreCase(scheme) && port == 443)
+                && !("http".equalsIgnoreCase(scheme) && port == 80)) {
+            authority += ":" + port;
+        }
+        String query = buildEncodedQueryString(params);
+        return URI.create(scheme + "://" + authority + urlEncodePath(path)
+                + (query.isEmpty() ? "" : "?" + query));
+    }
+
+    static String buildEncodedQueryString(Map<String, String> params) {
+        if (params == null || params.isEmpty()) {
+            return "";
+        }
+        return params.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(e -> urlEncodeValue(e.getKey()) + "=" + urlEncodeValue(e.getValue()))
+                .collect(Collectors.joining("&"));
+    }
+
+    private static String urlEncodePath(String path) {
         if (path == null || path.isEmpty()) {
             return "/";
         }
         return Arrays.stream(path.split("/", -1))
-                .map(this::urlEncodeValue)
+                .map(KingsoftApiService::urlEncodeValue)
                 .collect(Collectors.joining("/"));
     }
 
-    private String urlEncodeValue(String value) {
+    private static String urlEncodeValue(String value) {
         if (value == null) {
             return "";
         }
         try {
-            return URLEncoder.encode(value, StandardCharsets.UTF_8.toString()).replace("+", "%20");
+            return URLEncoder.encode(value, StandardCharsets.UTF_8.toString())
+                    .replace("+", "%20")
+                    .replace("%7E", "~")
+                    .replace("*", "%2A");
         } catch (Exception e) {
             throw new RuntimeException("Failed to URL encode value: " + value, e);
         }

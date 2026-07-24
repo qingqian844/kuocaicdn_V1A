@@ -506,6 +506,7 @@ public class KingsoftDomainServiceImpl extends BaseService<CdnDomain> implements
                     .serviceArea(serviceArea)
                     .domainId(domainId)
                     .domainStatus(mapKingsoftStatusToSystem(domainStatus))
+                    .failureReason(kingsoftFailureReason(domainStatus))
                     .cnameKingsoft(officialCname)
                     .route(CdnRoute.KINGSOFT.getCode())
                     .build();
@@ -805,14 +806,42 @@ public class KingsoftDomainServiceImpl extends BaseService<CdnDomain> implements
         }
     }
 
-    private String mapKingsoftStatusToSystem(String kingsoftStatus) {
+    static String mapKingsoftStatusToSystem(String kingsoftStatus) {
         if (kingsoftStatus == null) return "configuring";
-        switch (kingsoftStatus) {
+        switch (kingsoftStatus.trim().toLowerCase(Locale.ROOT)) {
             case "online": return "online";
             case "offline": return "offline";
-            case "configuring": return "configuring";
-            case "configure_failed": return "configure_failed";
-            default: return "configuring";
+            case "configuring":
+            case "icp_checking":
+                return "configuring";
+            case "configure_failed":
+            case "icp_check_failed":
+            case "locked":
+                return "configure_failed";
+            default:
+                return "configure_failed";
+        }
+    }
+
+    static String kingsoftFailureReason(String kingsoftStatus) {
+        if (kingsoftStatus == null) {
+            return null;
+        }
+        String normalized = kingsoftStatus.trim().toLowerCase(Locale.ROOT);
+        switch (normalized) {
+            case "locked":
+                return "域名已被金山云锁定，请联系管理员或金山云处理";
+            case "icp_check_failed":
+                return "金山云备案检查失败，请检查域名备案信息";
+            case "configure_failed":
+                return "金山云域名配置失败，请联系管理员处理";
+            case "online":
+            case "offline":
+            case "configuring":
+            case "icp_checking":
+                return null;
+            default:
+                return "金山云返回了无法识别的域名状态：" + kingsoftStatus;
         }
     }
 
@@ -1369,6 +1398,7 @@ public class KingsoftDomainServiceImpl extends BaseService<CdnDomain> implements
         DomainBasicInfo domainBasicInfo = DomainBasicInfo.builder()
                 .domainName(listInfo.getDomainName())
                 .domainStatus(mapKingsoftStatusToSystem(listInfo.getDomainStatus()))
+                .failureReason(kingsoftFailureReason(listInfo.getDomainStatus()))
                 .cname(listInfo.getCname())
                 .httpsStatus(httpsEnabled ? "1" : "0")
                 .businessType(mapKingsoftTypeToSystem(listInfo.getCdnType()))

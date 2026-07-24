@@ -37,6 +37,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -74,6 +75,15 @@ public class BaiduDomainServiceImpl extends BaseService<CdnDomain> implements IC
             log.error("百度云CDN异步执行失败", throwable);
             throw new CompletionException(throwable);
         });
+    }
+
+    private Exception unwrapAsyncException(Exception error) {
+        Throwable current = error;
+        while ((current instanceof CompletionException || current instanceof ExecutionException)
+                && current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current instanceof Exception ? (Exception) current : error;
     }
 
     private CdnClient getClient() {
@@ -849,8 +859,6 @@ public class BaiduDomainServiceImpl extends BaseService<CdnDomain> implements IC
         CompletableFuture<GetDomainCompressResponse> domainCompressResponseCompletableFuture = executeAsync(() -> client.getDomainCompress(domainName));
 
 
-        CompletableFuture.allOf(domainConfigResponseCompletableFuture, domainOCSPSwitchResponseCompletableFuture, domainRangeSwitchResponseCompletableFuture, domainOriginTimeoutResponseCompletableFuture, domainOriginProtocolResponseCompletableFuture, domainCacheTTLResponseCompletableFuture).join();
-
         GetDomainConfigResponse response;
         GetDomainOCSPSwitchResponse ocspSwitchResponse;
         GetDomainIPv6DispatchResponse iPv6DispatchResponse;
@@ -865,6 +873,9 @@ public class BaiduDomainServiceImpl extends BaseService<CdnDomain> implements IC
         GetDomainCompressResponse compressResponse;
 
         try {
+            CompletableFuture.allOf(domainConfigResponseCompletableFuture, domainOCSPSwitchResponseCompletableFuture,
+                    domainRangeSwitchResponseCompletableFuture, domainOriginTimeoutResponseCompletableFuture,
+                    domainOriginProtocolResponseCompletableFuture, domainCacheTTLResponseCompletableFuture).join();
             response = domainConfigResponseCompletableFuture.get();
             ocspSwitchResponse = domainOCSPSwitchResponseCompletableFuture.get();
             iPv6DispatchResponse = domainIPv6DispatchResponseCompletableFuture.get();
@@ -878,7 +889,7 @@ public class BaiduDomainServiceImpl extends BaseService<CdnDomain> implements IC
             uaAclResponse = domainUaAclResponseCompletableFuture.get();
             compressResponse = domainCompressResponseCompletableFuture.get();
         } catch (Exception e) {
-            throw catchException(e);
+            throw catchException(unwrapAsyncException(e));
         }
 
         domainBasicInfo.setCname(response.getCname());
