@@ -253,7 +253,9 @@ public class SelfHostedNodeInstallService {
                 "ln -sfn /etc/kuocai-edge/releases/0 /etc/nginx/kuocai-edge\n" +
                 "systemctl daemon-reload\n" +
                 "systemctl enable --now nginx\n" +
-                "systemctl enable --now kuocai-edge-agent\n" +
+                "systemctl enable kuocai-edge-agent\n" +
+                "systemctl restart kuocai-edge-agent\n" +
+                "systemctl is-active --quiet kuocai-edge-agent\n" +
                 "rm -f /tmp/kuocai-edge-agent.py /tmp/kuocai-edge-agent.json /tmp/kuocai-edge-agent.service\n";
     }
 

@@ -33,4 +33,16 @@ class SelfHostedNodeInstallServiceTest {
         assertTrue(nginxDirectory > nginxCheck);
         assertTrue(nginxLink > nginxDirectory);
     }
+
+    @Test
+    void reinstallRestartsRunningAgentAndVerifiesItIsActive() {
+        String command = SelfHostedNodeInstallService.installCommand();
+
+        int installAgent = command.indexOf("install -m 700 /tmp/kuocai-edge-agent.py");
+        int restartAgent = command.indexOf("systemctl restart kuocai-edge-agent");
+        int verifyAgent = command.indexOf("systemctl is-active --quiet kuocai-edge-agent");
+
+        assertTrue(restartAgent > installAgent);
+        assertTrue(verifyAgent > restartAgent);
+    }
 }
