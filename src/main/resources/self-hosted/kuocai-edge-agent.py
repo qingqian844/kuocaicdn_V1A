@@ -5,6 +5,8 @@ import json
 import os
 import re
 import shutil
+import sqlite3
+import stat
 import subprocess
 import tempfile
 import time
@@ -16,13 +18,144 @@ CONFIG_FILE = "/etc/kuocai-edge/agent.json"
 RELEASE_ROOT = "/etc/kuocai-edge/releases"
 ACTIVE_LINK = "/etc/nginx/kuocai-edge"
 STREAM_ACTIVE_LINK = "/etc/nginx/kuocai-edge-stream"
-CACHE_DIR = "/var/cache/kuocai-cdn"
+DEFAULT_CACHE_DIR = "/var/cache/kuocai-cdn"
+CACHE_POLICY_FILE = "/etc/kuocai-edge/cache-policy.json"
+CACHE_ACCESS_DB = "/var/lib/kuocai-edge/cache-access.sqlite3"
+CACHE_ACCESS_LOG = "/var/log/nginx/kuocai-edge-access.log"
+CACHE_CLEANUP_INTERVAL_SECONDS = 600
 _CPU_SAMPLE = None
+_LAST_CACHE_CLEANUP = 0
 
 
 def load_agent_config():
     with open(CONFIG_FILE, "r", encoding="utf-8") as stream:
         return json.load(stream)
+
+
+def decode_mount_value(value):
+    return str(value or "").replace("\\040", " ").replace("\\011", "\t").replace("\\134", "\\")
+
+
+def normalize_mount_path(value):
+    mount = str(value or "/").strip().replace("\\", "/")
+    while len(mount) > 1 and mount.endswith("/"):
+        mount = mount[:-1]
+    if (not mount.startswith("/") or len(mount) > 512 or "\x00" in mount
+            or "\r" in mount or "\n" in mount or ".." in mount.split("/")):
+        raise ValueError("invalid cache disk mount")
+    return mount
+
+
+def cache_directory_for_mount(mount):
+    mount = normalize_mount_path(mount)
+    return DEFAULT_CACHE_DIR if mount == "/" else mount + "/kuocai-cdn-cache"
+
+
+def detected_disks():
+    supported = {"ext2", "ext3", "ext4", "xfs", "btrfs", "f2fs", "jfs", "reiserfs", "zfs"}
+    mounts = []
+    try:
+        with open("/proc/self/mounts", "r", encoding="utf-8") as stream:
+            for line in stream:
+                fields = line.split()
+                if len(fields) < 4 or fields[2].lower() not in supported:
+                    continue
+                device = decode_mount_value(fields[0])
+                mount = normalize_mount_path(decode_mount_value(fields[1]))
+                if not os.path.isdir(mount):
+                    continue
+                mount_options = set(fields[3].split(","))
+                usage = shutil.disk_usage(mount)
+                mounts.append({
+                    "device": device[:255],
+                    "mountPath": mount,
+                    "fsType": fields[2][:64],
+                    "totalBytes": int(usage.total),
+                    "availableBytes": int(usage.free),
+                    "usedPercent": round(usage.used * 100.0 / usage.total, 2) if usage.total else 0,
+                    "writable": "rw" in mount_options and bool(os.access(mount, os.W_OK)),
+                })
+    except Exception:
+        mounts = []
+    if not any(item.get("mountPath") == "/" for item in mounts):
+        try:
+            usage = shutil.disk_usage("/")
+            mounts.append({
+                "device": "rootfs", "mountPath": "/", "fsType": "unknown",
+                "totalBytes": int(usage.total), "availableBytes": int(usage.free),
+                "usedPercent": round(usage.used * 100.0 / usage.total, 2) if usage.total else 0,
+                "writable": bool(os.access("/", os.W_OK)),
+            })
+        except Exception:
+            pass
+    unique = {}
+    for item in mounts:
+        unique[item["mountPath"]] = item
+    return sorted(unique.values(), key=lambda item: (item["mountPath"] != "/", item["mountPath"]))
+
+
+def default_cache_policy():
+    return {
+        "diskMount": "/",
+        "directory": DEFAULT_CACHE_DIR,
+        "maxSizeGb": 50,
+        "cleanupEnabled": True,
+        "cleanupAgeDays": 7,
+        "cleanupMinHits": 1,
+        "trackingStartedAt": int(time.time()),
+    }
+
+
+def normalize_cache_policy(value, require_disk=True):
+    source = value if isinstance(value, dict) else {}
+    mount = normalize_mount_path(source.get("diskMount") or "/")
+    available = {item["mountPath"]: item for item in detected_disks()}
+    if require_disk and (mount not in available or not available[mount].get("writable")):
+        raise RuntimeError("所选缓存磁盘未挂载或不可写：%s" % mount)
+    max_size = max(1, min(int(source.get("maxSizeGb") or 50), 102400))
+    age_days = max(1, min(int(source.get("cleanupAgeDays") or 7), 3650))
+    min_hits = max(1, min(int(source.get("cleanupMinHits") or 1), 1000000))
+    tracking_started = int(source.get("trackingStartedAt") or int(time.time()))
+    return {
+        "diskMount": mount,
+        "directory": cache_directory_for_mount(mount),
+        "maxSizeGb": max_size,
+        "cleanupEnabled": bool(source.get("cleanupEnabled", True)),
+        "cleanupAgeDays": age_days,
+        "cleanupMinHits": min_hits,
+        "trackingStartedAt": tracking_started,
+    }
+
+
+def load_active_cache_policy():
+    try:
+        with open(CACHE_POLICY_FILE, "r", encoding="utf-8") as stream:
+            return normalize_cache_policy(json.load(stream), require_disk=False)
+    except Exception:
+        return default_cache_policy()
+
+
+def save_active_cache_policy(policy):
+    previous = load_active_cache_policy()
+    policy = dict(policy)
+    if previous.get("directory") == policy.get("directory"):
+        policy["trackingStartedAt"] = int(previous.get("trackingStartedAt") or int(time.time()))
+    else:
+        # 切换缓存盘后重新观察一个完整周期，避免旧盘遗留统计误删新盘缓存。
+        policy["trackingStartedAt"] = int(time.time())
+    os.makedirs(os.path.dirname(CACHE_POLICY_FILE), mode=0o700, exist_ok=True)
+    temp_path = CACHE_POLICY_FILE + ".tmp"
+    with open(temp_path, "w", encoding="utf-8") as stream:
+        json.dump(policy, stream, ensure_ascii=False, sort_keys=True)
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.chmod(temp_path, 0o600)
+    os.replace(temp_path, CACHE_POLICY_FILE)
+
+
+def cache_zone_name(cache_dir):
+    suffix = hashlib.sha256(cache_dir.encode("utf-8")).hexdigest()[:10]
+    return "kuocai_edge_cache_" + suffix
 
 
 def api_request(config, method, path, payload=None):
@@ -282,7 +415,7 @@ def proxy_location(selector, ttl, origin, origin_host, error_rules, options, cac
              "        proxy_connect_timeout %ds;" % timeout,
              "        proxy_read_timeout %ds;" % timeout,
              "        proxy_send_timeout %ds;" % timeout,
-             "        proxy_cache kuocai_edge_cache;",
+             "        proxy_cache %s;" % options.get("cacheZone", "kuocai_edge_cache"),
              cache_key_line(cache_settings)]
     lines.extend(origin_header_lines(origin_config))
     lines.extend(rewrite_lines(origin_config))
@@ -519,8 +652,9 @@ def tls_protocols(value):
 
 
 def server_common(domain_name, origin_host, domain, origin_config, cache, access,
-                  advanced, origin, protocol_override=None):
-    options = {"origin": origin_config, "cache": cache, "advanced": advanced}
+                  advanced, origin, protocol_override=None, cache_zone="kuocai_edge_cache"):
+    options = {"origin": origin_config, "cache": cache, "advanced": advanced,
+               "cacheZone": cache_zone}
     actual_origin = default_flexible_origin(domain, origin_config, origin, protocol_override)
     locations = flexible_origin_locations(domain, origin_config, cache, origin_host,
                                           options, protocol_override)
@@ -534,7 +668,7 @@ def server_common(domain_name, origin_host, domain, origin_config, cache, access
     return common
 
 
-def write_domain_config(release_dir, domain):
+def write_domain_config(release_dir, domain, cache_zone="kuocai_edge_cache"):
     name = safe_name(domain["domainName"])
     domain_name = nginx_quote(domain["domainName"])
     origin_host = nginx_quote(domain.get("originHost") or domain_name)
@@ -552,7 +686,7 @@ def write_domain_config(release_dir, domain):
         https_upstream, https_origin = origin_upstream(domain, name + "_https", origin_config, "https")
         upstream.extend([""] + https_upstream)
     http_common = server_common(domain_name, origin_host, domain, origin_config, cache,
-                                access, advanced, http_origin, "http")
+                                access, advanced, http_origin, "http", cache_zone)
     http_listeners = ["    listen 80;"]
     if int(domain.get("ipv6Enabled") or 0) == 1:
         http_listeners.append("    listen [::]:80;")
@@ -598,7 +732,7 @@ def write_domain_config(release_dir, domain):
         if normalize_switch(https_config.get("ocspStaplingStatus")) == "on":
             ssl_lines.extend(["    ssl_stapling on;", "    ssl_stapling_verify on;"])
         https_common = server_common(domain_name, origin_host, domain, origin_config, cache,
-                                     access, advanced, https_origin, "https")
+                                     access, advanced, https_origin, "https", cache_zone)
         blocks.extend([
             "server {",
             *https_listeners,
@@ -639,8 +773,27 @@ def write_port_forward_config(release_dir, rule):
         stream.write("\n".join(lines) + "\n")
 
 
-def install_base_config():
-    os.makedirs(CACHE_DIR, exist_ok=True)
+def base_config_content(cache_policy):
+    cache_dir = cache_policy["directory"]
+    cache_zone = cache_zone_name(cache_dir)
+    return """proxy_cache_path %s levels=1:2 keys_zone=%s:100m max_size=%dg inactive=3650d use_temp_path=off;
+log_format kuocai_edge '$msec|$scheme|$host|$request_uri|$status|$body_bytes_sent|$upstream_cache_status|$request_time';
+include /etc/nginx/kuocai-edge/*.conf;
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    return 444;
+}
+""" % (nginx_string(cache_dir), cache_zone, cache_policy["maxSizeGb"])
+
+
+def install_base_config(cache_policy):
+    cache_dir = cache_policy["directory"]
+    if os.path.lexists(cache_dir) and os.path.islink(cache_dir):
+        raise RuntimeError("缓存目录不能是符号链接：%s" % cache_dir)
+    os.makedirs(cache_dir, mode=0o750, exist_ok=True)
+    if not os.access(cache_dir, os.W_OK):
+        raise RuntimeError("缓存目录不可写：%s" % cache_dir)
     # 节点没有匹配到已下发域名时，禁止落到系统默认欢迎页，避免暴露操作系统信息。
     for default_path in ("/etc/nginx/conf.d/default.conf", "/etc/nginx/sites-enabled/default"):
         try:
@@ -650,18 +803,24 @@ def install_base_config():
             pass
     remove_distribution_default_server()
     path = "/etc/nginx/conf.d/kuocai-edge-base.conf"
-    content = """proxy_cache_path /var/cache/kuocai-cdn levels=1:2 keys_zone=kuocai_edge_cache:100m max_size=50g inactive=7d use_temp_path=off;
-log_format kuocai_edge '$msec $host $status $body_bytes_sent $upstream_cache_status $request_time';
-include /etc/nginx/kuocai-edge/*.conf;
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-    return 444;
-}
-"""
+    old_content = open(path, "r", encoding="utf-8").read() if os.path.exists(path) else None
+    content = base_config_content(cache_policy)
     if not os.path.exists(path) or open(path, "r", encoding="utf-8").read() != content:
         with open(path, "w", encoding="utf-8") as stream:
             stream.write(content)
+    return path, old_content
+
+
+def restore_base_config(snapshot):
+    if not snapshot:
+        return
+    path, content = snapshot
+    if content is None:
+        if os.path.exists(path):
+            os.unlink(path)
+        return
+    with open(path, "w", encoding="utf-8") as stream:
+        stream.write(content)
 
 
 def remove_distribution_default_server():
@@ -762,6 +921,8 @@ def restore_stream_base_config(snapshot):
 
 def apply_config(config, desired):
     version = int(desired.get("version") or 0)
+    cache_policy = normalize_cache_policy(desired.get("cachePolicy"))
+    cache_zone = cache_zone_name(cache_policy["directory"])
     release_dir = os.path.join(RELEASE_ROOT, str(version))
     if os.path.exists(release_dir):
         shutil.rmtree(release_dir)
@@ -770,34 +931,36 @@ def apply_config(config, desired):
     os.makedirs(http_release_dir, mode=0o700)
     os.makedirs(stream_release_dir, mode=0o700)
     for domain in desired.get("domains") or []:
-        write_domain_config(http_release_dir, domain)
+        write_domain_config(http_release_dir, domain, cache_zone)
     port_forwards = desired.get("portForwards") or []
     for rule in port_forwards:
         write_port_forward_config(stream_release_dir, rule)
-    install_base_config()
     needs_stream = bool(port_forwards) or os.path.lexists(STREAM_ACTIVE_LINK)
+    base_snapshot = None
     stream_snapshot = None
-    if needs_stream:
-        stream_snapshot = install_stream_base_config()
     old_target = os.path.realpath(ACTIVE_LINK) if os.path.islink(ACTIVE_LINK) else None
     old_stream_target = os.path.realpath(STREAM_ACTIVE_LINK) if os.path.islink(STREAM_ACTIVE_LINK) else None
     temp_link = ACTIVE_LINK + ".new"
     temp_stream_link = STREAM_ACTIVE_LINK + ".new"
-    if os.path.lexists(temp_link):
-        os.unlink(temp_link)
-    if os.path.lexists(temp_stream_link):
-        os.unlink(temp_stream_link)
-    os.symlink(http_release_dir, temp_link)
-    os.replace(temp_link, ACTIVE_LINK)
-    if needs_stream:
-        os.symlink(stream_release_dir, temp_stream_link)
-        os.replace(temp_stream_link, STREAM_ACTIVE_LINK)
     try:
+        base_snapshot = install_base_config(cache_policy)
+        if needs_stream:
+            stream_snapshot = install_stream_base_config()
+        if os.path.lexists(temp_link):
+            os.unlink(temp_link)
+        if os.path.lexists(temp_stream_link):
+            os.unlink(temp_stream_link)
+        os.symlink(http_release_dir, temp_link)
+        os.replace(temp_link, ACTIVE_LINK)
+        if needs_stream:
+            os.symlink(stream_release_dir, temp_stream_link)
+            os.replace(temp_stream_link, STREAM_ACTIVE_LINK)
         test = subprocess.run(["nginx", "-t"], stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE, universal_newlines=True)
         if test.returncode != 0:
             raise RuntimeError((test.stderr or test.stdout).strip())
         subprocess.check_call(["nginx", "-s", "reload"])
+        save_active_cache_policy(cache_policy)
     except Exception:
         if old_target:
             rollback_link = ACTIVE_LINK + ".rollback"
@@ -815,7 +978,8 @@ def apply_config(config, desired):
             elif os.path.lexists(STREAM_ACTIVE_LINK):
                 os.unlink(STREAM_ACTIVE_LINK)
         restore_stream_base_config(stream_snapshot)
-        if stream_snapshot:
+        restore_base_config(base_snapshot)
+        if stream_snapshot or base_snapshot:
             subprocess.call(["nginx", "-s", "reload"])
         raise
     api_request(config, "POST", "/api/self-hosted/agent/apply-result", {
@@ -897,27 +1061,208 @@ def network_bytes():
     return rx, tx
 
 
+def cache_size_bytes(cache_dir):
+    total = 0
+    try:
+        for root, _, files in os.walk(cache_dir):
+            for name in files:
+                try:
+                    total += os.path.getsize(os.path.join(root, name))
+                except OSError:
+                    pass
+    except Exception:
+        return 0
+    return total
+
+
+def open_cache_access_db():
+    os.makedirs(os.path.dirname(CACHE_ACCESS_DB), mode=0o700, exist_ok=True)
+    connection = sqlite3.connect(CACHE_ACCESS_DB, timeout=10)
+    connection.execute("CREATE TABLE IF NOT EXISTS access_daily ("
+                       "uri TEXT NOT NULL, day INTEGER NOT NULL, hits INTEGER NOT NULL DEFAULT 0,"
+                       "PRIMARY KEY (uri, day))")
+    connection.execute("CREATE TABLE IF NOT EXISTS state ("
+                       "name TEXT PRIMARY KEY, value TEXT NOT NULL)")
+    return connection
+
+
+def access_state(connection, name):
+    row = connection.execute("SELECT value FROM state WHERE name=?", (name,)).fetchone()
+    return row[0] if row else None
+
+
+def set_access_state(connection, name, value):
+    connection.execute("INSERT OR REPLACE INTO state(name,value) VALUES(?,?)",
+                       (name, str(value)))
+
+
+def record_cache_accesses():
+    connection = open_cache_access_db()
+    try:
+        if not os.path.exists(CACHE_ACCESS_LOG):
+            return
+        stat = os.stat(CACHE_ACCESS_LOG)
+        stored_inode = access_state(connection, "access_inode")
+        stored_offset = access_state(connection, "access_offset")
+        if stored_inode is None or stored_offset is None:
+            set_access_state(connection, "access_inode", stat.st_ino)
+            set_access_state(connection, "access_offset", stat.st_size)
+            connection.commit()
+            return
+        offset = int(stored_offset)
+        if str(stat.st_ino) != str(stored_inode) or stat.st_size < offset:
+            offset = 0
+        counts = {}
+        with open(CACHE_ACCESS_LOG, "rb") as stream:
+            stream.seek(offset)
+            for raw_line in stream:
+                line = raw_line.decode("utf-8", errors="replace")
+                fields = line.rstrip("\r\n").split("|", 7)
+                if len(fields) != 8 or fields[6] not in {
+                        "HIT", "MISS", "EXPIRED", "STALE", "UPDATING", "REVALIDATED"}:
+                    continue
+                uri = fields[3]
+                if not uri.startswith("/") or len(uri) > 8192:
+                    continue
+                try:
+                    day = int(float(fields[0]) // 86400)
+                except (TypeError, ValueError):
+                    day = int(time.time() // 86400)
+                keys = {uri, uri.split("?", 1)[0]}
+                for key in keys:
+                    counts[(key, day)] = counts.get((key, day), 0) + 1
+            offset = stream.tell()
+        for (uri, day), hits in counts.items():
+            connection.execute("INSERT OR IGNORE INTO access_daily(uri,day,hits) VALUES(?,?,0)",
+                               (uri, day))
+            connection.execute("UPDATE access_daily SET hits=hits+? WHERE uri=? AND day=?",
+                               (hits, uri, day))
+        current_day = int(time.time() // 86400)
+        connection.execute("DELETE FROM access_daily WHERE day < ?", (current_day - 3651,))
+        set_access_state(connection, "access_inode", stat.st_ino)
+        set_access_state(connection, "access_offset", offset)
+        connection.commit()
+    finally:
+        connection.close()
+
+
+def cache_file_key(path):
+    try:
+        with open(path, "rb") as stream:
+            header = stream.read(65536)
+        marker = b"\nKEY: "
+        start = header.find(marker)
+        if start < 0:
+            return None
+        start += len(marker)
+        end = header.find(b"\n", start)
+        if end < 0:
+            return None
+        return header[start:end].decode("utf-8", errors="replace")
+    except (OSError, ValueError):
+        return None
+
+
+def cache_key_uri(cache_key):
+    if not cache_key:
+        return None
+    index = cache_key.find("/")
+    if index < 0:
+        return None
+    uri = cache_key[index:]
+    return uri if len(uri) <= 8192 else None
+
+
+def recent_cache_access_counts(age_days):
+    connection = open_cache_access_db()
+    try:
+        cutoff_day = int((time.time() - age_days * 86400) // 86400)
+        rows = connection.execute(
+            "SELECT uri,SUM(hits) FROM access_daily WHERE day>=? GROUP BY uri",
+            (cutoff_day,)).fetchall()
+        return {row[0]: int(row[1] or 0) for row in rows}
+    finally:
+        connection.close()
+
+
+def cleanup_low_frequency_cache(policy, now=None):
+    now = int(now or time.time())
+    age_seconds = int(policy["cleanupAgeDays"]) * 86400
+    if now - int(policy.get("trackingStartedAt") or now) < age_seconds:
+        return {"deletedFiles": 0, "freedBytes": 0, "scannedFiles": 0}
+    cache_dir = policy["directory"]
+    if not os.path.isdir(cache_dir):
+        return {"deletedFiles": 0, "freedBytes": 0, "scannedFiles": 0}
+    counts = recent_cache_access_counts(int(policy["cleanupAgeDays"]))
+    cutoff = now - age_seconds
+    deleted = freed = scanned = 0
+    stop = False
+    for root, _, files in os.walk(cache_dir):
+        for name in files:
+            path = os.path.join(root, name)
+            scanned += 1
+            if scanned > 50000:
+                stop = True
+                break
+            try:
+                file_stat = os.stat(path, follow_symlinks=False)
+                if not stat.S_ISREG(file_stat.st_mode) or file_stat.st_mtime > cutoff:
+                    continue
+                uri = cache_key_uri(cache_file_key(path))
+                if not uri:
+                    continue
+                hits = max(counts.get(uri, 0), counts.get(uri.split("?", 1)[0], 0))
+                if hits >= int(policy["cleanupMinHits"]):
+                    continue
+                os.unlink(path)
+                deleted += 1
+                freed += max(0, int(file_stat.st_size))
+                if deleted >= 10000:
+                    stop = True
+                    break
+            except OSError:
+                continue
+        if stop:
+            break
+    return {"deletedFiles": deleted, "freedBytes": freed, "scannedFiles": scanned}
+
+
+def maybe_cleanup_cache(policy):
+    global _LAST_CACHE_CLEANUP
+    now = int(time.time())
+    if now - _LAST_CACHE_CLEANUP < CACHE_CLEANUP_INTERVAL_SECONDS:
+        return
+    _LAST_CACHE_CLEANUP = now
+    record_cache_accesses()
+    if policy.get("cleanupEnabled"):
+        cleanup_low_frequency_cache(policy, now)
+
+
 def heartbeat(config, applied, last_error):
     rx, tx = network_bytes()
+    cache_policy = load_active_cache_policy()
+    cache_dir = cache_policy["directory"]
     return api_request(config, "POST", "/api/self-hosted/agent/heartbeat", {
-        "agentVersion": "1.3.0",
+        "agentVersion": "1.4.0",
         "appliedConfigVersion": applied,
         "cpuUsage": cpu_percent(),
         "memoryUsage": memory_percent(),
-        "diskUsage": read_percent("/", 0),
+        "diskUsage": read_percent(cache_policy["diskMount"], 0),
         "rxBytes": rx,
         "txBytes": tx,
-        "cacheBytes": sum(os.path.getsize(os.path.join(root, name)) for root, _, files in os.walk(CACHE_DIR) for name in files),
+        "cacheBytes": cache_size_bytes(cache_dir),
+        "disks": detected_disks(),
         "lastError": last_error,
     })
 
 
 def process_cache_jobs(config, jobs):
+    cache_dir = load_active_cache_policy()["directory"]
     for job in jobs or []:
         task_id = job.get("taskId")
         try:
             if job.get("operation") == "refresh":
-                subprocess.check_call(["find", CACHE_DIR, "-mindepth", "1", "-delete"])
+                subprocess.check_call(["find", cache_dir, "-mindepth", "1", "-delete"])
             else:
                 for target in job.get("targets") or []:
                     parsed = urllib.parse.urlsplit(target)
@@ -952,6 +1297,7 @@ def main():
                 desired = api_request(config, "GET", "/api/self-hosted/agent/config")
                 applied = apply_config(config, desired)
             process_cache_jobs(config, response.get("cacheJobs"))
+            maybe_cleanup_cache(load_active_cache_policy())
             last_error = ""
         except Exception as error:
             last_error = str(error)[:900]

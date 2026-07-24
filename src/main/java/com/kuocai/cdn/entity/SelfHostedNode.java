@@ -51,6 +51,13 @@ public class SelfHostedNode implements Serializable {
     private Long rxRateBps;
     private Long txRateBps;
     private Long cacheBytes;
+    private String cacheDiskMount;
+    private Integer cacheMaxSizeGb;
+    private Integer cacheCleanupEnabled;
+    private Integer cacheCleanupAgeDays;
+    private Integer cacheCleanupMinHits;
+    @JsonIgnore
+    private String detectedDisksJson;
     private String lastError;
     private String remark;
     private Date createTime;

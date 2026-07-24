@@ -3,6 +3,7 @@ package com.kuocai.cdn.dto;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 public class SelfHostedHeartbeatRequest {
@@ -14,5 +15,6 @@ public class SelfHostedHeartbeatRequest {
     private Long rxBytes;
     private Long txBytes;
     private Long cacheBytes;
+    private List<SelfHostedDiskInfo> disks;
     private String lastError;
 }

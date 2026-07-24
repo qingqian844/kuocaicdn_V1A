@@ -20,6 +20,7 @@ import com.kuocai.cdn.dao.SelfHostedNodeGroupDao;
 import com.kuocai.cdn.dao.SelfHostedPortForwardDao;
 import com.kuocai.cdn.dto.SelfHostedApplyResultRequest;
 import com.kuocai.cdn.dto.SelfHostedCacheResultRequest;
+import com.kuocai.cdn.dto.SelfHostedDiskInfo;
 import com.kuocai.cdn.dto.SelfHostedGroupSaveRequest;
 import com.kuocai.cdn.dto.SelfHostedHeartbeatRequest;
 import com.kuocai.cdn.dto.SelfHostedNodeSaveRequest;
@@ -73,6 +74,10 @@ public class SelfHostedCdnService {
     private static final long CACHE_JOB_TIMEOUT_MS = 10 * 60_000L;
     private static final long CONFIG_APPLY_POLL_MS = 1_000L;
     private static final String LEGACY_COVERAGE = "legacy";
+    private static final String DEFAULT_CACHE_DISK_MOUNT = "/";
+    private static final int DEFAULT_CACHE_MAX_SIZE_GB = 50;
+    private static final int DEFAULT_CACHE_CLEANUP_AGE_DAYS = 7;
+    private static final int DEFAULT_CACHE_CLEANUP_MIN_HITS = 1;
     private static final List<String> GROUP_COVERAGES = Arrays.asList(
             LEGACY_COVERAGE, "mainland", "overseas", "global");
 
@@ -151,6 +156,17 @@ public class SelfHostedCdnService {
         JSONObject item = (JSONObject) JSON.toJSON(node);
         item.remove("sshPasswordCipher");
         item.remove("agentTokenHash");
+        item.remove("detectedDisksJson");
+        String cacheDiskMount = normalizeStoredCacheDiskMount(node.getCacheDiskMount());
+        item.put("cacheDiskMount", cacheDiskMount);
+        item.put("cacheDirectory", cacheDirectory(cacheDiskMount));
+        item.put("cacheMaxSizeGb", valueOrDefault(node.getCacheMaxSizeGb(), DEFAULT_CACHE_MAX_SIZE_GB));
+        item.put("cacheCleanupEnabled", valueOrDefault(node.getCacheCleanupEnabled(), 1));
+        item.put("cacheCleanupAgeDays", valueOrDefault(
+                node.getCacheCleanupAgeDays(), DEFAULT_CACHE_CLEANUP_AGE_DAYS));
+        item.put("cacheCleanupMinHits", valueOrDefault(
+                node.getCacheCleanupMinHits(), DEFAULT_CACHE_CLEANUP_MIN_HITS));
+        item.put("detectedDisks", parseDetectedDisks(node.getDetectedDisksJson()));
         item.put("passwordConfigured", !Assert.isEmpty(node.getSshPasswordCipher()));
         List<SelfHostedGroupNode> relations = groupNodeDao.selectList(
                 new QueryWrapper<SelfHostedGroupNode>().eq("node_id", node.getId()).orderByAsc("id"));
@@ -232,6 +248,11 @@ public class SelfHostedCdnService {
             node.setRxRateBps(0L);
             node.setTxRateBps(0L);
             node.setCacheBytes(0L);
+            node.setCacheDiskMount(DEFAULT_CACHE_DISK_MOUNT);
+            node.setCacheMaxSizeGb(DEFAULT_CACHE_MAX_SIZE_GB);
+            node.setCacheCleanupEnabled(1);
+            node.setCacheCleanupAgeDays(DEFAULT_CACHE_CLEANUP_AGE_DAYS);
+            node.setCacheCleanupMinHits(DEFAULT_CACHE_CLEANUP_MIN_HITS);
         }
         node.setNodeName(request.getNodeName().trim());
         node.setHost(request.getHost().trim());
@@ -245,6 +266,22 @@ public class SelfHostedCdnService {
         node.setRegion(trim(request.getRegion()));
         node.setWeight(request.getWeight() == null ? 100 : request.getWeight());
         node.setEnabled(request.getEnabled() == null ? 1 : request.getEnabled());
+        String requestedCacheMount = request.getCacheDiskMount() == null
+                ? normalizeStoredCacheDiskMount(node.getCacheDiskMount()) : request.getCacheDiskMount();
+        node.setCacheDiskMount(normalizeCacheDiskMount(
+                requestedCacheMount, node.getCacheDiskMount(), node.getDetectedDisksJson()));
+        node.setCacheMaxSizeGb(request.getCacheMaxSizeGb() == null
+                ? valueOrDefault(node.getCacheMaxSizeGb(), DEFAULT_CACHE_MAX_SIZE_GB)
+                : request.getCacheMaxSizeGb());
+        node.setCacheCleanupEnabled(request.getCacheCleanupEnabled() == null
+                ? valueOrDefault(node.getCacheCleanupEnabled(), 1)
+                : (request.getCacheCleanupEnabled() == 0 ? 0 : 1));
+        node.setCacheCleanupAgeDays(request.getCacheCleanupAgeDays() == null
+                ? valueOrDefault(node.getCacheCleanupAgeDays(), DEFAULT_CACHE_CLEANUP_AGE_DAYS)
+                : request.getCacheCleanupAgeDays());
+        node.setCacheCleanupMinHits(request.getCacheCleanupMinHits() == null
+                ? valueOrDefault(node.getCacheCleanupMinHits(), DEFAULT_CACHE_CLEANUP_MIN_HITS)
+                : request.getCacheCleanupMinHits());
         node.setRemark(trim(request.getRemark()));
         node.setUpdateTime(now);
         if (node.getId() == null) {
@@ -436,6 +473,9 @@ public class SelfHostedCdnService {
         node.setRxRateBps(calculateRate(previousRx, currentRx, previousHeartbeat, heartbeatAt));
         node.setTxRateBps(calculateRate(previousTx, currentTx, previousHeartbeat, heartbeatAt));
         node.setCacheBytes(valueOrZero(request.getCacheBytes()));
+        if (request.getDisks() != null) {
+            node.setDetectedDisksJson(normalizeDetectedDisks(request.getDisks()).toJSONString());
+        }
         node.setLastError(trim(request.getLastError()));
         node.setUpdateTime(heartbeatAt);
         nodeDao.updateById(node);
@@ -501,6 +541,17 @@ public class SelfHostedCdnService {
         JSONObject result = new JSONObject();
         result.put("version", node.getDesiredConfigVersion());
         result.put("generatedAt", System.currentTimeMillis());
+        JSONObject cachePolicy = new JSONObject();
+        String cacheDiskMount = normalizeStoredCacheDiskMount(node.getCacheDiskMount());
+        cachePolicy.put("diskMount", cacheDiskMount);
+        cachePolicy.put("directory", cacheDirectory(cacheDiskMount));
+        cachePolicy.put("maxSizeGb", valueOrDefault(node.getCacheMaxSizeGb(), DEFAULT_CACHE_MAX_SIZE_GB));
+        cachePolicy.put("cleanupEnabled", valueOrDefault(node.getCacheCleanupEnabled(), 1) == 1);
+        cachePolicy.put("cleanupAgeDays", valueOrDefault(
+                node.getCacheCleanupAgeDays(), DEFAULT_CACHE_CLEANUP_AGE_DAYS));
+        cachePolicy.put("cleanupMinHits", valueOrDefault(
+                node.getCacheCleanupMinHits(), DEFAULT_CACHE_CLEANUP_MIN_HITS));
+        result.put("cachePolicy", cachePolicy);
         JSONArray domains = new JSONArray();
         List<SelfHostedGroupNode> relations = groupNodeDao.selectList(
                 new QueryWrapper<SelfHostedGroupNode>().eq("node_id", node.getId()));
@@ -1174,9 +1225,127 @@ public class SelfHostedCdnService {
         if (request.getWeight() != null && (request.getWeight() < 1 || request.getWeight() > 1000)) {
             throw new BusinessException("节点权重必须在 1-1000 范围内");
         }
+        if (request.getCacheMaxSizeGb() != null
+                && (request.getCacheMaxSizeGb() < 1 || request.getCacheMaxSizeGb() > 102400)) {
+            throw new BusinessException("最大缓存容量必须在 1-102400 GB 范围内");
+        }
+        if (request.getCacheCleanupAgeDays() != null
+                && (request.getCacheCleanupAgeDays() < 1 || request.getCacheCleanupAgeDays() > 3650)) {
+            throw new BusinessException("缓存清理时间必须在 1-3650 天范围内");
+        }
+        if (request.getCacheCleanupMinHits() != null
+                && (request.getCacheCleanupMinHits() < 1 || request.getCacheCleanupMinHits() > 1000000)) {
+            throw new BusinessException("缓存访问次数阈值必须在 1-1000000 次范围内");
+        }
         if (request.getId() == null && Assert.isEmpty(request.getSshPassword())) {
             throw new BusinessException("新增节点时 SSH 密码不能为空");
         }
+    }
+
+    private JSONArray normalizeDetectedDisks(List<SelfHostedDiskInfo> disks) {
+        JSONArray result = new JSONArray();
+        if (disks == null) {
+            return result;
+        }
+        Set<String> seenMounts = new LinkedHashSet<>();
+        for (SelfHostedDiskInfo disk : disks) {
+            if (disk == null || result.size() >= 64) {
+                continue;
+            }
+            String mountPath = safeReportedMount(disk.getMountPath());
+            if (mountPath == null || !seenMounts.add(mountPath)) {
+                continue;
+            }
+            JSONObject item = new JSONObject();
+            item.put("device", trimLength(disk.getDevice(), 255));
+            item.put("mountPath", mountPath);
+            item.put("fsType", trimLength(disk.getFsType(), 64));
+            item.put("totalBytes", Math.max(0L, valueOrZero(disk.getTotalBytes())));
+            item.put("availableBytes", Math.max(0L, valueOrZero(disk.getAvailableBytes())));
+            item.put("usedPercent", disk.getUsedPercent());
+            item.put("writable", Boolean.TRUE.equals(disk.getWritable()));
+            result.add(item);
+        }
+        return result;
+    }
+
+    private JSONArray parseDetectedDisks(String json) {
+        if (Assert.isEmpty(json)) {
+            return new JSONArray();
+        }
+        try {
+            JSONArray disks = JSON.parseArray(json);
+            return disks == null ? new JSONArray() : disks;
+        } catch (Exception e) {
+            return new JSONArray();
+        }
+    }
+
+    private String normalizeCacheDiskMount(String requested, String current,
+                                           String detectedDisksJson) throws BusinessException {
+        String mount = safeReportedMount(requested);
+        if (mount == null) {
+            throw new BusinessException("缓存磁盘挂载点格式不正确");
+        }
+        if (DEFAULT_CACHE_DISK_MOUNT.equals(mount)
+                || mount.equals(normalizeStoredCacheDiskMount(current))) {
+            return mount;
+        }
+        JSONArray disks = parseDetectedDisks(detectedDisksJson);
+        for (int index = 0; index < disks.size(); index++) {
+            JSONObject disk = disks.getJSONObject(index);
+            if (disk != null && mount.equals(safeReportedMount(disk.getString("mountPath")))) {
+                if (!disk.getBooleanValue("writable")) {
+                    throw new BusinessException("所选缓存磁盘当前不可写");
+                }
+                return mount;
+            }
+        }
+        throw new BusinessException("所选磁盘未被节点检测到，请等待节点心跳刷新后重试");
+    }
+
+    private String normalizeStoredCacheDiskMount(String value) {
+        String normalized = safeReportedMount(value);
+        return normalized == null ? DEFAULT_CACHE_DISK_MOUNT : normalized;
+    }
+
+    private String safeReportedMount(String value) {
+        if (value == null) {
+            return null;
+        }
+        String mount = value.trim().replace('\\', '/');
+        while (mount.length() > 1 && mount.endsWith("/")) {
+            mount = mount.substring(0, mount.length() - 1);
+        }
+        if (!mount.startsWith("/") || mount.length() > 512
+                || mount.indexOf('\n') >= 0 || mount.indexOf('\r') >= 0 || mount.indexOf('\0') >= 0) {
+            return null;
+        }
+        for (String segment : mount.split("/")) {
+            if ("..".equals(segment)) {
+                return null;
+            }
+        }
+        return mount;
+    }
+
+    static String cacheDirectory(String mountPath) {
+        String mount = mountPath == null || mountPath.trim().isEmpty()
+                ? DEFAULT_CACHE_DISK_MOUNT : mountPath.trim();
+        return DEFAULT_CACHE_DISK_MOUNT.equals(mount)
+                ? "/var/cache/kuocai-cdn" : mount + "/kuocai-cdn-cache";
+    }
+
+    private int valueOrDefault(Integer value, int defaultValue) {
+        return value == null ? defaultValue : value;
+    }
+
+    private String trimLength(String value, int maxLength) {
+        String normalized = trim(value);
+        if (normalized == null || normalized.length() <= maxLength) {
+            return normalized;
+        }
+        return normalized.substring(0, maxLength);
     }
 
     private int activeNodeCount(Long groupId) {

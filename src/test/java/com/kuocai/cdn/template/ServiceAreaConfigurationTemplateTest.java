@@ -56,6 +56,34 @@ class ServiceAreaConfigurationTemplateTest {
     }
 
     @Test
+    void websiteSettingsSaveAlwaysShowsProgressAndKeepsFailureVisible() throws IOException {
+        String template = read("src/main/resources/templates/admin/settings/website-setting.html");
+        String script = read("src/main/resources/static/common/custom_cmo.js");
+        String uploadScript = read("src/main/resources/static/common/custom.js");
+        String saveFunction = between(script, "async function saveWebsiteBaseConfig() {",
+                "function appendWebsiteLogoFormData");
+
+        assertTrue(template.contains("id=\"saveWebsiteBaseConfigButton\""));
+        assertTrue(saveFunction.contains("正在保存"));
+        assertTrue(saveFunction.contains("data && data.code === 'SUCCESS'"));
+        assertFalse(saveFunction.contains("setTimeout(reload, 1000)"));
+        assertTrue(uploadScript.contains("resolve({"));
+        assertTrue(uploadScript.contains("请求超时，请检查服务器状态后重试"));
+    }
+
+    @Test
+    void selfHostedNodeSettingsExposeDetectedDiskAndLowFrequencyCleanup() throws IOException {
+        String template = read("src/main/resources/templates/admin/settings/self-hosted-node.html");
+
+        assertTrue(template.contains("id=\"nodeCacheDisk\""));
+        assertTrue(template.contains("id=\"nodeCacheMaxSizeGb\""));
+        assertTrue(template.contains("id=\"nodeCacheCleanupAgeDays\""));
+        assertTrue(template.contains("id=\"nodeCacheCleanupMinHits\""));
+        assertTrue(template.contains("detectedDisks"));
+        assertTrue(template.contains("cacheDiskMount"));
+    }
+
+    @Test
     void dashboardUsesConfiguredAdminPathForSessionExit() throws IOException {
         String dashboard = read("src/main/resources/templates/common/common-dashboard.html");
         String commonJs = read("src/main/resources/static/common/custom_ceo.js");

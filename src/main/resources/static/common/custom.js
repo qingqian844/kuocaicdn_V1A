@@ -431,6 +431,7 @@ function sendFileUploadRequest(url, formData, loading = true) {
             dataType: "json",
             contentType: false,
             processData: false,
+            timeout: 120000,
             beforeSend: function () {
                 if (loading) {
                     loadingShow();
@@ -445,7 +446,14 @@ function sendFileUploadRequest(url, formData, loading = true) {
                 resolve(data);
             },
             error: function (xhr, state, errorThrown) {
-                layerFail("上传失败，请检查网络情况或稍后再试！")
+                let message = getRequestErrorMessage(xhr, errorThrown);
+                if (state === 'timeout') {
+                    message = '请求超时，请检查服务器状态后重试';
+                }
+                resolve({
+                    code: 'FAIL',
+                    message: message || '保存失败，请检查网络情况或稍后再试'
+                });
             }
         });
     });

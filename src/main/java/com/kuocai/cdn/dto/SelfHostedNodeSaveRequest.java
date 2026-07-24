@@ -23,5 +23,10 @@ public class SelfHostedNodeSaveRequest {
     private Integer enabled;
     private Long groupId;
     private List<Long> groupIds;
+    private String cacheDiskMount;
+    private Integer cacheMaxSizeGb;
+    private Integer cacheCleanupEnabled;
+    private Integer cacheCleanupAgeDays;
+    private Integer cacheCleanupMinHits;
     private String remark;
 }

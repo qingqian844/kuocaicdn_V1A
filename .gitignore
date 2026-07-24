@@ -5,6 +5,8 @@ target/
 logs/
 *.log
 .deploy/
+__pycache__/
+*.py[cod]
 
 .env
 .env.*

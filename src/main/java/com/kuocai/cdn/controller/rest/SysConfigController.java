@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -148,8 +149,10 @@ public class SysConfigController extends BaseController {
             return RespResult.fail(e.getMessage());
         }
         service.saveConfig(websiteBaseConfigVo, ConfigBizTypeConstants.WEBSITE_BASE_CONFIG, loginUserId);
-        sysUserService.replaceDefaultAvatarReferences(
-                previousDefaultAvatar, websiteBaseConfigVo.getDefaultAvatarImg());
+        if (!Objects.equals(previousDefaultAvatar, websiteBaseConfigVo.getDefaultAvatarImg())) {
+            sysUserService.replaceDefaultAvatarReferences(
+                    previousDefaultAvatar, websiteBaseConfigVo.getDefaultAvatarImg());
+        }
         preloadComponent.loadWebsiteBaseConfig();
         return RespResult.success("更新成功");
     }

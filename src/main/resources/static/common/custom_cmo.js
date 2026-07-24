@@ -113,48 +113,76 @@ async function manualRecharge() {
 
 /** 保存或更新网站基本设置*/
 async function saveWebsiteBaseConfig() {
-    let formdata = new FormData();
-    appendWebsiteImageFormData(formdata, "websiteIconImgUrl", "websiteIconImg", "#websiteIconImg", "#updateWebsiteIconFile");
-    appendWebsiteImageFormData(formdata, "defaultAvatarImgUrl", "defaultAvatarImg", "#defaultAvatarImg", "#updateDefaultAvatarFile");
-    if (!appendWebsiteLogoFormData(formdata)) {
+    const button = document.getElementById('saveWebsiteBaseConfigButton');
+    if (button && button.dataset.saving === 'true') {
         return;
     }
-    appendWebsiteImageFormData(formdata, "wechatQrCodeImgUrl", "wechatQrCodeImg", "#wechatQrCodeImg", "#updateWechatQrCodeFile");
-    appendWebsiteImageFormData(formdata, "qqGroupQrCodeImgUrl", "qqGroupQrCodeImg", "#qqGroupQrCodeImg", "#updateQqGroupQrCodeFile");
-    formdata.append("websiteName", $('#websiteName').val())
-    formdata.append("adminPath", ($('#adminPath').val() || '').trim().toLowerCase())
-    formdata.append("websiteAnnouncement", $('#websiteAnnouncement').val())
-    formdata.append("defaultFlowPrice", $('#defaultFlowPrice').val())
-    formdata.append("maxDomainCount", $('#maxDomainCount').val())
-    formdata.append("inviteRewardGb", 0)
-    formdata.append("invitedRewardGb", 0)
-    formdata.append("monthGiftGb", 0)
-    formdata.append("maxDomainCountProxy", 0)
-    formdata.append("icpNumber", $('#icpNumber').val())
-    formdata.append("edgeoneDomainQuotaEnabled", false)
-    formdata.append("edgeoneFreeDomainQuota", 0)
-    formdata.append("edgeoneDomainQuotaPrice", 0)
-    formdata.append("edgeoneDomainQuotaValidDays", 0)
-    formdata.append("defaultUserRoute", $('#defaultUserRoute').val() || '')
-    formdata.append("mainlandEnabledTargets", $('.mainlandEnabledTarget:checked:not(:disabled)').map(function () { return this.value }).get().join(','))
-    formdata.append("overseasEnabledTargets", $('.overseasEnabledTarget:checked:not(:disabled)').map(function () { return this.value }).get().join(','))
-    formdata.append("globalEnabledTargets", $('.globalEnabledTarget:checked:not(:disabled)').map(function () { return this.value }).get().join(','))
-    formdata.append("mainlandRouteMode", $('#mainlandRouteMode').val() || 'load_balance')
-    formdata.append("overseasRouteMode", $('#overseasRouteMode').val() || 'load_balance')
-    formdata.append("globalRouteMode", $('#globalRouteMode').val() || 'load_balance')
-    formdata.append("httpsRequestFeeEnabled", $('#httpsRequestFeeEnabled').is(':checked'))
-    formdata.append("httpsRequestFeeRoutes", $('.httpsRequestFeeRoute:checked').map(function () { return this.value }).get().join(','))
-    formdata.append("httpsRequestFeeUnitCount", $('#httpsRequestFeeUnitCount').val() || 10000)
-    formdata.append("httpsRequestFeeUnitPrice", $('#httpsRequestFeeUnitPrice').val() || 0)
-    let expireTime = $('#expireTime').val();
+    const adminPath = ($('#adminPath').val() || '').trim().toLowerCase();
+    if (adminPath && !/^[a-z0-9][a-z0-9_-]{2,31}$/.test(adminPath)) {
+        layerWarn('后台地址后缀必须为3-32位小写字母、数字、短横线或下划线');
+        return;
+    }
+    const expireTime = $('#expireTime').val();
     if (!integerReg(expireTime)) {
-        layerWarn("请输入正整数")
+        layerWarn('订单过期时长请输入正整数');
         return;
     }
-    formdata.append("expireTime", expireTime)
-    let data = await sendFileUploadRequest("SysConfig/saveWebsiteBaseConfig", formdata);
-    autoLayer(data);
-    setTimeout(reload, 1000);
+
+    const originalButtonHtml = button ? button.innerHTML : '';
+    if (button) {
+        button.dataset.saving = 'true';
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>正在保存';
+    }
+    try {
+        let formdata = new FormData();
+        appendWebsiteImageFormData(formdata, "websiteIconImgUrl", "websiteIconImg", "#websiteIconImg", "#updateWebsiteIconFile");
+        appendWebsiteImageFormData(formdata, "defaultAvatarImgUrl", "defaultAvatarImg", "#defaultAvatarImg", "#updateDefaultAvatarFile");
+        if (!appendWebsiteLogoFormData(formdata)) {
+            return;
+        }
+        appendWebsiteImageFormData(formdata, "wechatQrCodeImgUrl", "wechatQrCodeImg", "#wechatQrCodeImg", "#updateWechatQrCodeFile");
+        appendWebsiteImageFormData(formdata, "qqGroupQrCodeImgUrl", "qqGroupQrCodeImg", "#qqGroupQrCodeImg", "#updateQqGroupQrCodeFile");
+        formdata.append("websiteName", $('#websiteName').val())
+        formdata.append("adminPath", adminPath)
+        formdata.append("websiteAnnouncement", $('#websiteAnnouncement').val())
+        formdata.append("defaultFlowPrice", $('#defaultFlowPrice').val())
+        formdata.append("maxDomainCount", $('#maxDomainCount').val())
+        formdata.append("inviteRewardGb", 0)
+        formdata.append("invitedRewardGb", 0)
+        formdata.append("monthGiftGb", 0)
+        formdata.append("maxDomainCountProxy", 0)
+        formdata.append("icpNumber", $('#icpNumber').val())
+        formdata.append("edgeoneDomainQuotaEnabled", false)
+        formdata.append("edgeoneFreeDomainQuota", 0)
+        formdata.append("edgeoneDomainQuotaPrice", 0)
+        formdata.append("edgeoneDomainQuotaValidDays", 0)
+        formdata.append("defaultUserRoute", $('#defaultUserRoute').val() || '')
+        formdata.append("mainlandEnabledTargets", $('.mainlandEnabledTarget:checked:not(:disabled)').map(function () { return this.value }).get().join(','))
+        formdata.append("overseasEnabledTargets", $('.overseasEnabledTarget:checked:not(:disabled)').map(function () { return this.value }).get().join(','))
+        formdata.append("globalEnabledTargets", $('.globalEnabledTarget:checked:not(:disabled)').map(function () { return this.value }).get().join(','))
+        formdata.append("mainlandRouteMode", $('#mainlandRouteMode').val() || 'load_balance')
+        formdata.append("overseasRouteMode", $('#overseasRouteMode').val() || 'load_balance')
+        formdata.append("globalRouteMode", $('#globalRouteMode').val() || 'load_balance')
+        formdata.append("httpsRequestFeeEnabled", $('#httpsRequestFeeEnabled').is(':checked'))
+        formdata.append("httpsRequestFeeRoutes", $('.httpsRequestFeeRoute:checked').map(function () { return this.value }).get().join(','))
+        formdata.append("httpsRequestFeeUnitCount", $('#httpsRequestFeeUnitCount').val() || 10000)
+        formdata.append("httpsRequestFeeUnitPrice", $('#httpsRequestFeeUnitPrice').val() || 0)
+        formdata.append("expireTime", expireTime)
+        const data = await sendFileUploadRequest("SysConfig/saveWebsiteBaseConfig", formdata);
+        autoLayer(data);
+        if (data && data.code === 'SUCCESS') {
+            window.setTimeout(reload, 800);
+        }
+    } catch (error) {
+        layerFail(error && error.message ? error.message : '保存失败，请刷新页面后重试');
+    } finally {
+        if (button) {
+            button.dataset.saving = 'false';
+            button.disabled = false;
+            button.innerHTML = originalButtonHtml;
+        }
+    }
 }
 
 function appendWebsiteLogoFormData(formdata) {

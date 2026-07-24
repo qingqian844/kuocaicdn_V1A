@@ -122,6 +122,36 @@
                 <div><label class="form-label" for="nodeRegion">区域</label><input class="form-control" id="nodeRegion" maxlength="64" placeholder="例如：香港"></div>
                 <div><label class="form-label" for="nodeWeight">权重</label><input class="form-control" id="nodeWeight" type="number" min="1" max="1000" value="100"></div>
             </div>
+            <div class="border rounded bg-light p-3 mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div><h4 class="mb-1">缓存存储与自动清理</h4><div class="small text-muted">磁盘列表由节点 Agent 自动检测并随心跳更新</div></div>
+                </div>
+                <div class="edge-field-grid">
+                    <div>
+                        <label class="form-label" for="nodeCacheDisk">缓存磁盘</label>
+                        <select class="form-select" id="nodeCacheDisk" onchange="updateCacheDirectoryHint()"></select>
+                        <div class="form-text" id="nodeCacheDirectoryHint">实际缓存目录：/var/cache/kuocai-cdn</div>
+                    </div>
+                    <div>
+                        <label class="form-label" for="nodeCacheMaxSizeGb">最大缓存容量（GB）</label>
+                        <input class="form-control" id="nodeCacheMaxSizeGb" type="number" min="1" max="102400" value="50">
+                        <div class="form-text">达到上限后 Nginx 会优先淘汰较少使用的缓存</div>
+                    </div>
+                    <div>
+                        <label class="form-label" for="nodeCacheCleanupAgeDays">缓存文件存放超过（天）</label>
+                        <input class="form-control" id="nodeCacheCleanupAgeDays" type="number" min="1" max="3650" value="7">
+                    </div>
+                    <div>
+                        <label class="form-label" for="nodeCacheCleanupMinHits">访问少于（次）</label>
+                        <input class="form-control" id="nodeCacheCleanupMinHits" type="number" min="1" max="1000000" value="1">
+                    </div>
+                </div>
+                <div class="form-check form-switch mt-3">
+                    <input class="form-check-input" type="checkbox" id="nodeCacheCleanupEnabled" checked>
+                    <label class="form-check-label" for="nodeCacheCleanupEnabled">启用低频缓存自动清理</label>
+                </div>
+                <div class="form-text mt-2">按所选天数的滚动窗口统计访问次数，每 10 分钟检查一次；切换磁盘后新缓存写入新目录，旧目录不会自动迁移或误删。</div>
+            </div>
             <div class="mt-4"><label class="form-label" for="nodeRemark">备注</label><textarea class="form-control" id="nodeRemark" rows="2" maxlength="512"></textarea></div>
             <div class="form-check form-switch mt-4"><input class="form-check-input" type="checkbox" id="nodeEnabled" checked><label class="form-check-label" for="nodeEnabled">启用节点</label></div>
         </div>
@@ -294,7 +324,7 @@
                 '<td><span class="d-block">' + esc(node.groupName || '未分组') + '</span><span class="text-muted">' + esc(node.region || '-') + '</span></td>' +
                 '<td>' + statusBadge(node.status) + (enabled ? '' : '<span class="badge bg-soft-secondary text-secondary ms-1">已停用</span>') + '</td>' +
                 '<td><span class="edge-metric d-inline-block">CPU ' + metric(node.cpuUsage) + '</span><span class="edge-metric d-inline-block">内存 ' + metric(node.memoryUsage) + '</span><span class="edge-metric d-inline-block">磁盘 ' + metric(node.diskUsage) + '</span></td>' +
-                '<td><span class="d-block edge-table-rate">↑ ' + bytesRate(node.txRateBps) + '　↓ ' + bytesRate(node.rxRateBps) + '</span><span class="d-block small text-muted">累计 ↑ ' + bytes(node.txBytes) + ' / ↓ ' + bytes(node.rxBytes) + '</span><span class="small text-muted">缓存 ' + bytes(node.cacheBytes) + '</span></td>' +
+                '<td><span class="d-block edge-table-rate">↑ ' + bytesRate(node.txRateBps) + '　↓ ' + bytesRate(node.rxRateBps) + '</span><span class="d-block small text-muted">累计 ↑ ' + bytes(node.txBytes) + ' / ↓ ' + bytes(node.rxBytes) + '</span><span class="d-block small text-muted">缓存 ' + bytes(node.cacheBytes) + ' / 上限 ' + (node.cacheMaxSizeGb || 50) + ' GB</span><span class="small text-muted text-wrap" title="' + esc(node.cacheDirectory || '') + '">' + esc(node.cacheDiskMount || '/') + '</span></td>' +
                 '<td><span class="d-block">期望 ' + (node.desiredConfigVersion || 0) + '</span><span class="text-muted">已应用 ' + (node.appliedConfigVersion || 0) + '</span></td>' +
                 '<td>' + dateText(node.lastHeartbeat) + (node.lastError ? '<span class="d-block text-danger text-wrap" style="max-width:200px">' + esc(node.lastError) + '</span>' : '') + '</td>' +
                 '<td class="text-end edge-actions"><button class="btn btn-white btn-icon btn-sm" title="状态与历史" onclick="openNodeDetail(\'' + node.id + '\')"><i class="bi-activity"></i></button> ' +
@@ -332,11 +362,40 @@
         document.getElementById('nodeGroup').innerHTML = groups.filter(g => g.status === 'enabled').map(g => '<option value="' + g.id + '">[' + coverageName(g.coverage || 'legacy') + '] ' + esc(g.groupName) + (g.isDefault === 1 ? '（默认）' : '') + '</option>').join('');
     }
 
+    function renderCacheDiskOptions(node) {
+        const select = document.getElementById('nodeCacheDisk');
+        const selected = node && node.cacheDiskMount ? String(node.cacheDiskMount) : '/';
+        const disks = node && Array.isArray(node.detectedDisks) ? node.detectedDisks.slice() : [];
+        if (!disks.some(disk => String(disk.mountPath) === '/')) {
+            disks.unshift({mountPath: '/', device: '系统盘', totalBytes: 0, availableBytes: 0, writable: true});
+        }
+        if (!disks.some(disk => String(disk.mountPath) === selected)) {
+            disks.push({mountPath: selected, device: '当前配置（节点暂未检测到）', totalBytes: 0, availableBytes: 0, writable: true, missing: true});
+        }
+        select.innerHTML = disks.map(disk => {
+            const mount = String(disk.mountPath || '/');
+            const capacity = Number(disk.totalBytes || 0) > 0
+                ? ' · 可用 ' + bytes(disk.availableBytes) + ' / ' + bytes(disk.totalBytes) : '';
+            const unavailable = disk.writable === false ? '（不可写）' : (disk.missing ? '（暂未挂载）' : '');
+            return '<option value="' + esc(mount) + '"' + (disk.writable === false ? ' disabled' : '') + '>' +
+                esc(mount + ' · ' + (disk.device || '磁盘') + capacity + unavailable) + '</option>';
+        }).join('');
+        select.value = selected;
+        updateCacheDirectoryHint();
+    }
+
+    function updateCacheDirectoryHint() {
+        const mount = value('nodeCacheDisk') || '/';
+        const directory = mount === '/' ? '/var/cache/kuocai-cdn' : mount.replace(/\/$/, '') + '/kuocai-cdn-cache';
+        document.getElementById('nodeCacheDirectoryHint').textContent = '实际缓存目录：' + directory;
+    }
+
     function openNodeModal() {
         document.getElementById('nodeModalTitle').textContent = '新增节点';
         ['nodeId','nodeName','nodeHost','sshPassword','nodeRegion','nodeRemark'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('sshPassword').placeholder = '请输入 SSH 密码';
         document.getElementById('sshPort').value = 22; document.getElementById('sshUsername').value = 'root'; document.getElementById('nodeWeight').value = 100; document.getElementById('nodeEnabled').checked = true;
+        document.getElementById('nodeCacheMaxSizeGb').value = 50; document.getElementById('nodeCacheCleanupAgeDays').value = 7; document.getElementById('nodeCacheCleanupMinHits').value = 1; document.getElementById('nodeCacheCleanupEnabled').checked = true; renderCacheDiskOptions(null);
         const defaultGroup = groups.find(g => g.isDefault === 1); Array.from(document.getElementById('nodeGroup').options).forEach(option => option.selected = defaultGroup && String(option.value) === String(defaultGroup.id));
         nodeModal.show();
     }
@@ -347,6 +406,7 @@
         document.getElementById('nodeName').value = node.nodeName || ''; document.getElementById('nodeHost').value = node.host || '';
         document.getElementById('sshPort').value = node.sshPort || 22; document.getElementById('sshUsername').value = node.sshUsername || 'root';
         document.getElementById('sshPassword').value = ''; document.getElementById('sshPassword').placeholder = node.passwordConfigured ? '留空则保持原密码' : '如需重装 Agent，请重新输入 SSH 密码'; document.getElementById('nodeRegion').value = node.region || ''; document.getElementById('nodeWeight').value = node.weight || 100;
+        document.getElementById('nodeCacheMaxSizeGb').value = node.cacheMaxSizeGb || 50; document.getElementById('nodeCacheCleanupAgeDays').value = node.cacheCleanupAgeDays || 7; document.getElementById('nodeCacheCleanupMinHits').value = node.cacheCleanupMinHits || 1; document.getElementById('nodeCacheCleanupEnabled').checked = node.cacheCleanupEnabled !== 0; renderCacheDiskOptions(node);
         document.getElementById('nodeRemark').value = node.remark || ''; document.getElementById('nodeEnabled').checked = node.enabled === 1; const selectedGroups = (node.groupIds || (node.groupId ? [node.groupId] : [])).map(String); Array.from(document.getElementById('nodeGroup').options).forEach(option => option.selected = selectedGroups.includes(String(option.value)));
         nodeModal.show();
     }
@@ -354,7 +414,7 @@
     async function saveNode() {
         const button = document.getElementById('saveNodeButton'); button.disabled = true;
         const groupIds = Array.from(document.getElementById('nodeGroup').selectedOptions).map(option => option.value);
-        const payload = {id: value('nodeId') || null, nodeName: value('nodeName'), host: value('nodeHost'), sshPort: numberValue('sshPort'), sshUsername: value('sshUsername'), sshPassword: document.getElementById('sshPassword').value, region: value('nodeRegion'), weight: numberValue('nodeWeight'), enabled: document.getElementById('nodeEnabled').checked ? 1 : 0, groupId: groupIds.length ? groupIds[0] : null, groupIds: groupIds, remark: value('nodeRemark')};
+        const payload = {id: value('nodeId') || null, nodeName: value('nodeName'), host: value('nodeHost'), sshPort: numberValue('sshPort'), sshUsername: value('sshUsername'), sshPassword: document.getElementById('sshPassword').value, region: value('nodeRegion'), weight: numberValue('nodeWeight'), enabled: document.getElementById('nodeEnabled').checked ? 1 : 0, groupId: groupIds.length ? groupIds[0] : null, groupIds: groupIds, cacheDiskMount: value('nodeCacheDisk') || '/', cacheMaxSizeGb: numberValue('nodeCacheMaxSizeGb'), cacheCleanupEnabled: document.getElementById('nodeCacheCleanupEnabled').checked ? 1 : 0, cacheCleanupAgeDays: numberValue('nodeCacheCleanupAgeDays'), cacheCleanupMinHits: numberValue('nodeCacheCleanupMinHits'), remark: value('nodeRemark')};
         try { const result = await request('SelfHostedNode/save', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); layer.msg(result.message,{icon:1}); nodeModal.hide(); await loadData(); }
         catch (error) { layer.msg(error.message,{icon:2}); } finally { button.disabled = false; }
     }
@@ -449,11 +509,12 @@
         document.getElementById('detailNodeStatus').innerHTML = statusBadge(node.status);
         document.getElementById('detailNodeMeta').textContent = (node.host || '-') + ':' + (node.sshPort || 22) + ' · ' + (node.groupName || '未分组') + ' · ' + (node.region || '未设置区域');
         document.getElementById('detailResources').textContent = 'CPU ' + metric(node.cpuUsage) + ' · 内存 ' + metric(node.memoryUsage);
-        document.getElementById('detailDisk').textContent = '磁盘 ' + metric(node.diskUsage);
+        document.getElementById('detailDisk').textContent = '缓存磁盘 ' + (node.cacheDiskMount || '/') + ' · 使用率 ' + metric(node.diskUsage);
         document.getElementById('detailNetwork').textContent = '↑ ' + bytesRate(node.txRateBps) + ' / ↓ ' + bytesRate(node.rxRateBps);
         document.getElementById('detailTrafficTotal').textContent = '累计 ↑ ' + bytes(node.txBytes) + ' / ↓ ' + bytes(node.rxBytes);
         document.getElementById('detailCache').textContent = bytes(node.cacheBytes);
-        document.getElementById('detailAgent').textContent = 'Agent ' + (node.agentVersion || '-');
+        document.getElementById('detailAgent').textContent = 'Agent ' + (node.agentVersion || '-') + ' · ' +
+            (node.cacheCleanupEnabled === 0 ? '自动清理关闭' : '超过 ' + (node.cacheCleanupAgeDays || 7) + ' 天且少于 ' + (node.cacheCleanupMinHits || 1) + ' 次时清理');
         const configCurrent = Number(node.desiredConfigVersion || 0) === Number(node.appliedConfigVersion || 0);
         document.getElementById('detailConfig').innerHTML = configCurrent ? '<span class="text-success">已同步</span>' : '<span class="text-warning">待下发</span>';
         document.getElementById('detailHeartbeat').textContent = '期望 ' + (node.desiredConfigVersion || 0) + ' / 已应用 ' + (node.appliedConfigVersion || 0) + ' · 心跳 ' + dateText(node.lastHeartbeat);

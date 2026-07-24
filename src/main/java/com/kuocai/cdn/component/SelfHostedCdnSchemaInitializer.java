@@ -29,7 +29,10 @@ public class SelfHostedCdnSchemaInitializer {
                 "applied_config_version BIGINT NOT NULL DEFAULT 0,cpu_usage DECIMAL(6,2) NULL,memory_usage DECIMAL(6,2) NULL," +
                 "disk_usage DECIMAL(6,2) NULL,rx_bytes BIGINT NOT NULL DEFAULT 0,tx_bytes BIGINT NOT NULL DEFAULT 0," +
                 "rx_rate_bps BIGINT NOT NULL DEFAULT 0,tx_rate_bps BIGINT NOT NULL DEFAULT 0," +
-                "cache_bytes BIGINT NOT NULL DEFAULT 0,last_error VARCHAR(1000) NULL,remark VARCHAR(512) NULL," +
+                "cache_bytes BIGINT NOT NULL DEFAULT 0,cache_disk_mount VARCHAR(512) NOT NULL DEFAULT '/'," +
+                "cache_max_size_gb INT NOT NULL DEFAULT 50,cache_cleanup_enabled TINYINT NOT NULL DEFAULT 1," +
+                "cache_cleanup_age_days INT NOT NULL DEFAULT 7,cache_cleanup_min_hits INT NOT NULL DEFAULT 1," +
+                "detected_disks_json LONGTEXT NULL,last_error VARCHAR(1000) NULL,remark VARCHAR(512) NULL," +
                 "create_time DATETIME DEFAULT CURRENT_TIMESTAMP,update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
                 "UNIQUE KEY uk_self_hosted_node_endpoint (host,ssh_port),KEY idx_self_hosted_node_status (enabled,status,last_heartbeat)" +
                 ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
@@ -121,6 +124,18 @@ public class SelfHostedCdnSchemaInitializer {
                 "ALTER TABLE self_hosted_node ADD COLUMN rx_rate_bps BIGINT NOT NULL DEFAULT 0 AFTER tx_bytes");
         addColumnIfAbsent("self_hosted_node", "tx_rate_bps",
                 "ALTER TABLE self_hosted_node ADD COLUMN tx_rate_bps BIGINT NOT NULL DEFAULT 0 AFTER rx_rate_bps");
+        addColumnIfAbsent("self_hosted_node", "cache_disk_mount",
+                "ALTER TABLE self_hosted_node ADD COLUMN cache_disk_mount VARCHAR(512) NOT NULL DEFAULT '/' AFTER cache_bytes");
+        addColumnIfAbsent("self_hosted_node", "cache_max_size_gb",
+                "ALTER TABLE self_hosted_node ADD COLUMN cache_max_size_gb INT NOT NULL DEFAULT 50 AFTER cache_disk_mount");
+        addColumnIfAbsent("self_hosted_node", "cache_cleanup_enabled",
+                "ALTER TABLE self_hosted_node ADD COLUMN cache_cleanup_enabled TINYINT NOT NULL DEFAULT 1 AFTER cache_max_size_gb");
+        addColumnIfAbsent("self_hosted_node", "cache_cleanup_age_days",
+                "ALTER TABLE self_hosted_node ADD COLUMN cache_cleanup_age_days INT NOT NULL DEFAULT 7 AFTER cache_cleanup_enabled");
+        addColumnIfAbsent("self_hosted_node", "cache_cleanup_min_hits",
+                "ALTER TABLE self_hosted_node ADD COLUMN cache_cleanup_min_hits INT NOT NULL DEFAULT 1 AFTER cache_cleanup_age_days");
+        addColumnIfAbsent("self_hosted_node", "detected_disks_json",
+                "ALTER TABLE self_hosted_node ADD COLUMN detected_disks_json LONGTEXT NULL AFTER cache_cleanup_min_hits");
         execute("INSERT INTO self_hosted_node_group (group_name,cname_label,coverage,is_default,status) " +
                 "SELECT '默认节点组','edge','legacy',1,'enabled' WHERE NOT EXISTS (SELECT 1 FROM self_hosted_node_group WHERE is_default=1)");
     }

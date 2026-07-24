@@ -722,7 +722,8 @@
 
                             </form>
                             <div class="d-flex justify-content-end">
-                                <button type="button" onclick="saveWebsiteBaseConfig()" class="btn btn-primary">保存更改
+                                <button type="button" id="saveWebsiteBaseConfigButton"
+                                        onclick="saveWebsiteBaseConfig()" class="btn btn-primary">保存更改
                                 </button>
                             </div>
                         </div>
@@ -971,9 +972,9 @@
 
 <script th:src="@{common/layer/layer.js}"></script>
 <script th:src="@{common/util/reg.js}"></script>
-<script th:src="@{common/custom.js}"></script>
+<script th:src="@{common/custom.js(v='20260724-save-feedback')}"></script>
 <script th:src="@{common/custom_ceo.js(v='20260720-admin-path')}"></script>
-<script th:src="@{common/custom_cmo.js(v='20260720-branding-admin-path')}"></script>
+<script th:src="@{common/custom_cmo.js(v='20260724-save-feedback')}"></script>
 <script th:src="@{common/custom_cto.js(v='20260624-free-package2')}"></script>
 
 <!-- JS Plugins Init. -->

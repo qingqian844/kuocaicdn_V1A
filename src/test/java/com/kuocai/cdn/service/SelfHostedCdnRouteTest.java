@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kuocai.cdn.dto.SelfHostedNodeSaveRequest;
 import com.kuocai.cdn.dto.SelfHostedHeartbeatRequest;
+import com.kuocai.cdn.dto.SelfHostedDiskInfo;
 import com.kuocai.cdn.dao.CdnDomainDao;
 import com.kuocai.cdn.dao.SelfHostedCacheJobDao;
 import com.kuocai.cdn.dao.SelfHostedCacheJobNodeDao;
@@ -33,6 +34,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -288,6 +290,57 @@ class SelfHostedCdnRouteTest {
     }
 
     @Test
+    void agentConfigIncludesNodeCacheDiskAndCleanupPolicy() {
+        SelfHostedGroupNodeDao groupNodeDao = mock(SelfHostedGroupNodeDao.class);
+        when(groupNodeDao.selectList(any())).thenReturn(Collections.emptyList());
+        SelfHostedCdnService service = new SelfHostedCdnService(mock(SelfHostedNodeDao.class),
+                mock(SelfHostedNodeGroupDao.class), groupNodeDao, mock(SelfHostedDomainConfigDao.class),
+                mock(SelfHostedCacheJobDao.class), mock(SelfHostedCacheJobNodeDao.class),
+                mock(CdnDomainDao.class), mock(SelfHostedPortForwardDao.class));
+        SelfHostedNode node = SelfHostedNode.builder().id(1L).desiredConfigVersion(5L)
+                .cacheDiskMount("/data").cacheMaxSizeGb(200)
+                .cacheCleanupEnabled(1).cacheCleanupAgeDays(14).cacheCleanupMinHits(3).build();
+
+        String json = service.desiredConfig(node).toJSONString();
+
+        assertTrue(json.contains("\"diskMount\":\"/data\""));
+        assertTrue(json.contains("\"directory\":\"/data/kuocai-cdn-cache\""));
+        assertTrue(json.contains("\"maxSizeGb\":200"));
+        assertTrue(json.contains("\"cleanupAgeDays\":14"));
+        assertTrue(json.contains("\"cleanupMinHits\":3"));
+        assertEquals("/var/cache/kuocai-cdn", SelfHostedCdnService.cacheDirectory("/"));
+    }
+
+    @Test
+    void heartbeatStoresDetectedCacheDisksForAdminSelection() {
+        SelfHostedNodeDao nodeDao = mock(SelfHostedNodeDao.class);
+        SelfHostedCdnService service = new SelfHostedCdnService(nodeDao,
+                mock(SelfHostedNodeGroupDao.class), mock(SelfHostedGroupNodeDao.class),
+                mock(SelfHostedDomainConfigDao.class), mock(SelfHostedCacheJobDao.class),
+                mock(SelfHostedCacheJobNodeDao.class), mock(CdnDomainDao.class),
+                mock(SelfHostedPortForwardDao.class));
+        SelfHostedNode node = SelfHostedNode.builder().id(1L).desiredConfigVersion(8L)
+                .appliedConfigVersion(7L).enabled(1).build();
+        SelfHostedDiskInfo disk = new SelfHostedDiskInfo();
+        disk.setDevice("/dev/vdb1");
+        disk.setMountPath("/data");
+        disk.setFsType("xfs");
+        disk.setTotalBytes(500L * 1024 * 1024 * 1024);
+        disk.setAvailableBytes(400L * 1024 * 1024 * 1024);
+        disk.setUsedPercent(new BigDecimal("20.00"));
+        disk.setWritable(true);
+        SelfHostedHeartbeatRequest request = new SelfHostedHeartbeatRequest();
+        request.setAppliedConfigVersion(7L);
+        request.setDisks(Collections.singletonList(disk));
+
+        service.heartbeat(node, request);
+
+        assertTrue(node.getDetectedDisksJson().contains("/dev/vdb1"));
+        assertTrue(node.getDetectedDisksJson().contains("/data"));
+        verify(nodeDao).updateById(node);
+    }
+
+    @Test
     void heartbeatCalculatesNetworkRatesAndRecordsTelemetry() {
         SelfHostedNodeDao nodeDao = mock(SelfHostedNodeDao.class);
         SelfHostedNodeTelemetryService telemetryService = mock(SelfHostedNodeTelemetryService.class);
@@ -370,9 +423,12 @@ class SelfHostedCdnRouteTest {
 
         assertTrue(source.indexOf("applied = apply_config(config, desired)")
                 < source.indexOf("process_cache_jobs(config, response.get(\"cacheJobs\"))"));
-        assertTrue(source.contains("\"agentVersion\": \"1.3.0\""));
+        assertTrue(source.contains("\"agentVersion\": \"1.4.0\""));
         assertTrue(source.contains("def cpu_percent()"));
         assertTrue(source.contains("default_route_interfaces"));
+        assertTrue(source.contains("def detected_disks()"));
+        assertTrue(source.contains("def cleanup_low_frequency_cache"));
+        assertTrue(source.contains("cachePolicy"));
         assertTrue(source.contains("listen 80 default_server"));
         assertTrue(source.contains("return 444"));
         assertTrue(source.contains("remove_distribution_default_server"));
